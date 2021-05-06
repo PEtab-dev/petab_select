@@ -20,7 +20,7 @@ A YAML file with a description of the model selection problem.
 format_version: [string]
 criterion: [string]
 method: [string]
-model_selection_files: [List of filenames]
+model_specifications_files: [List of filenames]
 constraints_files: [List of filenames]
 initial_model_files: [List of filenames]
 ```
@@ -28,7 +28,7 @@ initial_model_files: [List of filenames]
 - `format_version`: The version of the model selection extension format (e.g. `'beta_1'`)
 - `criterion`: The criterion by which models should be compared (e.g. `'AIC'`)
 - `method`: The method by which model candidates should be generated (e.g. `'forward'`)
-- `model_selection_files`: The filenames of model specification files.
+- `model_specifications_files`: The filenames of model specifications files.
 - `constraints_files`: The filenames of constraints files.
 - `initial_model_files`: The filenames of initial model files.
 
