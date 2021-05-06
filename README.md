@@ -66,6 +66,23 @@ A TSV with models that can be used to start the model selection method. This for
 
 Model IDs should be unique here and compared to model IDs in model selection files.
 
+## Return format
+To be decided. Could match the format of the expected results for the test cases (the "`expected.yaml`" file in each test case directory).
+
+```yaml
+modelId: [string]
+YAML: [string]
+SBML: (Optional) [string]
+parameters: [Dictionary of parameter IDs and values]
+criteria: [Dictionary of criterion names and values]
+```
+
+- `modelId`: see the format of the model specifications files
+- `YAML`: see the format of the model specifications files
+- `SBML`: see the format of the model specifications files
+- `parameters`: the optimized parameter values.
+- `criteria`: the value of the criterion by which model selection was performed, at least. Optionally, other criterion values too.
+
 # Test cases
 | Test ID | Criterion | Method    | Model specification files | Compressed format | Constraints files | Initial models files |
 |---------|-----------| ----------|---------------------------|-------------------|-------------------|----------------------|
