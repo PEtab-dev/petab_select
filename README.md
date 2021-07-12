@@ -6,8 +6,9 @@ This Python 3 package can be installed from PyPI, with `pip3 install petab-selec
 
 # Examples
 There are example Jupyter notebooks for usage of PEtab Select with
-- the [command-line interface], and
-- the [Python 3 interface],
+- the command-line interface, and
+- the Python 3 interface,
+
 in the `doc/examples` directory of this repository.
 
 # Supported features
