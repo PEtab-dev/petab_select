@@ -1,5 +1,5 @@
 format_version: beta_1
 criterion: AIC
-method: forward
-model_specifications_files:
+method: brute_force
+model_specification_files:
 - _model_specifications.tsv

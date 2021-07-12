@@ -1,7 +1,5 @@
 format_version: beta_1
-criterion: AICc
-method: backward
-model_specifications_files:
+criterion: BIC
+method: brute_force
+model_specification_files:
 - _model_specifications.tsv
-constraints_files:
-- _constraints.tsv

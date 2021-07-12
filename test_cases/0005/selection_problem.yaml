@@ -1,7 +1,7 @@
 format_version: beta_1
-criterion: AICc
-method: backward
+criterion: AIC
+method: forward
 model_specification_files:
 - _model_specifications.tsv
-constraint_files:
-- _constraints.tsv
+initial_model_files:
+- _initial_models.tsv
