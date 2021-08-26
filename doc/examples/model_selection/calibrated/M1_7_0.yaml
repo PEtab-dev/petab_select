@@ -1,5 +1,5 @@
 criteria:
-  AIC: 40
+  AIC: 20
 model_id: M1_7_0
 parameters:
   k1: estimate

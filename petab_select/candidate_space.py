@@ -9,13 +9,6 @@ import numpy as np
 from .model import Model
 
 
-INITIAL_MODEL_METHODS = [
-    'backward',
-    'lateral',
-    'forward',
-]
-
-
 class CandidateSpace(abc.ABC):
     """A base class for collecting candidate models.
 

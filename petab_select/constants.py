@@ -17,7 +17,8 @@ ESTIMATE_SYMBOL_UI = ESTIMATE
 # Here, 'nan' is a string as it will be written to a (temporary) file. The
 # actual internal symbol is float('nan'). Equality to this symbol should be
 # checked with a function like `math.isnan()` (not ` == float('nan')`).
-ESTIMATE_SYMBOL_INTERNAL = 'nan'
+ESTIMATE_SYMBOL_INTERNAL_STR = 'nan'
+ESTIMATE_SYMBOL_INTERNAL = float(ESTIMATE_SYMBOL_INTERNAL_STR)
 
 TYPING_PATH = Union[str, Path]
 
@@ -27,6 +28,12 @@ TYPING_PATH = Union[str, Path]
 #MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
 #YAML = 'YAML'  # FIXME
 MODEL_ID = 'model_id'
+# If `model0_id` is defined for a model, it is the ID of the model that the
+# current model was/is to be compared to. This is part of the result and is
+# only (optionally) set by the PEtab calibration tool. It is not defined by the
+# PEtab Select model selection problem (but may be subsequently stored in the
+# PEtab Select model report format.
+MODEL0_ID = 'model0_id'
 PETAB_YAML = 'petab_yaml'  # FIXME
 SBML = 'sbml'
 HASH = 'hash'
@@ -45,6 +52,13 @@ BIDIRECTIONAL = 'bidirectional'
 FORWARD = 'forward'
 BACKWARD = 'backward'
 LATERAL = 'lateral'
+BRUTE_FORCE = 'brute_force'
+# Methods that require an initial model.
+INITIAL_MODEL_METHODS = [
+    BACKWARD,
+    FORWARD,
+    LATERAL,
+]
 
 #DISTANCES = {
 #    FORWARD: {
@@ -67,7 +81,8 @@ AICC = 'AICc'
 BIC = 'BIC'
 
 PARAMETERS = 'parameters'
-ESTIMATE_PARAMETERS = 'estimated_parameters'
+#PARAMETER_ESTIMATE = 'parameter_estimate'
+ESTIMATED_PARAMETERS = 'estimated_parameters'
 
 CRITERION = 'criterion'
 METHOD = 'method'

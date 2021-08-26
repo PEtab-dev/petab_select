@@ -1,7 +1,8 @@
 """The model selection problem class."""
 import abc
+from functools import partial
 from pathlib import Path
-from typing import Union
+from typing import Callable, Iterable, Union
 import yaml
 
 from .constants import (
@@ -9,6 +10,10 @@ from .constants import (
     METHOD,
     MODEL_SPECIFICATION_FILES,
     VERSION,
+)
+from .model import (
+    Model,
+    default_compare,
 )
 from .model_space import ModelSpace
 
@@ -19,6 +24,8 @@ class Problem(abc.ABC):
     Attributes:
         model_space:
             The model space.
+        compare:
+            A method that compares models by selection criterion.
         criterion:
             The criterion used to compare models.
         method:
@@ -34,6 +41,7 @@ class Problem(abc.ABC):
     def __init__(
         self,
         model_space: ModelSpace,
+        compare: Callable[[Model, Model], bool] = None,
         criterion: str = None,
         method: str = None,
         version: str = None,
@@ -44,6 +52,10 @@ class Problem(abc.ABC):
         self.method = method
         self.version = version
         self.yaml_path = yaml_path
+
+        self.compare = compare
+        if self.compare is None:
+            self.compare = partial(default_compare, criterion=self.criterion)
 
     #def reset(self) -> None:
     #    self.model_space.reset()
@@ -130,3 +142,30 @@ class Problem(abc.ABC):
             version=problem_specification.get(VERSION, None),
             yaml_path=yaml_path,
         )
+
+    def get_best(self, models: Iterable[Model]) -> Model:
+        """Get the best model from a collection of models.
+
+        The best model is selected based on the selection problem's criterion.
+
+        Args:
+            models:
+                The best model will be taken from these models.
+
+        Returns:
+            The best model.
+        """
+        best_model = None
+        for model in models:
+            if best_model is None:
+                if model.has_criterion(self.criterion):
+                    best_model = model
+                continue
+            if self.compare(best_model, model):
+                best_model = model
+        if best_model is None:
+            raise KeyError(
+                'None of the supplied models have a value set for the '
+                f'criterion {self.criterion}.'
+            )
+        return best_model

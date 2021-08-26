@@ -15,7 +15,7 @@ from typing import (
 from more_itertools import nth
 
 from .constants import (
-    ESTIMATE_SYMBOL_INTERNAL,
+    ESTIMATE_SYMBOL_INTERNAL_STR,
     ESTIMATE_SYMBOL_UI,
     HEADER_ROW,
     MODEL_ID,
@@ -140,7 +140,7 @@ def _replace_estimate_symbol(parameter_definition: List[str]) -> List:
         substituted for the internal symbol.
     """
     return [
-        ESTIMATE_SYMBOL_INTERNAL if p == ESTIMATE_SYMBOL_UI else p
+        ESTIMATE_SYMBOL_INTERNAL_STR if p == ESTIMATE_SYMBOL_UI else p
         for p in parameter_definition
     ]
 

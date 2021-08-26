@@ -1,5 +1,5 @@
 criteria:
-  AIC: 50
+  AIC: 30
 model_id: M1_4_0
 parameters:
   k1: 0.2
