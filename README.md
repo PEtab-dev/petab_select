@@ -72,11 +72,6 @@ A TSV file with constraints.
 - `if`: As a single YAML can relate to multiple models in the model space file, this ensures the constraint is only applies to the models that match this `if` statement
 - `constraint`: If a model violates this constraint, it is skipped during the model selection process and not optimized.
 
-### Initial models
-A TSV with models that can be used to initialize a model selection method. This format is the PEtab Select model YAML format, described below.
-
-Model IDs of initial models should be unique here and compared to model IDs in model selection files.
-
 ### Model(s) (Initial models / model interchange / report)
 - Initial models are used to initialize an appropriate model selection method. Model IDs should be unique here and compared to model IDs in any model space files.
 - Model interchange refers to the format used to transfer model information between PEtab Select and a PEtab-compatible calibration tool, during the model selection process.
@@ -88,6 +83,7 @@ The only required key is the PEtab YAML, as a model requires a PEtab problem. Al
 
 ```yaml
 model_id: (Optional) [string]
+predecessor_model_id: (Optional) [string]
 petab_yaml: [string]
 sbml: (Optional) [string]
 parameters: (Optional) [Dictionary of parameter IDs and values]
@@ -96,6 +92,7 @@ criteria: (Optional) [Dictionary of criterion names and values]
 ```
 
 - `model_id`: same as in model space files
+- `predecessor_model_id`: the ID of the model that preceded this model during the model selection process
 - `petab_yaml`: same as in model space files
 - `sbml`: same as in model space files
 - `parameters`: the parameters from the problem (either values or `'estimate'`)

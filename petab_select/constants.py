@@ -22,7 +22,7 @@ ESTIMATE_SYMBOL_INTERNAL = float(ESTIMATE_SYMBOL_INTERNAL_STR)
 
 TYPING_PATH = Union[str, Path]
 
-# Model specification row columns
+# Model space file columns
 # TODO ensure none of these occur twice in the column header (this would
 #      suggest that a parameter has a conflicting name)
 #MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
@@ -33,14 +33,14 @@ MODEL_ID = 'model_id'
 # only (optionally) set by the PEtab calibration tool. It is not defined by the
 # PEtab Select model selection problem (but may be subsequently stored in the
 # PEtab Select model report format.
-MODEL0_ID = 'model0_id'  # FIXME rename to `PREDECESSOR_MODEL_ID`
+PREDECESSOR_MODEL_ID = 'predecessor_model_id'
 PETAB_YAML = 'petab_yaml'  # FIXME
 SBML = 'sbml'
 HASH = 'hash'
 
-MODEL_SPACE_SPECIFICATION_NOT_PARAMETERS = [MODEL_ID, PETAB_YAML]
+MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
 
-COMPARED_MODEL_ID = 'compared_'+MODEL_ID
+#COMPARED_MODEL_ID = 'compared_'+MODEL_ID
 YAML_FILENAME = 'yaml'
 
 #FORWARD = 'forward'
@@ -87,6 +87,6 @@ ESTIMATED_PARAMETERS = 'estimated_parameters'
 CRITERION = 'criterion'
 METHOD = 'method'
 VERSION = 'version'
-MODEL_SPECIFICATION_FILES = 'model_specification_files'
+MODEL_SPACE_FILES = 'model_space_files'
 
 MODEL = 'model'

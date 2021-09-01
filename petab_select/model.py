@@ -20,7 +20,7 @@ from .constants import (
 
     CRITERIA,
     MODEL_ID,
-    MODEL0_ID,
+    PREDECESSOR_MODEL_ID,
     PARAMETERS,
     ESTIMATED_PARAMETERS,
     PETAB_YAML,
@@ -76,7 +76,7 @@ class Model(abc.ABC):
     saved_attributes = (
         #HASH,
         MODEL_ID,
-        MODEL0_ID,
+        PREDECESSOR_MODEL_ID,
         PETAB_YAML,
         PARAMETERS,
         ESTIMATED_PARAMETERS,
@@ -84,7 +84,7 @@ class Model(abc.ABC):
     )
     converters_load = {
         MODEL_ID: lambda x: x,
-        MODEL0_ID: lambda x: x,
+        PREDECESSOR_MODEL_ID: lambda x: x,
         PETAB_YAML: lambda x: x,
         PARAMETERS: lambda x: {
             id: (
@@ -99,7 +99,7 @@ class Model(abc.ABC):
     }
     converters_save = {
         MODEL_ID: lambda x: x,
-        MODEL0_ID: lambda x: x,
+        PREDECESSOR_MODEL_ID: lambda x: x,
         PETAB_YAML: lambda x: str(x),
         PARAMETERS: lambda x: {
             id: (
@@ -133,7 +133,7 @@ class Model(abc.ABC):
         self,
         model_id: str,
         petab_yaml: TYPING_PATH,
-        model0_id: str = None,
+        predecessor_model_id: str = None,
         parameters: Dict[str, Union[int, float]] = None,
         estimated_parameters: Dict[str, Union[int, float]] = None,
         criteria: Dict[str, float] = None,
@@ -146,7 +146,7 @@ class Model(abc.ABC):
         self.criteria = criteria
         self.index = index
 
-        self.model0_id = model0_id  # FIXME `predecessor_model_id`
+        self.predecessor_model_id = predecessor_model_id
 
         if self.parameters is None:
             self.parameters = {}

@@ -2,6 +2,4 @@ format_version: beta_1
 criterion: AIC
 method: forward
 model_space_files:
-- _model_space.tsv
-initial_model_files:
-- _initial_models.tsv
+- model_space.tsv

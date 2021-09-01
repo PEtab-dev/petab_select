@@ -20,7 +20,7 @@ from .constants import (
     HEADER_ROW,
     MODEL_ID,
     MODEL_ID_COLUMN,
-    MODEL_SPACE_SPECIFICATION_NOT_PARAMETERS,
+    MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS,
     PARAMETER_DEFINITIONS_START,
     PARAMETER_VALUE_DELIMITER,
     PETAB_YAML,
@@ -30,10 +30,11 @@ from .candidate_space import CandidateSpace
 from .model import Model
 
 
-def read_model_specification_file(filename: str) -> TextIO:
-    """Read a model specification file.
+def read_model_space_file(filename: str) -> TextIO:
+    """Read a model space file.
 
-    The specification is currently expanded and written to a temporary file.
+    The model space specification is currently expanded and written to a
+    temporary file.
 
     Args:
         filename:
@@ -99,7 +100,7 @@ def line2row(
     unpacked: bool = True,
     convert_parameters_to_float: bool = True,
 ) -> List:
-    """Parse a line from a model specifications file.
+    """Parse a line from a model space file.
 
     Args:
         line:
@@ -132,7 +133,7 @@ def _replace_estimate_symbol(parameter_definition: List[str]) -> List:
     Args:
         parameter_definition:
             A definition for a single parameter from a row of the model
-            specification file. The definition should be split into a list by
+            space file. The definition should be split into a list by
             PARAMETER_VALUE_DELIMITER.
 
     Returns:
@@ -148,7 +149,7 @@ def _replace_estimate_symbol(parameter_definition: List[str]) -> List:
 def model_generator_from_file(
     file_: TextIO,
 ) -> Callable:
-    """Get a generator for models described by the model specification file.
+    """Get a generator for models described by the model space file.
 
     Args:
         exclude_history:
@@ -159,11 +160,11 @@ def model_generator_from_file(
 
     Yields:
         The next model, as a dictionary, where the keys are the column headers
-        in the model specification file, and the values are the respective
-        column values in a row of the model specification file.
+        in the model space file, and the values are the respective
+        column values in a row of the model space file.
     """
     def generator() -> Iterable[Model]:
-        # Go to the start of model specification rows.
+        # Go to the start of model space rows.
         file_.seek(0)
         # First line is the header
         header = line2row(
@@ -186,7 +187,7 @@ def model_generator_from_file(
                     **{
                         k: v
                         for k, v in model_dict.items()
-                        if k not in MODEL_SPACE_SPECIFICATION_NOT_PARAMETERS
+                        if k not in MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS
                     },
                 },
                 index=model_index,
@@ -217,10 +218,10 @@ class ModelSpace(abc.ABC):
             A generator to generate an iterator over the model space.
         parameter_ids:
             The ordered list of parameter IDs, from the columns of the model
-            specification file.
+            space file.
         source_path:
             The path that the location of PEtab problem YAML files, as
-            specified in model specification files, is relative to.
+            specified in model space files, is relative to.
 
     Todo:
         Remove dependence on `parameter_ids`.
@@ -241,12 +242,12 @@ class ModelSpace(abc.ABC):
         self.reset(excluded_models=excluded_models)
 
         # FIXME currently just uses the number of estimated parameters as
-        #       defined in the model spec file. However, the PEtab parameters
+        #       defined in the model space file. However, the PEtab parameters
         #       table also has other estimated parameters. Also, there may be
-        #       multiple model spec files, each with different estimated
+        #       multiple model space files, each with different estimated
         #       parameters. Hence, the PEtab parameters table should be used
         #       to determine the full vector of estimated parameters.
-        #       1. Generate all PEtab problems according to the model spec
+        #       1. Generate all PEtab problems according to the model space
         #          file(s).
         #       2. Construct the superset of all estimated parameters across
         #          all problems.
@@ -254,7 +255,7 @@ class ModelSpace(abc.ABC):
         #          models?
         #       4. Store the superset as a list of parameter IDs, instead of
         #          the current, ambiguous, `max_estimated` (only correct for
-        #          a single model spec file with only a single PEtab
+        #          a single model space file with only a single PEtab
         #          problem...)
         #       5. If a model is missing a parameter, assume it is "fixed" to
         #          0?
@@ -349,18 +350,18 @@ class ModelSpace(abc.ABC):
     def from_file(
         filename: str,
     ) -> 'ModelSpace':
-        """Generate a model space from a model specifications file.
+        """Generate a model space from a model space file.
 
         Args:
             filename:
-                The location of the model specifications file.
+                The location of the model space file.
 
         Returns:
             The model space.
         """
         return ModelSpace(
             generator=model_generator_from_file(
-                read_model_specification_file(filename)
+                read_model_space_file(filename)
             ),
         )
 
@@ -370,18 +371,18 @@ class ModelSpace(abc.ABC):
         alternate: bool = True,
         source_path: Union[str, Path] = None,
     ) -> 'ModelSpace':
-        """Generate a model space from model specifications files.
+        """Generate a model space from model space files.
 
         Args:
             filenames:
-                The locations of the model specifications files.
+                The locations of the model space files.
             alternate:
                 Whether generation of models from the files should exhaust
                 models from one file before the next, or alternate between
                 files.
             source_path:
                 The path that the location of files, as specified in model
-                specification files, is relative to.
+                space files, is relative to.
 
         Returns:
             The model space.
@@ -390,7 +391,7 @@ class ModelSpace(abc.ABC):
             source_path = Path(source_path)
         generators = [
             model_generator_from_file(
-                read_model_specification_file(
+                read_model_space_file(
                     (source_path / filename)
                     if source_path is not None
                     else filename,

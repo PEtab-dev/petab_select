@@ -8,7 +8,7 @@ import yaml
 from .constants import (
     CRITERION,
     METHOD,
-    MODEL_SPECIFICATION_FILES,
+    MODEL_SPACE_FILES,
     VERSION,
 )
 from .model import (
@@ -34,7 +34,7 @@ class Problem(abc.ABC):
             The version of the PEtab Select format.
         yaml_path:
             The location of the selection problem YAML file. Used for relative
-            paths that exist in e.g. the model specification files.
+            paths that exist in e.g. the model space files.
             TODO should the relative paths be relative to the YAML or the
             file that contains them?
     """
@@ -121,16 +121,16 @@ class Problem(abc.ABC):
         with open(yaml_path, 'r') as f:
             problem_specification = yaml.safe_load(f)
 
-        if not problem_specification.get(MODEL_SPECIFICATION_FILES, []):
+        if not problem_specification.get(MODEL_SPACE_FILES, []):
             raise KeyError(
                 'The model selection problem specification file is missing '
-                'model specification files.'
+                'model space files.'
             )
 
         model_space = ModelSpace.from_files(
             [
                 f
-                for f in problem_specification[MODEL_SPECIFICATION_FILES]
+                for f in problem_specification[MODEL_SPACE_FILES]
             ],
             source_path=yaml_path.parent,
         )

@@ -1,5 +1,5 @@
 format_version: beta_1
 criterion: BIC
 method: brute_force
-model_specification_files:
-- _model_specifications.tsv
+model_space_files:
+- _model_space.tsv
