@@ -164,6 +164,9 @@ def candidates(
         # Load state
         with open(state, 'rb') as f:
             problem.set_state(dill.load(f))
+    else:
+        # Create the output path for the state
+        Path(state).parent.mkdir(parents=True, exist_ok=True)
 
     model0 = None
     if best is not None:
@@ -259,8 +262,8 @@ def model2petab(
 
     if model_id is not None and model.model_id != model_id:
         raise ValueError(
-            'The ID of the model from the YAML file does not match the
-            specified ID.'
+            'The ID of the model from the YAML file does not match the '
+            'specified ID.'
         )
 
     output_path = Path(output_path)
