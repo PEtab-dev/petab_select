@@ -33,7 +33,7 @@ MODEL_ID = 'model_id'
 # only (optionally) set by the PEtab calibration tool. It is not defined by the
 # PEtab Select model selection problem (but may be subsequently stored in the
 # PEtab Select model report format.
-MODEL0_ID = 'model0_id'
+MODEL0_ID = 'model0_id'  # FIXME rename to `PREDECESSOR_MODEL_ID`
 PETAB_YAML = 'petab_yaml'  # FIXME
 SBML = 'sbml'
 HASH = 'hash'
@@ -88,3 +88,5 @@ CRITERION = 'criterion'
 METHOD = 'method'
 VERSION = 'version'
 MODEL_SPECIFICATION_FILES = 'model_specification_files'
+
+MODEL = 'model'

@@ -1,2 +1,2 @@
 """Version of the model selection extension for PEtab."""
-__version__ = '0.0.1'
+__version__ = '0.0.2'

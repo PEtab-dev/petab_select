@@ -5,7 +5,7 @@ import re
 
 
 org = 'PEtab-dev'
-repo = 'draft_model_selection_extension'
+repo = 'petab_select'
 
 
 def read(fname):
@@ -54,10 +54,10 @@ ENTRY_POINTS = {
 setup(
     name='petab_select',
     version=__version__,
-    description='Model selection extension for PEtab',
+    description='PEtab Select: an extension to PEtab for model selection.',
     long_description=absolute_links(read('README.md')),
     long_description_content_type="text/markdown",
-    #author='The PEtab model selection extension developers',
+    #author='The PEtab Select developers',
     #author_email='dilan.pathirana@uni-bonn.de',
     url=f'https://github.com/{org}/{repo}',
     packages=find_packages(exclude=['doc*', 'test*']),
@@ -86,6 +86,9 @@ setup(
         #'flake8',
         'pytest',
         #'python-libcombine',
+        'amici',
+        'fides',
+        'pypesto',
     ],
     python_requires=f'>={minimum_python_version}',
     entry_points=ENTRY_POINTS,

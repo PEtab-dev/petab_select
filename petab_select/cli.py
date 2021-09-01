@@ -257,6 +257,12 @@ def model2petab(
             # Unknown error.
             raise Exception([e1, e2])
 
+    if model_id is not None and model.model_id != model_id:
+        raise ValueError(
+            'The ID of the model from the YAML file does not match the
+            specified ID.'
+        )
+
     output_path = Path(output_path)
     output_path.mkdir(parents=True, exist_ok=True)
     _, petab_yaml = model.to_petab(output_path)

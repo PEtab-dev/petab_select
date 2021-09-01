@@ -109,7 +109,15 @@ class Model(abc.ABC):
             )
             for id, value in x.items()
         },
-        ESTIMATED_PARAMETERS: lambda x: x,
+        # FIXME handle with a `set_estimated_parameters` method instead?
+        # to avoid `float` cast here. Reason for cast is because e.g. pyPESTO
+        # can provide type `np.float64`, which causes issues when writing to
+        # YAML.
+        #ESTIMATED_PARAMETERS: lambda x: x,
+        ESTIMATED_PARAMETERS: lambda x: {
+            id: float(value)
+            for id, value in x.items()
+        },
         CRITERIA: lambda x: None if not x else x,
     }
     hash_attributes = {
@@ -125,6 +133,7 @@ class Model(abc.ABC):
         self,
         model_id: str,
         petab_yaml: TYPING_PATH,
+        model0_id: str = None,
         parameters: Dict[str, Union[int, float]] = None,
         estimated_parameters: Dict[str, Union[int, float]] = None,
         criteria: Dict[str, float] = None,
@@ -136,6 +145,8 @@ class Model(abc.ABC):
         self.estimated_parameters = estimated_parameters
         self.criteria = criteria
         self.index = index
+
+        self.model0_id = model0_id  # FIXME `predecessor_model_id`
 
         if self.parameters is None:
             self.parameters = {}
@@ -279,9 +290,12 @@ class Model(abc.ABC):
                 The location where the PEtab Select model YAML file will be
                 saved.
         """
-        # FIXME change `PETAB_YAML` to be relative to destination?
+        # FIXME change `getattr(self, PETAB_YAML)` to be relative to
+        # destination?
         # kind of fixed, as the path will be resolved in `to_dict`.
-        yaml.dump(self.to_dict(), str(petab_yaml))
+        with open(petab_yaml, 'w') as f:
+            yaml.dump(self.to_dict(), f)
+        #yaml.dump(self.to_dict(), str(petab_yaml))
 
     def to_petab(
         self,

@@ -1,37 +1,37 @@
-# Draft model selection extension
-Repository for development of the model selection extension
+# PEtab Select
+The repository for the development of the extension to PEtab for model selection, including the additional file formats and Python 3 package.
 
-# Install
-This Python 3 package can be installed from PyPI, with `pip3 install petab-select`.
+## Install
+The Python 3 package provides both the Python 3 and command-line (CLI) interfaces, and can be installed from PyPI, with `pip3 install petab-select`.
 
-# Examples
+## Examples
 There are example Jupyter notebooks for usage of PEtab Select with
 - the command-line interface, and
 - the Python 3 interface,
 
-in the `doc/examples` directory of this repository.
+in the `doc/examples` directory.
 
-# Supported features
-## Criterion
+## Supported features
+### Criterion
 - `AIC`: https://en.wikipedia.org/wiki/Akaike_information_criterion#Definition
 - `AICc`: https://en.wikipedia.org/wiki/Akaike_information_criterion#Modification_for_small_sample_size
 - `BIC`: https://en.wikipedia.org/wiki/Bayesian_information_criterion#Definition
 
-## Methods
+### Methods
 - `forward`: https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches
 - `backward`: https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches
 - `brute_force`: Optimize all possible model candidates, then return the model with the best criterion value.
 
 Note that the directional methods (forward, backward) find models with the smallest step size (in terms of number of estimated parameters). For example, given the forward method and an initial model with 2 estimated parameters, if there are no models with 3 estimated parameters, but some models with 4 estimated parameters, then the search may return candidate models with 4 estimated parameters.
 
-# Format
-## Selection problem file
+## File formats
+### Selection problem
 A YAML file with a description of the model selection problem.
 ```yaml
 format_version: [string]
 criterion: [string]
 method: [string]
-model_specification_files: [List of filenames]
+model_space_files: [List of filenames]
 constraint_files: [List of filenames]
 initial_model_files: [List of filenames]
 ```
@@ -39,16 +39,16 @@ initial_model_files: [List of filenames]
 - `format_version`: The version of the model selection extension format (e.g. `'beta_1'`)
 - `criterion`: The criterion by which models should be compared (e.g. `'AIC'`)
 - `method`: The method by which model candidates should be generated (e.g. `'forward'`)
-- `model_specification_files`: The filenames of model specification files.
+- `model_space_files`: The filenames of model space files.
 - `constraints_files`: The filenames of constraint files.
 - `initial_model_files`: The filenames of initial model files.
 
-## Model specifications files
+### Model space
 A TSV with candidate models, in compressed or uncompressed format.
 
 | `model_id`           | `petab_yaml`     | [`sbml`]   | `parameter_id_1`                                       | ... | `parameter_id_n`                                       |
-|---------------------|------------|------------|--------------------------------------------------------|-----|--------------------------------------------------------|
-| (Unique) [string]   | [string]   | [string]   | [string/float] OR [; delimited list of string/float]   | ... | [string/float] OR [; delimited list of string/float]   |
+|----------------------|------------------|------------|--------------------------------------------------------|-----|--------------------------------------------------------|
+| (Unique) [string]    | [string]         | [string]   | [string/float] OR [; delimited list of string/float]   | ... | [string/float] OR [; delimited list of string/float]   |
 
 - `model_id`: An ID for the model (or model set, if the row is in the compressed format and specifies multiple models).
 - `petab_yaml`: The PEtab YAML filename that serves as the base for a model.
@@ -61,7 +61,7 @@ A TSV with candidate models, in compressed or uncompressed format.
   - compressed format
     - `0.0;1.1;estimate` (the parameter can take the values `0.0` or `1.1`, or be estimated according to the PEtab problem)
 
-## Constraints files
+### Constraints
 A TSV file with constraints.
 
 | `petab_yaml`     | [`if`]                                    | `constraint`                   |
@@ -69,40 +69,48 @@ A TSV file with constraints.
 | [string]   | (Optional) [SBML L3 Formula expression]   | [SBML L3 Formula expression]   |
 
 - `petab_yaml`: The filename of the PEtab YAML file that this constraint applies to.
-- `if`: As a single YAML can relate to multiple models in the model specification file, this ensures the constraint is only applies to the models that match this `if` statement
+- `if`: As a single YAML can relate to multiple models in the model space file, this ensures the constraint is only applies to the models that match this `if` statement
 - `constraint`: If a model violates this constraint, it is skipped during the model selection process and not optimized.
 
-## Initial models
+### Initial models
 A TSV with models that can be used to initialize a model selection method. This format is the PEtab Select model YAML format, described below.
 
 Model IDs of initial models should be unique here and compared to model IDs in model selection files.
 
-## Model interchange format
-This file format is used to transfer information about models, and their parameter estimation problems, between PEtab Select and a PEtab-compatible tool, during model selection.
-The format can also be used to specify initial models for a selection method, or the final results of the model selection.
-Multiple models can be specified in the same file with a YAML list.
+### Model(s) (Initial models / model interchange / report)
+- Initial models are used to initialize an appropriate model selection method. Model IDs should be unique here and compared to model IDs in any model space files.
+- Model interchange refers to the format used to transfer model information between PEtab Select and a PEtab-compatible calibration tool, during the model selection process.
+- Report refers to the final results of the model selection process, which may include calibration results from any calibrated models, or just the select model.
+
+Here, the format for a single model is shown. Multiple models can be specified as a YAML list of the same format.
+
+The only required key is the PEtab YAML, as a model requires a PEtab problem. All other keys are may be required, for the different uses of the format (e.g. the report format should include `estimated_parameters`), or at different stages of the model selection process (the PEtab-compatible calibration tool should provide `criteria` for model comparison).
 
 ```yaml
-model_id: [string]
+model_id: (Optional) [string]
 petab_yaml: [string]
 sbml: (Optional) [string]
-parameters: [Dictionary of parameter IDs and values]
-estimated_parameters: [Dictionary of parameter IDs and values]
-criteria: [Dictionary of criterion names and values]
+parameters: (Optional) [Dictionary of parameter IDs and values]
+estimated_parameters: (Optional) [Dictionary of parameter IDs and values]
+criteria: (Optional) [Dictionary of criterion names and values]
 ```
 
-- `modelId`: see the format of the model specifications files
-- `YAML`: see the format of the model specifications files
-- `SBML`: see the format of the model specifications files
+- `model_id`: same as in model space files
+- `petab_yaml`: same as in model space files
+- `sbml`: same as in model space files
 - `parameters`: the parameters from the problem (either values or `'estimate'`)
-- `estimated_parameters`: parameter estimates, not only of parameters specified to be estimated in a model specification file, but also parameters specified to be estimated in the original PEtab problem of the model
+- `estimated_parameters`: parameter estimates, not only of parameters specified to be estimated in a model space file, but also parameters specified to be estimated in the original PEtab problem of the model
 - `criteria`: the value of the criterion by which model selection was performed, at least. Optionally, other criterion values too.
 
-# Test cases
-| Test ID | Criterion | Method    | Model specification files | Compressed format | Constraints files | Initial models files |
-|---------|-----------| ----------|---------------------------|-------------------|-------------------|----------------------|
-| 0001    | (all)       | (only one model)   | 1                         |                   |                   |                      |
-| 0002    | AIC       | forward   | 1                         |                   |                   |                      |
-| 0003    | BIC       | all       | 1                         | Yes               |                   |                      |
-| 0004    | AICc      | backward  | 1                         |                   | 1                 |                      |
-| 0005    | AIC       | forward   | 1                         |                   |                   | 1                    |
+## Test cases
+Several test cases are provided, to test the compatibility of a PEtab-compatible calibration tool with different PEtab Select features.
+
+The test cases are available in the `test_cases` directory, and are provided in the model format.
+
+| Test ID | Criterion | Method             | Model space files | Compressed format | Constraints files | Initial models files |
+|---------|-----------| -------------------|-------------------|-------------------|-------------------|----------------------|
+| 0001    | (all)     | (only one model)   | 1                 |                   |                   |                      |
+| 0002    | AIC       | forward            | 1                 |                   |                   |                      |
+| 0003    | BIC       | all                | 1                 | Yes               |                   |                      |
+| 0004    | AICc      | backward           | 1                 |                   | 1                 |                      |
+| 0005    | AIC       | forward            | 1                 |                   |                   | 1                    |
