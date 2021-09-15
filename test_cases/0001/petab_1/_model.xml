@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created by COPASI version 4.24 (Build 197) on 2019-03-27 19:00 with libSBML version 5.17.0. -->
 <sbml xmlns="http://www.sbml.org/sbml/level2/version4" level="2" version="4">
-  <model metaid="COPASI0" id="caroModel_linear" name="caroModel">
+  <model metaid="COPASI0" id="caroModel_linear_petab_1" name="caroModel">
     <annotation>
       <COPASI xmlns="http://www.copasi.org/static/sbml">
         <rdf:RDF xmlns:dcterms="http://purl.org/dc/terms/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">

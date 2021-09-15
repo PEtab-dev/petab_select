@@ -16,6 +16,13 @@ import pypesto.select
 import pytest
 
 
+# Set to `[]` to test all
+test_cases = [
+    #'0007',
+    #'0008',
+]
+
+
 @pytest.fixture
 def test_cases_path():
     return Path() / '..' / '..' / 'test_cases'
@@ -31,6 +38,8 @@ def minimize_options():
 
 def test_pypesto(test_cases_path, minimize_options):
     for test_case_path in test_cases_path.glob('*'):
+        if test_cases and test_case_path.stem not in test_cases:
+            continue
         # Setup the pyPESTO model selector instance.
         petab_select_problem = petab_select.Problem.from_yaml(
             test_case_path / 'selection_problem.yaml',
