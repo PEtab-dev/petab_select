@@ -1,0 +1,16 @@
+criteria:
+  AIC: -4.05647020892466
+  AICc: 35.94352979107534
+  BIC: -4.88943233201244
+estimated_parameters:
+  k1: 0.6225472794589059
+  k2: 0.020200667923080663
+  k3: 0.001085388414696834
+  sigma_x2: 0.08859811382912036
+model0_id: null
+model_id: M1_7_0
+parameters:
+  k1: estimate
+  k2: estimate
+  k3: estimate
+petab_yaml: petab_1/petab_1.yaml
