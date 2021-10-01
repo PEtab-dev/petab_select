@@ -4,7 +4,7 @@ criteria:
   BIC: -1.008367877354944
 estimated_parameters:
   sigma_x2: 0.12244940821960482
-model0_id: null
+predecessor_model_id: null
 model_id: M1_1_0
 parameters:
   k1: 0.2

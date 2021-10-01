@@ -7,7 +7,7 @@ estimated_parameters:
   k2: 0.020200124598485983
   k3: 0.0010853720025211368
   sigma_x2: 0.08858185539028891
-model0_id: null
+predecessor_model_id: null
 model_id: M1_7_0
 parameters:
   k1: estimate
