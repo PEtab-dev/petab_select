@@ -170,7 +170,7 @@ def candidates(
 
     model0 = None
     if best is not None:
-        calibrated_models = models_from_yaml_list(best)       
+        calibrated_models = models_from_yaml_list(best)
         model0 = problem.get_best(calibrated_models)
 
     candidate_space = parse_candidate_space(
@@ -320,6 +320,58 @@ def models2petab(
         print(f'{model.model_id}\t{petab_yaml}')
 
 
+@cli.command()
+@click.option(
+    '--yaml',
+    '-y',
+    'yaml_',
+    help='The PEtab Select YAML problem file.',
+)
+@click.option(
+    '--models_yaml',
+    '-m',
+    'models_yaml',
+    type=str,
+    help='A list of calibrated models.',
+)
+@click.option(
+    '--output',
+    '-o',
+    'output',
+    type=str,
+    help='The file where the best model will be stored.',
+)
+@click.option(
+    '--state',
+    '-s',
+    'state',
+    type=str,
+    default=None,
+    help='The file that stores the state.',
+)
+def best(
+    yaml_: str,
+    models_yaml: str,
+    output: str,
+    state: str = None,
+) -> None:
+    """Get the best model from a list of models.
+
+    Documentation for arguments can be viewed with
+    `petab_select get_best --help`.
+    """
+    problem = Problem.from_yaml(yaml_)
+    if state is not None and Path(state).exists():
+        # Load state
+        with open(state, 'rb') as f:
+            problem.set_state(dill.load(f))
+
+    calibrated_models = models_from_yaml_list(models_yaml)
+    best_model = problem.get_best(calibrated_models)
+    best_model.to_yaml(output)
+
+
 cli.add_command(candidates)
 cli.add_command(model2petab)
 cli.add_command(models2petab)
+cli.add_command(best)
