@@ -1,4 +1,5 @@
 """Constants for the PEtab Select package."""
+from enum import Enum
 from pathlib import Path
 from typing import Union
 
@@ -28,7 +29,7 @@ TYPING_PATH = Union[str, Path]
 #MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
 #YAML = 'YAML'  # FIXME
 MODEL_ID = 'model_id'
-# If `model0_id` is defined for a model, it is the ID of the model that the
+# If `predecessor_model_id` is defined for a model, it is the ID of the model that the
 # current model was/is to be compared to. This is part of the result and is
 # only (optionally) set by the PEtab calibration tool. It is not defined by the
 # PEtab Select model selection problem (but may be subsequently stored in the
@@ -76,9 +77,21 @@ INITIAL_MODEL_METHODS = [
 #}
 
 CRITERIA = 'criteria'
+# FIXME make verbose
 AIC = 'AIC'
 AICC = 'AICc'
 BIC = 'BIC'
+AKAIKE_INFORMATION_CRITERION = AIC
+CORRECTED_AKAIKE_INFORMATION_CRITERION = AICC
+BAYESIAN_INFORMATION_CRITERION = BIC
+
+LH = 'likelihood'
+LLH = 'log_likelihood'
+NLLH = 'negative_log_likelihood'
+LIKELIHOOD = LH
+LOG_LIKELIHOOD = LLH
+NEGATIVE_LOG_LIKELIHOOD = NLLH
+
 
 PARAMETERS = 'parameters'
 #PARAMETER_ESTIMATE = 'parameter_estimate'
@@ -90,3 +103,20 @@ VERSION = 'version'
 MODEL_SPACE_FILES = 'model_space_files'
 
 MODEL = 'model'
+
+
+class Algorithm(str, Enum):
+    BACKWARD = 'backward'
+    BIDIRECTIONAL = 'bidirectional'
+    BRUTE_FORCE = 'brute_force'
+    FORWARD = 'forward'
+    LATERAL = 'lateral'
+
+
+class Criterion(str, Enum):
+    AIC = 'AIC'
+    AICC = 'AICc'
+    BIC = 'BIC'
+    LH = 'LH'
+    LLH = 'LLH'
+    NLLH = 'NLLH'

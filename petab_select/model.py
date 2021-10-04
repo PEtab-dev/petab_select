@@ -181,14 +181,18 @@ class Model(abc.ABC):
         # TODO also `and self.criteria[id] is not None`?
         return id in self.criteria
 
-    def get_criterion(self, id: str):
+    def get_criterion(self, id: str) -> Union[float, None]:
         """Get a criterion value for the model.
 
         Args:
             id:
                 The ID of the criterion (e.g. `'AIC'`).
+
+        Returns:
+            The criterion value, or `None` if it is not available.
+            TODO check for previous use of this method before `.get` was used
         """
-        return self.criteria[id]
+        return self.criteria.get(id, None)
 
     @staticmethod
     def from_dict(
