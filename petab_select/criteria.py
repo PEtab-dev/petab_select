@@ -6,25 +6,30 @@ import petab
 from petab.C import OBJECTIVE
 
 from .constants import (
-    LH,
-    LLH,
-    NLLH,
+    #LH,
+    #LLH,
+    #NLLH,
+    Criterion,
+    TYPE_CRITERION,
 )
-from .model import Model
+#from .model import Model
 
 
-# use as attribute e.g. `Model.criterion_calculator`?
-class CriteriaCalculator():
+
+# use as attribute e.g. `Model.criterion_computer`?
+class CriterionComputer():
     """Compute various criterion."""
 
     def __init__(
         self,
-        model: Model,
+        model: 'petab_select.Model',
     ):
         self.model = model
+        # TODO refactor, if `petab_problem` is going to be produced here anyway, store
+        #      in model instance instead, for use elsewhere (e.g. pyPESTO)
         self.petab_problem, _ = model.to_petab()
 
-    def __call__(self, criterion: str) -> float:
+    def __call__(self, criterion: Criterion) -> float:
         """Get a criterion value.
 
         Args:
@@ -34,7 +39,7 @@ class CriteriaCalculator():
         Returns:
             The criterion value.
         """
-        return getattr(self, criterion.lower())()
+        return getattr(self, 'get_'+criterion.value.lower())()
 
     def get_aic(self) -> float:
         """Get the Akaike information criterion."""
@@ -45,7 +50,7 @@ class CriteriaCalculator():
 
     def get_aicc(self) -> float:
         """Get the corrected Akaike information criterion."""
-        return calculate_aic(
+        return calculate_aicc(
             nllh=self.get_nllh(),
             n_estimated=self.get_n_estimated(),
             n_measurements=self.get_n_measurements(),
@@ -54,7 +59,7 @@ class CriteriaCalculator():
 
     def get_bic(self) -> float:
         """Get the Bayesian information criterion."""
-        return calculate_aic(
+        return calculate_bic(
             nllh=self.get_nllh(),
             n_estimated=self.get_n_estimated(),
             n_measurements=self.get_n_measurements(),
@@ -63,23 +68,23 @@ class CriteriaCalculator():
 
     def get_nllh(self) -> float:
         """Get the negative log-likelihood."""
-        nllh = self.model.get_criterion(NLLH)
+        nllh = self.model.get_criterion(Criterion.NLLH, compute=False)
         if nllh is None:
             nllh = -1 * self.get_llh()
         return nllh
 
     def get_llh(self) -> float:
         """Get the log-likelihood."""
-        llh = self.model.get_criterion(LLH)
+        llh = self.model.get_criterion(Criterion.LLH, compute=False)
         if llh is None:
             llh = math.log(self.get_lh())
         return llh
 
     def get_lh(self) -> float:
         """Get the likelihood."""
-        lh = self.model.get_criterion(LH)
-        llh = self.model.get_criterion(LLH)
-        nllh = self.model.get_criterion(NLLH)
+        lh = self.model.get_criterion(Criterion.LH, compute=False)
+        llh = self.model.get_criterion(Criterion.LLH, compute=False)
+        nllh = self.model.get_criterion(Criterion.NLLH, compute=False)
 
         if lh is not None:
             return lh
@@ -88,9 +93,7 @@ class CriteriaCalculator():
         elif nllh is not None:
             return math.exp(-1 * nllh)
 
-        raise ValueError(
-            'Please supply the likelihood or a compatible transformation.'
-        )
+        raise ValueError('Please supply the likelihood (LH) or a compatible transformation. Compatible transformations: log(LH), -log(LH).')  # noqa: E501
 
     def get_n_estimated(self) -> int:
         """Get the number of estimated parameters."""
@@ -98,6 +101,7 @@ class CriteriaCalculator():
 
     def get_n_measurements(self) -> int:
         """Get the number of measurements."""
+        # TODO remove `count_nan` from method.
         return petab.measurements.get_n_measurements(
             measurement_df=self.petab_problem.measurement_df,
             count_nan=False,
@@ -110,8 +114,20 @@ class CriteriaCalculator():
             mode=OBJECTIVE,
         ))
 
+    #def get_criterion(self, id: str) -> TYPE_CRITERION:
+    #    """Get a criterion value, by criterion ID.
+    #    FIXME: superseded by `__call__`
 
-# TODO should fixed parameters count as measurements when comparing to models
+    #    id:
+    #        The ID of the criterion (e.g. `petab_select.constants.Criterion.AIC`).
+
+    #    Returns:
+    #        The criterion value.
+    #    """
+    #    return getattr(self, f'get_{id}')()
+
+
+# TODO should fixed parameters count as measurements/priors when comparing to models
 #      that estimate the same parameters?
 def calculate_aic(
     nllh: float,
@@ -127,7 +143,7 @@ def calculate_aic(
             The number of estimated parameters in the model.
 
     Returns:
-        The AIC.
+        The AIC value.
     """
     return 2*(n_estimated + nllh)
 
@@ -142,20 +158,17 @@ def calculate_aicc(
     Calculate the corrected Akaike information criterion (AICc) for a model.
 
     Args:
-        negative_log_likelihood:
+        nllh:
             The negative log likelihood.
         n_estimated:
             The number of estimated parameters in the model.
         n_measurements:
             The number of measurements used in the likelihood.
-            FIXME: e.g.: `len(petab_problem.measurement_df)`.
         n_priors:
             The number of priors used in the objective function.
-            FIXME: e.g.: `len(pypesto_problem.x_priors._objectives)`.
-            FIXME: remove?
 
     Returns:
-        The corrected AIC.
+        The AICc value.
     """
     return (
         calculate_aic(n_estimated, nllh)
@@ -174,60 +187,16 @@ def calculate_bic(
     Calculate the Bayesian information criterion (BIC) for a model.
 
     Args
+        nllh:
+            The negative log likelihood.
         n_estimated:
             The number of estimated parameters in the model.
-        nllh:
-            The negative log likelihood,
-            e.g.: the `optimize_result.list[0]['fval']` attribute of the object
-            returned by `pypesto.minimize`.
         n_measurements:
-            The number of measurements used in the objective function of the
-            model.
-            e.g.: `len(petab_problem.measurement_df)`.
+            The number of measurements used in the likelihood.
         n_priors:
-            The number of priors used in the objective function of the model,
-            e.g.: `len(pypesto_problem.x_priors._objectives)`.
-            TODO make public property for number of priors in objective? or in
-                 problem, since `x_priors` == None is possible.
+            The number of priors used in the objective function.
 
     Returns:
-        The BIC.
+        The BIC value.
     """
     return n_estimated*math.log(n_measurements + n_priors) + 2*nllh
-
-
-# def convert_likelihood(
-#     lh: float = None,
-#     llh: float = None,
-#     nllh: float = None,
-# ) -> float:
-#     """Convert transformations of the likelihood into other transformations.
-#
-#     Exactly one transformation of the likelihood should be supplied to this
-#     method.
-#
-#     Args:
-#         lh:
-#             The likelihood.
-#         llh:
-#             The log likelihood.
-#         nllh:
-#             The negative log likelihood.
-#
-#     Returns:
-#         All transformations of the likelihood, described by the arguments.
-#     """
-#     if sum(1 if value is not None else 0 for value in [lh, llh, nllh]) != 1:
-#         raise ValueError(
-#             'Please supply (only) one of the arguments to this method.'
-#         )
-#
-#     _lh = None
-#     _llh = None
-#     _nllh = None
-#     if llh is not None:
-#         _llh = llh
-#         _lh = math.exp(llh)
-#     if nllh is not None:
-#         _nllh = nllh
-#         _lh = math.exp(-1 * nllh)

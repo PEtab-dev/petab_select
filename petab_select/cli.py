@@ -5,10 +5,13 @@ import yaml
 
 import click
 import dill
+import numpy as np
 import pandas as pd
 
+from . import ui
 from .constants import (
     INITIAL_MODEL_METHODS,
+    PETAB_YAML,
 )
 from .candidate_space import (
     BackwardCandidateSpace,
@@ -16,6 +19,7 @@ from .candidate_space import (
     CandidateSpace,
     ForwardCandidateSpace,
     LateralCandidateSpace,
+    method_to_candidate_space_class,
 )
 from .model import (
     Model,
@@ -29,62 +33,7 @@ def cli():
     pass
 
 
-def parse_candidate_space(
-    method: str,
-    model0_yaml_path: str,
-    model0: Model,
-) -> CandidateSpace:
-    """Generate an appropriate candidate space instance.
-
-    Args:
-        method:
-            The method used to identify candidate models.
-        model0_yaml_path:
-            The location of a PEtab Select model YAML file, that will be used
-            to initialize a search for candidates if applicable.
-
-    Returns:
-        An instance of a CandidateSpace subclass.
-    """
-    if (
-        method in INITIAL_MODEL_METHODS
-        and
-        (
-            model0 is None
-            and
-            model0_yaml_path is None
-        )
-    ):
-        raise ValueError(
-            f'Please supply an initial model when using the method "{method}".'
-        )
-
-    # Already checked in `candidates`, should never raise.
-    if model0 is not None and model0_yaml_path is not None:
-        raise KeyError(
-            'Both an initial model and a path to an initial model file were '
-            'provided.'
-        )
-    if model0_yaml_path is not None:
-        model0 = Model.from_yaml(model0_yaml_path)
-
-    if method == 'forward':
-        candidate_space = ForwardCandidateSpace(model0)
-    elif method == 'backward':
-        candidate_space = BackwardCandidateSpace(model0)
-    elif method == 'lateral':
-        candidate_space = LateralCandidateSpace(model0)
-    elif method == 'brute_force':
-        candidate_space = BruteForceCandidateSpace(model0)
-    else:
-        raise ValueError(
-            f'Unknown search method: {method}'
-        )
-
-    return candidate_space
-
-
-@cli.command()
+@cli.command("candidates")
 @click.option(
     '--yaml',
     '-y',
@@ -110,7 +59,8 @@ def parse_candidate_space(
     '-m',
     'method',
     type=str,
-    help='The method used to identify the candidate models.',
+    default=None,
+    help='The method used to identify the candidate models. Defaults to the method in the problem YAML.',  # noqa: E501
 )
 @click.option(
     '--initial',
@@ -135,18 +85,36 @@ def parse_candidate_space(
     '--limit',
     '-l',
     'limit',
-    type=int,
-    default=None,
+    type=float,
+    default=np.inf,
     help='(Optional) Limit the number of models in the output.',
+)
+@click.option(
+    '--relative-paths/--absolute-paths',
+    'relative_paths',
+    type=bool,
+    default=False,
+    help='Whether to output paths relative to the output file.',
+)
+@click.option(
+    '--exclude-models',
+    '-e',
+    'exclude_models',
+    type=str,
+    multiple=True,
+    default=None,
+    help='Exclude models in this file.',
 )
 def candidates(
     yaml_: str,
     state: str,
     output: str,
-    method: str,
+    method: str = None,
     initial: str = None,
     best: str = None,
-    limit: int = None,
+    limit: float = np.inf,
+    relative_paths: bool = False,
+    exclude_models: List[str] = None,
 ) -> None:
     """Search for candidate models in the model space.
 
@@ -156,10 +124,21 @@ def candidates(
     if initial is not None and best is not None:
         raise KeyError(
             'The `initial` (`-i`) and `best` (`-b`) arguments cannot be used '
-            'together.'
+            'together, as they both set the initial model.'
         )
 
+    paths_relative_to = None
+    if relative_paths:
+        paths_relative_to = Path(output).parent
+
     problem = Problem.from_yaml(yaml_)
+    if method is None:
+        method = problem.method
+
+    # `petab_select.ui.candidates` uses `petab_select.Problem.method` to generate
+    # the candidate space.
+    problem.method = method
+
     if Path(state).exists():
         # Load state
         with open(state, 'rb') as f:
@@ -168,25 +147,33 @@ def candidates(
         # Create the output path for the state
         Path(state).parent.mkdir(parents=True, exist_ok=True)
 
-    model0 = None
+    excluded_models = []
+    if exclude_models is not None:
+        for model_yaml_list in exclude_models:
+            excluded_models.extend(models_from_yaml_list(model_yaml_list))
+
+    initial_model = None
     if best is not None:
         calibrated_models = models_from_yaml_list(best)
-        model0 = problem.get_best(calibrated_models)
+        initial_model = problem.get_best(calibrated_models)
 
-    candidate_space = parse_candidate_space(
-        method=method,
-        model0_yaml_path=initial,
-        model0=model0,
+    if initial is not None:
+        initial_model = Model.from_yaml(initial)
+
+    candidate_space = ui.candidates(
+        problem=problem,
+        initial_model=initial_model,
+        limit=limit,
+        excluded_models=excluded_models,
     )
 
-    models = problem.model_space.neighbors(candidate_space, limit=limit)
     # Save state
     with open(state, 'wb') as f:
         dill.dump(problem.get_state(), f)
 
     model_dicts = [
-        model.to_dict()
-        for model in models
+        model.to_dict(paths_relative_to=paths_relative_to)
+        for model in candidate_space.models
     ]
     model_dicts = None if not model_dicts else model_dicts
     # Save candidates
@@ -194,7 +181,7 @@ def candidates(
         yaml.dump(model_dicts, f)
 
 
-@cli.command()
+@cli.command("model_to_petab")
 @click.option(
     '--yaml',
     '-y',
@@ -219,7 +206,7 @@ def candidates(
         'contains multiple models.'
     ),
 )
-def model2petab(
+def model_to_petab(
     yaml_: str,
     output_path: str,
     model_id: str = None,
@@ -229,7 +216,7 @@ def model2petab(
     The filename for the PEtab problem YAML file is output to `stdout`.
 
     Documentation for arguments can be viewed with
-    `petab_select model2petab --help`.
+    `petab_select model_to_petab --help`.
     """
     try:
         model = Model.from_yaml(yaml_)
@@ -266,13 +253,11 @@ def model2petab(
             'specified ID.'
         )
 
-    output_path = Path(output_path)
-    output_path.mkdir(parents=True, exist_ok=True)
-    _, petab_yaml = model.to_petab(output_path)
-    print(petab_yaml)
+    result = ui.model_to_petab(model, output_path)
+    print(result[PETAB_YAML])
 
 
-@cli.command()
+@cli.command("models_to_petab")
 @click.option(
     '--yaml',
     '-y',
@@ -282,13 +267,13 @@ def model2petab(
 @click.option(
     '--output',
     '-o',
-    'output_path',
+    'output_path_prefix',
     type=str,
-    help='The directory where the PEtab files will be output.',
+    help='The directory where the PEtab files will be output. The PEtab files will be stored in a model-specific subdirectory.',
 )
-def models2petab(
+def models_to_petab(
     yaml_: str,
-    output_path: str,
+    output_path_prefix: str,
 ) -> None:
     """Create a PEtab problem for each model in a PEtab Select model YAML file.
 
@@ -299,7 +284,7 @@ def models2petab(
     problem YAML file for that model.
 
     Documentation for arguments can be viewed with
-    `petab_select models2petab --help`.
+    `petab_select models_to_petab --help`.
     """
     models = models_from_yaml_list(yaml_)
     model_ids = pd.Series([model.model_id for model in models])
@@ -311,16 +296,18 @@ def models2petab(
             f'duplicates were detected: {duplicates}'
         )
 
-    output_path = Path(output_path)
+    results = ui.models_to_petab(
+        models,
+        output_path_prefix=output_path_prefix,
+    )
+    result_string = '\n'.join([
+        '\t'.join([model.model_id, result[PETAB_YAML]])
+        for model, result in zip(models, results)
+    ])
+    print(result_string)
 
-    for model in models:
-        model_output_path = output_path / model.model_id
-        model_output_path.mkdir(parents=True, exist_ok=True)
-        _, petab_yaml = model.to_petab(model_output_path)
-        print(f'{model.model_id}\t{petab_yaml}')
 
-
-@cli.command()
+@cli.command("best")
 @click.option(
     '--yaml',
     '-y',
@@ -349,17 +336,38 @@ def models2petab(
     default=None,
     help='The file that stores the state.',
 )
+@click.option(
+    '--criterion',
+    '-c',
+    'criterion',
+    type=str,
+    default=None,
+    help='The criterion by which models will be compared.',
+)
+@click.option(
+    '--relative-paths/--absolute-paths',
+    'relative_paths',
+    type=bool,
+    default=False,
+    help='Whether to output paths relative to the output file.',
+)
 def best(
     yaml_: str,
     models_yaml: str,
     output: str,
     state: str = None,
+    criterion: str = None,
+    relative_paths: bool = False,
 ) -> None:
     """Get the best model from a list of models.
 
     Documentation for arguments can be viewed with
     `petab_select get_best --help`.
     """
+    paths_relative_to = None
+    if relative_paths:
+        paths_relative_to = Path(output).parent
+
     problem = Problem.from_yaml(yaml_)
     if state is not None and Path(state).exists():
         # Load state
@@ -367,11 +375,11 @@ def best(
             problem.set_state(dill.load(f))
 
     calibrated_models = models_from_yaml_list(models_yaml)
-    best_model = problem.get_best(calibrated_models)
-    best_model.to_yaml(output)
+    best_model = ui.best(problem=problem, models=calibrated_models, criterion=criterion)
+    best_model.to_yaml(output, paths_relative_to=paths_relative_to)
 
 
 cli.add_command(candidates)
-cli.add_command(model2petab)
-cli.add_command(models2petab)
+cli.add_command(model_to_petab)
+cli.add_command(models_to_petab)
 cli.add_command(best)

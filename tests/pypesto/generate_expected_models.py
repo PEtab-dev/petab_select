@@ -18,9 +18,9 @@ import pypesto.optimize
 import pypesto.select
 
 
-SKIP_TEST_CASES_WITH_PREEXISTING_EXPECTED_MODEL = True
+SKIP_TEST_CASES_WITH_PREEXISTING_EXPECTED_MODEL = False
 
-test_cases_path = Path() / '..' / '..' / 'test_cases'
+test_cases_path = Path(__file__).resolve().parent.parent.parent / 'test_cases'
 
 # Reduce runtime but with high reproducibility
 minimize_options = {
@@ -30,6 +30,9 @@ minimize_options = {
 }
 
 for test_case_path in test_cases_path.glob('*'):
+    #if test_case_path.stem not in ['0007']:
+    #    continue
+    # FIXME remove above
     expected_model_yaml = test_case_path / 'expected.yaml'
 
     if (
@@ -46,12 +49,30 @@ for test_case_path in test_cases_path.glob('*'):
         test_case_path / 'selection_problem.yaml',
     )
     selector = pypesto.select.ModelSelector(problem=petab_select_problem)
-    
+
     # Run the selection process until "exhausted".
+    selected_model = None
     while True:
         try:
-            _, _, selection_history = \
-                selector.select(minimize_options=minimize_options)
+            _selected, _local, selection_history = \
+                selector.select(
+                    initial_model=selected_model,
+                    minimize_options=minimize_options,
+                )
+            selected_model = one(_selected)
+            if False:
+                from pprint import pprint
+                md = {
+                    model['model'].model_subspace_id: {
+                        'MLE': model['MLE'],
+                        'model': model['model'],
+                        'aic': model['model'].get_criterion('AIC'),
+                        'predecessor_model_id': model['model'].predecessor_model_id,
+                    }
+                    for _, model in selection_history.items()
+                }
+                pprint(md)
+                breakpoint()
         except StopIteration:
             break
 
@@ -62,5 +83,21 @@ for test_case_path in test_cases_path.glob('*'):
     ]
     best_model = petab_select_problem.get_best(models)
 
+    # for debugging
+    if False:
+        from pprint import pprint
+        md = {
+            model['model'].model_subspace_id: {
+                'MLE': model['MLE'],
+                'model': model['model'],
+                'aic': model['model'].get_criterion('AIC'),
+                'predecessor_model_id': model['model'].predecessor_model_id,
+            }
+            for _, model in selection_history.items()
+        }
+        pprint(md)
+        breakpoint()
+
+
     # Generate the expected model.
-    best_model.to_yaml(expected_model_yaml)
+    best_model.to_yaml(expected_model_yaml, paths_relative_to=test_case_path)

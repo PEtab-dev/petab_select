@@ -6,7 +6,7 @@
     k2: 0.0
     k3: 0.0
   estimated_parameters: null
-  petab_yaml: ../example_modelSelection.yaml
+  petab_yaml: ../petab_problem.yaml
 - criteria:
     AIC: 100
   model_id: M1_1_0
@@ -16,7 +16,7 @@
     k3: estimate
   estimated_parameters:
     k3: 0.0
-  petab_yaml: ../example_modelSelection.yaml
+  petab_yaml: ../petab_problem.yaml
 - criteria:
     AIC: 50
   model_id: M1_2_0
@@ -26,6 +26,6 @@
     k3: 0.0
   estimated_parameters:
     k2: 0.05
-  petab_yaml: ../example_modelSelection.yaml
+  petab_yaml: ../petab_problem.yaml
 
 

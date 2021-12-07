@@ -1,7 +1,8 @@
 """The `Model` class."""
 import abc
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from os.path import relpath
+from typing import Any, Dict, List, Optional, Tuple, Union
 import warnings
 import yaml
 
@@ -14,27 +15,35 @@ from petab.C import (
 )
 
 from .constants import (
-    AIC,
-    AICC,
-    BIC,
-
+    Criterion,
     CRITERIA,
-    MODEL_ID,
-    PREDECESSOR_MODEL_ID,
-    PARAMETERS,
     ESTIMATED_PARAMETERS,
+    MODEL_HASH,
+    MODEL_ID,
+    MODEL_SUBSPACE_ID,
+    MODEL_SUBSPACE_INDICES,
+    PARAMETERS,
+    PETAB_ESTIMATE_TRUE,
+    PETAB_PROBLEM,
     PETAB_YAML,
-    TYPING_PATH,
-
-    ESTIMATE_SYMBOL_INTERNAL,
-    ESTIMATE_SYMBOL_UI,
+    PREDECESSOR_MODEL_ID,
+    TYPE_CRITERION,
+    TYPE_PATH,
+    TYPE_PARAMETER,
+)
+from .criteria import (
+    CriterionComputer,
 )
 from .misc import (
-    hash_dictionary,
+    hash_list,
+    hash_str,
+    hash_parameter_dict,
+    parameter_string_to_value,
 )
+from .petab import PetabMixin
 
 
-class Model(abc.ABC):
+class Model(PetabMixin):
     """A (possibly uncalibrated) model.
 
     NB: some of these attribute names correspond to constants defined in the
@@ -56,8 +65,6 @@ class Model(abc.ABC):
             model instances are compared by their parameter estimation
             problems, as opposed to parameter estimation results, which may
             differ due to e.g. floating-point arithmetic.
-        index:
-            The index of the model in the model space that generated it.
         model_id:
             The model ID.
         petab_yaml:
@@ -73,9 +80,12 @@ class Model(abc.ABC):
             Attributes that will be saved to disk by the `Model.to_yaml`
             method.
     """
+
     saved_attributes = (
-        #HASH,
         MODEL_ID,
+        MODEL_SUBSPACE_ID,
+        MODEL_SUBSPACE_INDICES,
+        MODEL_HASH,
         PREDECESSOR_MODEL_ID,
         PETAB_YAML,
         PARAMETERS,
@@ -84,31 +94,27 @@ class Model(abc.ABC):
     )
     converters_load = {
         MODEL_ID: lambda x: x,
+        MODEL_SUBSPACE_ID: lambda x: x,
+        MODEL_SUBSPACE_INDICES: lambda x: [] if not x else x,
+        MODEL_HASH: lambda x: x,
         PREDECESSOR_MODEL_ID: lambda x: x,
         PETAB_YAML: lambda x: x,
-        PARAMETERS: lambda x: {
-            id: (
-                ESTIMATE_SYMBOL_INTERNAL
-                if value == ESTIMATE_SYMBOL_UI
-                else value
-            )
-            for id, value in x.items()
-        },
+        PARAMETERS: lambda x: x,
         ESTIMATED_PARAMETERS: lambda x: x,
-        CRITERIA: lambda x: {} if not x else x,
+        CRITERIA: lambda x: {
+            # `criterion_id_value` is the ID of the criterion in the enum `Criterion`.
+            Criterion(criterion_id_value): criterion_value
+            for criterion_id_value, criterion_value in x.items()
+        },
     }
     converters_save = {
         MODEL_ID: lambda x: x,
+        MODEL_SUBSPACE_ID: lambda x: x,
+        MODEL_SUBSPACE_INDICES: lambda x: x,
+        MODEL_HASH: lambda x: x,
         PREDECESSOR_MODEL_ID: lambda x: x,
         PETAB_YAML: lambda x: str(x),
-        PARAMETERS: lambda x: {
-            id: (
-                ESTIMATE_SYMBOL_UI
-                if np.isnan(value)
-                else value
-            )
-            for id, value in x.items()
-        },
+        PARAMETERS: lambda x: x,
         # FIXME handle with a `set_estimated_parameters` method instead?
         # to avoid `float` cast here. Reason for cast is because e.g. pyPESTO
         # can provide type `np.float64`, which causes issues when writing to
@@ -118,33 +124,56 @@ class Model(abc.ABC):
             id: float(value)
             for id, value in x.items()
         },
-        CRITERIA: lambda x: None if not x else x,
+        CRITERIA: lambda x: {
+            criterion_id.value: criterion_value
+            for criterion_id, criterion_value in x.items()
+        },
     }
     hash_attributes = {
+        # MODEL_ID: lambda x: hash(x),  # possible circular dependency on hash
+        # MODEL_SUBSPACE_ID: lambda x: hash(x),
+        # MODEL_SUBSPACE_INDICES: hash_list,
         # TODO replace `YAML` with `PETAB_PROBLEM_HASH`, as YAML could refer to
         #      different problems if used on different filesystems or sometimes
         #      absolute and other times relative. Better to check whether the
         #      PEtab problem itself is unique.
-        PETAB_YAML: lambda x: hash(x),
-        PARAMETERS: hash_dictionary,
+        # TODO replace `PARAMETERS` with `PARAMETERS_ALL`, which should be al
+        #      parameters in the PEtab problem. This avoids treating the PEtab problem
+        #      differently to the model (in a subspace with the PEtab problem) that has
+        #      all nominal values defined in the subspace.
+        # TODO add `estimated_parameters`? Needs to be clarified whether this hash
+        #      should be unique amongst only not-yet-calibrated models, or may also
+        #      return the same value between differently parameterized models that ended
+        #      up being calibrated to be the same... probably should be the former.
+        #      Currently, the hash is stored, hence will "persist" after calibration
+        #      if the same `Model` instance is used.
+        #PETAB_YAML: lambda x: hash(x),
+        PETAB_YAML: hash_str,
+        PARAMETERS: hash_parameter_dict,
     }
 
     def __init__(
         self,
-        model_id: str,
-        petab_yaml: TYPING_PATH,
+        petab_yaml: TYPE_PATH,
+        model_subspace_id: str = None,
+        model_id: str = None,
+        model_subspace_indices: List[int] = None,
         predecessor_model_id: str = None,
         parameters: Dict[str, Union[int, float]] = None,
         estimated_parameters: Dict[str, Union[int, float]] = None,
         criteria: Dict[str, float] = None,
-        index: int = None,
+        # Optionally provided to reduce repeated parsing of `petab_yaml`.
+        petab_problem: Optional[petab.Problem] = None,
+        model_hash: Optional[Any] = None,
     ):
         self.model_id = model_id
-        self.petab_yaml = Path(petab_yaml)
+        self.model_subspace_id = model_subspace_id
+        self.model_subspace_indices = model_subspace_indices
+        # TODO clean parameters, ensure single float or str (`ESTIMATE`) type
         self.parameters = parameters
         self.estimated_parameters = estimated_parameters
         self.criteria = criteria
-        self.index = index
+        self.model_hash = model_hash
 
         self.predecessor_model_id = predecessor_model_id
 
@@ -155,49 +184,94 @@ class Model(abc.ABC):
         if self.criteria is None:
             self.criteria = {}
 
-    def set_criterion(self, id: str, value: float) -> None:
+        super().__init__(petab_yaml=petab_yaml, petab_problem=petab_problem)
+
+        if self.model_id is None:
+            self.model_id = self.get_hash()
+
+        self.criterion_computer = CriterionComputer(self)
+
+    def set_criterion(self, criterion: Criterion, value: float) -> None:
         """Set a criterion value for the model.
 
         Args:
-            id:
-                The ID of the criterion (e.g. `'AIC'`).
+            criterion:
+                The criterion (e.g. `petab_select.constants.Criterion.AIC`).
             value:
                 The criterion value for the (presumably calibrated) model.
         """
-        if id in self.criteria:
+        if criterion in self.criteria:
             warnings.warn(
                 'Overwriting saved criterion value. '
-                f'Criterion: {id}. Value: {self.criteria[id]}.'
+                f'Criterion: {criterion}. Value: {self.get_criterion(criterion)}.'
             )
-        self.criteria[id] = value
+            # FIXME debug why value is overwritten during test case 0002.
+            if False:
+                print(
+                    'Overwriting saved criterion value. '
+                    f'Criterion: {criterion}. Value: {self.get_criterion(criterion)}.'
+                   )
+                breakpoint()
+        self.criteria[criterion] = value
 
-    def has_criterion(self, id: str) -> bool:
+    def has_criterion(self, criterion: Criterion) -> bool:
         """Check whether the model provides a value for a criterion.
 
         Args:
-            id:
-                The ID of the criterion (e.g. `'AIC'`).
+            criterion:
+                The criterion (e.g. `petab_select.constants.Criterion.AIC`).
         """
         # TODO also `and self.criteria[id] is not None`?
-        return id in self.criteria
+        return criterion in self.criteria
 
-    def get_criterion(self, id: str) -> Union[float, None]:
+    def get_criterion(
+        self,
+        criterion: Criterion,
+        compute: bool = True,
+    ) -> Union[TYPE_CRITERION, None]:
         """Get a criterion value for the model.
 
         Args:
-            id:
-                The ID of the criterion (e.g. `'AIC'`).
+            criterion:
+                The ID of the criterion (e.g. `petab_select.constants.Criterion.AIC`).
+            compute:
+                Whether to try to compute the criterion value based on other model
+                attributes. For example, if the `'AIC'` criterion is requested, this
+                can be computed from a predetermined model likelihood and its
+                number of estimated parameters.
 
         Returns:
             The criterion value, or `None` if it is not available.
             TODO check for previous use of this method before `.get` was used
         """
-        return self.criteria.get(id, None)
+        if criterion not in self.criteria and compute:
+            self.compute_criterion(criterion=criterion)
+            #value = self.criterion_computer(criterion=id)
+            #self.set_criterion(id=id, value=value)
+
+        return self.criteria.get(criterion, None)
+
+    def compute_criterion(self, criterion: Criterion) -> TYPE_CRITERION:
+        """Compute a criterion value for the model.
+
+        The value will also be stored, which will overwrite any previously stored value
+        for the criterion.
+
+        Args:
+            id:
+                The ID of the criterion (e.g. `petab_select.constants.Criterion.AIC`).
+
+        Returns:
+            The criterion value.
+        """
+        criterion_value = self.criterion_computer(criterion)
+        self.set_criterion(criterion, criterion_value)
+        return criterion_value
 
     @staticmethod
     def from_dict(
         model_dict: Dict[str, Any],
-        base_path: TYPING_PATH = None,
+        base_path: TYPE_PATH = None,
     ) -> 'Model':
         """Generate a model from a dictionary of attributes.
 
@@ -233,7 +307,7 @@ class Model(abc.ABC):
         return Model(**model_dict)
 
     @staticmethod
-    def from_yaml(model_yaml: TYPING_PATH) -> 'Model':
+    def from_yaml(model_yaml: TYPE_PATH) -> 'Model':
         """Generate a model from a PEtab Select model YAML file.
 
         Args:
@@ -261,12 +335,19 @@ class Model(abc.ABC):
 
         return Model.from_dict(model_dict, base_path=Path(model_yaml).parent)
 
-    def to_dict(self, resolve_paths=True) -> Dict[str, Any]:
+    def to_dict(
+        self,
+        resolve_paths: bool = True,
+        paths_relative_to: Union[str, Path] = None,
+    ) -> Dict[str, Any]:
         """Generate a dictionary from the attributes of a `Model` instance.
 
         Args:
             resolve_paths:
                 Whether to resolve relative paths into absolute paths.
+            paths_relative_to:
+                If not `None`, paths will be converted to be relative to this path.
+                Takes priority over `resolve_paths`.
 
         Returns:
             A dictionary of attributes. The keys are attribute
@@ -284,27 +365,35 @@ class Model(abc.ABC):
             if model_dict[PETAB_YAML]:
                 model_dict[PETAB_YAML] = \
                     str(Path(model_dict[PETAB_YAML]).resolve())
+        if paths_relative_to is not None:
+            if model_dict[PETAB_YAML]:
+                model_dict[PETAB_YAML] = relpath(
+                    Path(model_dict[PETAB_YAML]).resolve(),
+                    Path(paths_relative_to).resolve(),
+                )
         return model_dict
 
-    def to_yaml(self, petab_yaml: TYPING_PATH) -> None:
+    def to_yaml(self, petab_yaml: TYPE_PATH, *args, **kwargs) -> None:
         """Generate a PEtab Select model YAML file from a `Model` instance.
 
         Parameters:
             petab_yaml:
                 The location where the PEtab Select model YAML file will be
                 saved.
+            args, kwargs:
+                Additional arguments are passed to `self.to_dict`.
         """
         # FIXME change `getattr(self, PETAB_YAML)` to be relative to
         # destination?
         # kind of fixed, as the path will be resolved in `to_dict`.
         with open(petab_yaml, 'w') as f:
-            yaml.dump(self.to_dict(), f)
+            yaml.dump(self.to_dict(*args, **kwargs), f)
         #yaml.dump(self.to_dict(), str(petab_yaml))
 
     def to_petab(
         self,
-        output_path: TYPING_PATH = None,
-    ) -> Tuple[petab.Problem, TYPING_PATH]:
+        output_path: TYPE_PATH = None,
+    ) -> Tuple[petab.Problem, TYPE_PATH]:
         """Generate a PEtab problem.
 
         Args:
@@ -319,44 +408,71 @@ class Model(abc.ABC):
             PEtab YAML file that can be used to load the PEtab problem (the
             first value) into any PEtab-compatible tool. If 
         """
+        # TODO could use `copy.deepcopy(self.petab_problem)` from PetabMixin?
         petab_problem = petab.Problem.from_yaml(str(self.petab_yaml))
         for parameter_id, parameter_value in self.parameters.items():
             # If the parameter is to be estimated.
-            if np.isnan(parameter_value):
+            if parameter_value == ESTIMATE:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 1
             # Else the parameter is to be fixed.
             else:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 0
                 petab_problem.parameter_df.loc[parameter_id, NOMINAL_VALUE] = \
-                    parameter_value
+                    parameter_string_to_value(parameter_value)
+                #parameter_value
 
-        petab_yaml_path = None
+        petab_yaml = None
         if output_path is not None:
-            petab_yaml_path = \
-                petab_problem.to_files_generic(prefix_path=output_path)
+            output_path = Path(output_path)
+            output_path.mkdir(exist_ok=True, parents=True)
+            petab_yaml = petab_problem.to_files_generic(prefix_path=output_path)
 
-        return (petab_problem, petab_yaml_path)
+        return {
+            PETAB_PROBLEM: petab_problem,
+            PETAB_YAML: petab_yaml,
+        }
 
-    def __hash__(self):
-        """Get the problem-specific model hash.
+    def get_hash(self) -> int:
+        """Get the model hash.
 
-        TODO untested, unused
-        TODO store previously computed hash to avoid repeated computation?
+        Currently designed to only use pre-calibration information, such that if a model
+        is calibrated twice and the two calibrated models differ in their parameter
+        estimates, then they will still have the same hash.
+
+        This is not implemented as `__hash__` because Python automatically truncates
+        values in a system-dependent manner, which reduces interoperability
+        ( https://docs.python.org/3/reference/datamodel.html#object.__hash__ ).
+
+        Returns:
+            The hash.
         """
-        return hash(tuple([
-            method(attribute)
-            for attribute, method in Model.hash_attributes.items()
-        ]))
+        if self.model_hash is None:
+            self.model_hash = hash_list([
+                method(getattr(self, attribute))
+                for attribute, method in Model.hash_attributes.items()
+            ])
+        return self.model_hash
+
+    def __hash__(self) -> None:
+        """Use `Model.get_hash` instead."""
+        raise NotImplementedError('Use `Model.get_hash() instead.`')
 
     def __str__(self):
+        """Get a print-ready string representation of the model.
+
+        Returns:
+            The print-ready string representation, in TSV format.
+        """
         parameter_ids = '\t'.join(self.parameters.keys())
         parameter_values = '\t'.join(str(v) for v in self.parameters.values())
-        header = f'{MODEL_ID}\t{PETAB_YAML}\t{parameter_ids}'
-        data = f'{self.model_id}\t{self.petab_yaml}\t{parameter_values}'
+        header = '\t'.join([MODEL_ID, PETAB_YAML, parameter_ids])
+        data = '\t'.join([self.model_id, self.petab_yaml, parameter_values])
+        #header = f'{MODEL_ID}\t{PETAB_YAML}\t{parameter_ids}'
+        #data = f'{self.model_id}\t{self.petab_yaml}\t{parameter_values}'
         return f'{header}\n{data}'
 
     def get_mle(self) -> Dict[str, float]:
-        """
+        """Get the maximum likelihood estimate of the model.
 
         # Check if original PEtab problem or PEtab Select model has estimated
         # parameters. e.g. can use some of `self.to_petab` to get the parameter
@@ -365,7 +481,7 @@ class Model(abc.ABC):
             warn('The MLE for this model contains no estimated parameters.')
         if not all([
             parameter_id in getattr(self, ESTIMATED_PARAMETERS)
-            for parameter_id in self.get_estimated_parameter_ids()
+            for parameter_id in self.get_estimated_parameter_ids_all()
         ]):
             warn('Not all estimated parameters have estimates stored.')
         petab_problem = petab.Problem.from_yaml(str(self.petab_yaml))
@@ -390,10 +506,71 @@ class Model(abc.ABC):
         # TODO
         pass
 
+    def get_estimated_parameter_ids_all(self) -> List[str]:
+        estimated_parameter_ids = []
+
+        # Add all estimated parameters in the PEtab problem.
+        petab_problem = petab.Problem.from_yaml(str(self.petab_yaml))
+        for parameter_id in petab_problem.parameter_df.index:
+            if petab_problem.parameter_df.loc[parameter_id, ESTIMATE] == PETAB_ESTIMATE_TRUE:  # noqa: E501
+                estimated_parameter_ids.append(parameter_id)
+
+        # Add additional estimated parameters, and collect fixed parameters,
+        # in this model's parameterization.
+        fixed_parameter_ids = []
+        for parameter_id, value in self.parameters.items():
+            if (
+                value == ESTIMATE
+                and
+                parameter_id not in estimated_parameter_ids
+            ):
+                estimated_parameter_ids.append(parameter_id)
+            elif value != ESTIMATE:
+                fixed_parameter_ids.append(parameter_id)
+
+        # Remove fixed parameters.
+        estimated_parameter_ids = [
+            parameter_id
+            for parameter_id in estimated_parameter_ids
+            if parameter_id not in fixed_parameter_ids
+        ]
+
+        return estimated_parameter_ids
+
+    def get_parameter_values(
+        self,
+        parameter_ids: Optional[List[str]] = None,
+    ) -> List[TYPE_PARAMETER]:
+        """Get parameter values.
+
+        Includes `ESTIMATE` for parameters that should be estimated.
+
+        The ordering is by `parameter_ids` if supplied, else
+        `self.petab_parameters`.
+
+        Args:
+            parameter_ids:
+                The IDs of parameters that values will be returned for. Order
+                is maintained.
+
+        Returns:
+            The values of parameters.
+        """
+        if parameter_ids is None:
+            parameter_ids = list(self.petab_parameters)
+        return [
+            self.parameters.get(
+                parameter_id,
+                # Default to PEtab problem.
+                self.petab_parameters[parameter_id]
+            )
+            for parameter_id in parameter_ids
+        ]
+
 
 def default_compare(
-    model0: 'petab_select.Model',
-    model: 'petab_select.Model',
+    model0: Model,
+    model: Model,
     criterion: str,
 ) -> bool:
     """Compare two calibrated models by their criterion values.
@@ -411,21 +588,31 @@ def default_compare(
         `True` if `model` has a better criterion value than `model0`, else
         `False`.
     """
-    if criterion not in [AIC, AICC, BIC]:
-        raise NotImplementedError(
-            f'Unknown criterion: {criterion}.'
-        )
-    # For AIC, AICc, and BIC, lower criterion values are better.
     if not model.has_criterion(criterion):
         warnings.warn(
             f'Model "{model.model_id}" does not provide a value for the '
             f'criterion "{criterion}".'
         )
         return False
-    return model.get_criterion(criterion) < model0.get_criterion(criterion)
+    if criterion in [
+        Criterion.AIC,
+        Criterion.AICC,
+        Criterion.BIC,
+        Criterion.NLLH,
+    ]:
+        return model.get_criterion(criterion) < model0.get_criterion(criterion)
+    elif criterion in [
+        Criterion.LH,
+        Criterion.LLH,
+    ]:
+        return model.get_criterion(criterion) > model0.get_criterion(criterion)
+    else:
+        raise NotImplementedError(
+            f'Unknown criterion: {criterion}.'
+        )
 
 
-def models_from_yaml_list(model_list_yaml: TYPING_PATH) -> List[Model]:
+def models_from_yaml_list(model_list_yaml: TYPE_PATH) -> List[Model]:
     """Generate a model from a PEtab Select list of model YAML file.
 
     Args:
@@ -438,6 +625,8 @@ def models_from_yaml_list(model_list_yaml: TYPING_PATH) -> List[Model]:
     """
     with open(str(model_list_yaml)) as f:
         model_dict_list = yaml.safe_load(f)
+    if model_dict_list is None:
+        return []
     return [
         Model.from_dict(model_dict, base_path=Path(model_list_yaml).parent)
         for model_dict in model_dict_list

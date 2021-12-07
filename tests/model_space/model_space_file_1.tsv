@@ -1,0 +1,3 @@
+model_subspace_id	petab_yaml	k1	k2	k3	k4
+model_subspace_1	../../doc/examples/model_selection/petab_problem.yaml	0.2;estimate	0.1;estimate	estimate	0;0.1;estimate
+model_subspace_2	../../doc/examples/model_selection/petab_problem.yaml	0	0	0	estimate

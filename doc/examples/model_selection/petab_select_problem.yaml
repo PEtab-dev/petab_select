@@ -1,4 +1,4 @@
-format_version: beta_1
+version: beta_1
 criterion: AIC
 method: forward
 model_space_files:

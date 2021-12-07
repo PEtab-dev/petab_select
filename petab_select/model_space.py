@@ -4,6 +4,7 @@ import itertools
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import (
+    Any,
     Callable,
     Iterable,
     List,
@@ -13,21 +14,26 @@ from typing import (
 )
 
 from more_itertools import nth
+import numpy as np
+import pandas as pd
 
 from .constants import (
-    ESTIMATE_SYMBOL_INTERNAL_STR,
-    ESTIMATE_SYMBOL_UI,
+    Method,
+    ESTIMATE,
     HEADER_ROW,
     MODEL_ID,
     MODEL_ID_COLUMN,
     MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS,
+    MODEL_SUBSPACE_ID,
     PARAMETER_DEFINITIONS_START,
     PARAMETER_VALUE_DELIMITER,
     PETAB_YAML,
     PETAB_YAML_COLUMN,
+    TYPE_PATH,
 )
 from .candidate_space import CandidateSpace
 from .model import Model
+from .model_subspace import ModelSubspace
 
 
 def read_model_space_file(filename: str) -> TextIO:
@@ -68,9 +74,7 @@ def read_model_space_file(filename: str) -> TextIO:
                 if line_index != HEADER_ROW:
                     columns = line2row(line, unpacked=False)
                     parameter_definitions = [
-                        _replace_estimate_symbol(
-                            definition.split(PARAMETER_VALUE_DELIMITER)
-                        )
+                        definition.split(PARAMETER_VALUE_DELIMITER)
                         for definition in columns[PARAMETER_DEFINITIONS_START:]
                     ]
                     for index, selection in enumerate(
@@ -125,307 +129,134 @@ def line2row(
     return metadata + parameters
 
 
-def _replace_estimate_symbol(parameter_definition: List[str]) -> List:
-    """
-    Converts the user-friendly symbol for estimated parameters, to the internal
-    symbol.
-
-    Args:
-        parameter_definition:
-            A definition for a single parameter from a row of the model
-            space file. The definition should be split into a list by
-            PARAMETER_VALUE_DELIMITER.
-
-    Returns:
-        The parameter definition, with the user-friendly estimate symbol
-        substituted for the internal symbol.
-    """
-    return [
-        ESTIMATE_SYMBOL_INTERNAL_STR if p == ESTIMATE_SYMBOL_UI else p
-        for p in parameter_definition
-    ]
-
-
-def model_generator_from_file(
-    file_: TextIO,
-) -> Callable:
-    """Get a generator for models described by the model space file.
-
-    Args:
-        exclude_history:
-            If `True`, models with Id's in `self.selection_history` are not
-            yielded.
-        exclusions:
-            A list of model Id's to avoid yielding.
-
-    Yields:
-        The next model, as a dictionary, where the keys are the column headers
-        in the model space file, and the values are the respective
-        column values in a row of the model space file.
-    """
-    def generator() -> Iterable[Model]:
-        # Go to the start of model space rows.
-        file_.seek(0)
-        # First line is the header
-        header = line2row(
-            file_.readline(),
-            convert_parameters_to_float=False,
-        )
-
-        # TODO efficient exclusions at this stage?
-        # if exclusions is None:
-        #     exclusions = []
-        # if exclude_history:
-        #     exclusions += self.selection_history.keys()
-
-        for model_index, line in enumerate(file_):
-            model_dict = dict(zip(header, line2row(line)))
-            model = Model(
-                model_id=model_dict[MODEL_ID],
-                petab_yaml=model_dict[PETAB_YAML],
-                parameters={
-                    **{
-                        k: v
-                        for k, v in model_dict.items()
-                        if k not in MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS
-                    },
-                },
-                index=model_index,
-            )
-
-            # # Exclusion of history makes sense here, to avoid duplicated code
-            # # in specific selectors. However, the selection history of this
-            # # class is only updated when a `selector.__call__` returns, so
-            # # the exclusion of a model tested twice within the same selector
-            # # call is not excluded here. Could be implemented by decorating
-            # # `model_generator` in `ModelSelectorMethod` to include the
-            # # call selection history as `exclusions` (TODO).
-            # if model_dict[MODEL_ID] in exclusions:
-            #     continue
-
-            yield model
-    return generator
-
-
-class ModelSpace(abc.ABC):
-    """The model space.
+class ModelSpace():
+    """A model space, as a collection of model subspaces.
 
     Attributes:
-        excluded_models:
-            Hashes of models to be excluded when generating candidate models
-            during a search of the model space.
-        generator:
-            A generator to generate an iterator over the model space.
-        parameter_ids:
-            The ordered list of parameter IDs, from the columns of the model
-            space file.
-        source_path:
-            The path that the location of PEtab problem YAML files, as
-            specified in model space files, is relative to.
-
-    Todo:
-        Remove dependence on `parameter_ids`.
+        model_subspaces:
+            List of model subspaces.
+        exclusions:
+            Hashes of models that are excluded from the model space.
     """
     def __init__(
         self,
-        generator: Callable[[], Iterable[Model]],
-        source_path: Optional[Union[str, Path]] = None,
-        excluded_models: Optional[List[int]] = None,
+        model_subspaces: List[ModelSubspace],
     ):
-        self.generator = generator
-        self.source_path = None
-        if source_path is not None:
-            self.source_path = Path(source_path)
-        if excluded_models is None:
-            excluded_models = []
+        self.model_subspaces = {
+            model_subspace.model_subspace_id: model_subspace
+            for model_subspace in model_subspaces
+        }
+        self.exclusions = []
 
-        self.reset(excluded_models=excluded_models)
-
-        # FIXME currently just uses the number of estimated parameters as
-        #       defined in the model space file. However, the PEtab parameters
-        #       table also has other estimated parameters. Also, there may be
-        #       multiple model space files, each with different estimated
-        #       parameters. Hence, the PEtab parameters table should be used
-        #       to determine the full vector of estimated parameters.
-        #       1. Generate all PEtab problems according to the model space
-        #          file(s).
-        #       2. Construct the superset of all estimated parameters across
-        #          all problems.
-        #       3. Raise warning for missing parameters between different
-        #          models?
-        #       4. Store the superset as a list of parameter IDs, instead of
-        #          the current, ambiguous, `max_estimated` (only correct for
-        #          a single model space file with only a single PEtab
-        #          problem...)
-        #       5. If a model is missing a parameter, assume it is "fixed" to
-        #          0?
-        space = generator()
-        self.parameter_ids = list(next(space).parameters.keys())
-
-    def neighbors(
-        self,
-        candidate_space: CandidateSpace,
-        limit: int = None,
-        exclude: bool = True,
-    ) -> List[Model]:
-        """Find neighbors of the model in the model space.
+    @staticmethod
+    def from_files(
+        filenames: List[TYPE_PATH],
+    ):
+        """Create a model space from model space files.
 
         Args:
-            candidate_space:
-                A handler for model candidates.
-            limit:
-                Limit the number of returned models to this value.
-            exclude:
-                Whether to exclude neighbors from the model space.
+            filenames:
+                The locations of the model space files.
 
         Returns:
-            The candidate models.
+            The corresponding model space.
         """
-        if limit is None:
-            limit = -1
+        # TODO validate input?
+        model_space_dfs = [get_model_space_df(filename) for filename in filenames]
+        model_subspaces = []
+        for model_space_df, model_space_filename in zip(model_space_dfs, filenames):
+            for index, definition in model_space_df.iterrows():
+                model_subspaces.append(ModelSubspace.from_definition(
+                    definition=definition,
+                    parent_path=Path(model_space_filename).parent
+                ))
+        model_space = ModelSpace(model_subspaces=model_subspaces)
+        return model_space
 
-        space = self.generator()
+    def search(
+        self,
+        candidate_space: CandidateSpace,
+        limit: int = np.inf,
+        exclude: bool = True,
+    ):
+        """...TODO
 
-        for model in space:
-            # TODO use hash?
-            # if hash(model) in self.excluded_models:
-            if model.index in self.excluded_models:
-                continue
-            candidate_space.consider(model)
+        Args:
+            limit:
+                Note that using a limit may produce unexpected results. For
+                example, it may bias candidate models to be chosen only from
+                a subset of model subspaces.
+        """
+        # TODO change dict to list of subspaces. Each subspace should manage its own
+        #      ID
+        for model_subspace in self.model_subspaces.values():
+            model_subspace.search(
+                candidate_space=candidate_space,
+                limit=limit,
+                exclude=exclude,
+            )
             if len(candidate_space.models) == limit:
                 break
+            elif len(candidate_space.models) > limit:
+                raise ValueError(
+                    'An unknown error has occurred. Too many models were '
+                    f'generated. Requested limit: {limit}. Number of '
+                    f'generated models: {len(candidate_space.models)}.'
+                )
 
-        if self.source_path is not None:
-            for model in candidate_space.models:
-                # TODO do this change elsewhere instead?
-                model.petab_yaml = self.source_path / model.petab_yaml
+        ## FIXME implement source_path.. somewhere
+        #if self.source_path is not None:
+        #    for model in candidate_space.models:
+        #        # TODO do this change elsewhere instead?
+        #        # e.g. model subspace
+        #        model.petab_yaml = self.source_path / model.petab_yaml
 
         if exclude:
             self.exclude_models(candidate_space.models)
 
         return candidate_space.models
 
-    def index(self, index: int) -> Optional[Model]:
-        """Get a model in the model space, by an index.
+    def __len__(self):
+        """Get the number of models in this space."""
+        subspace_coumts = [len(s) for s in self.model_subspaces]
+        total_count = sum(subspace_counts)
+        return total_count
 
-        Args:
-            index:
-                The index of the model in the model space.
+    def exclude_model(self, model: Model):
+        # FIXME add Exclusions Mixin (or object) to handle exclusions on the subspace
+        # and space level.
+        for model_subspace in self.model_subspaces.values():
+            model_subspace.exclude_model(model)
 
-        Returns:
-            The model, or `None` if the index doesn't match a model.
-        """
-        return nth(self.generator(), index, None)
+    def exclude_models(self, models: Iterable[Model]):
+        # FIXME add Exclusions Mixin (or object) to handle exclusions on the subspace
+        # and space level.
 
-    def exclude_models(
+        for model_subspace in self.model_subspaces.values():
+            model_subspace.exclude_models(models)
+            #model_subspace.reset_exclusions()
+
+    def reset_exclusions(
         self,
-        excluded_models: Iterable[Model],
+        exclusions: Optional[Union[List[Any], None]] = None,
     ) -> None:
-        """Exclude models from the model space.
+        """Reset the exclusions in the model subspaces."""
+        for model_subspace in self.model_subspaces.values():
+            model_subspace.reset_exclusions(exclusions)
 
-        These models will be skipped in the `ModelSpace.neighbors` method.
 
-        Args:
-            excluded_models:
-                The models to exclude.
-        """
-        for model in excluded_models:
-            self.excluded_models.append(model.index)
+def get_model_space_df(filename: TYPE_PATH) -> pd.DataFrame:
+    #model_space_df = pd.read_csv(filename, sep='\t', index_col=MODEL_SUBSPACE_ID)  # FIXME
+    model_space_df = pd.read_csv(filename, sep='\t')
+    return model_space_df
 
-    def reset(
-        self,
-        excluded_models: Optional[List[int]] = None,
-    ) -> None:
-        """Reset the excluded models.
 
-        Args:
-            excluded_models:
-                Models to exclude from the model space.
-        """
-        if excluded_models is None:
-            excluded_models = []
-        self.excluded_models = excluded_models
-
-    @staticmethod
-    def from_file(
-        filename: str,
-    ) -> 'ModelSpace':
-        """Generate a model space from a model space file.
-
-        Args:
-            filename:
-                The location of the model space file.
-
-        Returns:
-            The model space.
-        """
-        return ModelSpace(
-            generator=model_generator_from_file(
-                read_model_space_file(filename)
-            ),
-        )
-
-    @staticmethod
-    def from_files(
-        filenames: Iterable[str],
-        alternate: bool = True,
-        source_path: Union[str, Path] = None,
-    ) -> 'ModelSpace':
-        """Generate a model space from model space files.
-
-        Args:
-            filenames:
-                The locations of the model space files.
-            alternate:
-                Whether generation of models from the files should exhaust
-                models from one file before the next, or alternate between
-                files.
-            source_path:
-                The path that the location of files, as specified in model
-                space files, is relative to.
-
-        Returns:
-            The model space.
-        """
-        if source_path is not None:
-            source_path = Path(source_path)
-        generators = [
-            model_generator_from_file(
-                read_model_space_file(
-                    (source_path / filename)
-                    if source_path is not None
-                    else filename,
-                )
-            )
-            for filename in filenames
-        ]
-
-        def generator():
-            exhausted = [False for _ in generators]
-            spaces = [g() for g in generators]
-            while True:
-                for space_index, space in enumerate(spaces):
-                    # Loop over all model spaces, generating one model from
-                    # each file until all files are exhausted.
-                    if alternate:
-                        if not exhausted[space_index]:
-                            try:
-                                model = next(space)
-                                yield model
-                            except StopIteration:
-                                exhausted[space_index] = True
-                                if all(exhausted):
-                                    return
-                    # Loop over all model spaces, generating all models from
-                    # one file before generating models from the next file.
-                    else:
-                        for model in space:
-                            yield model
-                        exhausted[space_index] = True
-                        if all(exhausted):
-                            raise StopIteration
-
-        return ModelSpace(
-            generator=generator,
-            source_path=source_path,
-        )
+def get_model_space(
+    filename: TYPE_PATH,
+) -> List[ModelSubspace]:
+    model_space_df = get_model_space_df(filename)
+    model_subspaces = []
+    for definition in model_space_df.iterrows():
+        model_subspaces.append(ModelSubspace.from_definition(definition))
+    model_space = ModelSpace(model_subspaces=model_subspaces)
+    return model_space

@@ -1,15 +1,21 @@
 """The model selection problem class."""
 import abc
 from functools import partial
+from itertools import chain
 from pathlib import Path
-from typing import Callable, Iterable, Union
+from typing import Callable, Iterable, Optional, Union
 import yaml
 
+from .candidate_space import (
+    CandidateSpace,
+    method_to_candidate_space_class,
+)
 from .constants import (
     CRITERION,
     METHOD,
     MODEL_SPACE_FILES,
     VERSION,
+    Criterion,
 )
 from .model import (
     Model,
@@ -24,6 +30,9 @@ class Problem(abc.ABC):
     Attributes:
         model_space:
             The model space.
+        calibrated_models:
+            Calibrated models. Will be used to augment the model selection problem (e.g.
+            by excluding them from the model space).
         compare:
             A method that compares models by selection criterion.
         criterion:
@@ -37,12 +46,19 @@ class Problem(abc.ABC):
             paths that exist in e.g. the model space files.
             TODO should the relative paths be relative to the YAML or the
             file that contains them?
+
+    Unsaved attributes:
+        candidate_space:
+            The candidate space that will be used.
+            Reason for not saving:
+                Essentially reproducible from `Problem.method` and
+                `Problem.calibrated_models`.
     """
     def __init__(
         self,
         model_space: ModelSpace,
         compare: Callable[[Model, Model], bool] = None,
-        criterion: str = None,
+        criterion: Criterion = None,
         method: str = None,
         version: str = None,
         yaml_path: str = None,
@@ -57,8 +73,7 @@ class Problem(abc.ABC):
         if self.compare is None:
             self.compare = partial(default_compare, criterion=self.criterion)
 
-    #def reset(self) -> None:
-    #    self.model_space.reset()
+        self.calibrated_models = []
 
     def get_path(self, relative_path: Union[str, Path]) -> Path:
         """Get the path to a resource, from a relative path.
@@ -71,12 +86,28 @@ class Problem(abc.ABC):
         Returns:
             The path to the resource.
 
-        Todo:
+        TODO:
             Unused?
         """
         if self.yaml_path is None:
             return Path(relative_path)
         return self.yaml_path.parent / relative_path
+
+    def add_calibrated_models(
+        self,
+        models: Iterable[Model],
+        exclude: bool = True,
+    ) -> None:
+        """Add calibrated models to the history.
+
+        Args:
+            models:
+                The models to add to the history.
+            exclude:
+                Whether to exclude the hashes of the models from the model space.
+        """
+        self.calibrated_models = list(chain(self.calibrated_models, models))
+        self.model_space.exclude_models(models)
 
     def set_state(
         self,
@@ -90,7 +121,7 @@ class Problem(abc.ABC):
             state:
                 The state to restore to.
         """
-        self.model_space.excluded_models = state
+        self.add_calibrated_models(state)
 
     def get_state(
         self,
@@ -102,7 +133,7 @@ class Problem(abc.ABC):
         Returns:
             The current state of the problem.
         """
-        return self.model_space.excluded_models
+        return self.calibrated_models
 
     @staticmethod
     def from_yaml(
@@ -128,44 +159,84 @@ class Problem(abc.ABC):
             )
 
         model_space = ModelSpace.from_files(
+            #problem_specification[MODEL_SPACE_FILES],
             [
-                f
-                for f in problem_specification[MODEL_SPACE_FILES]
+                # `pathlib.Path` appears to handle absolute `model_space_file` paths
+                # correctly, even if used as a relative path.
+                # TODO test
+                # This is similar to the `Problem.get_path` method.
+                yaml_path.parent / model_space_file
+                for model_space_file in problem_specification[MODEL_SPACE_FILES]
             ],
-            source_path=yaml_path.parent,
+            #source_path=yaml_path.parent,
         )
+
+        criterion = problem_specification.get(CRITERION, None)
+        if criterion is not None:
+            criterion = Criterion(criterion)
 
         return Problem(
             model_space=model_space,
-            criterion=problem_specification.get(CRITERION, None),
+            criterion=criterion,
+            # TODO refactor method to use enum
             method=problem_specification.get(METHOD, None),
             version=problem_specification.get(VERSION, None),
             yaml_path=yaml_path,
         )
 
-    def get_best(self, models: Iterable[Model]) -> Model:
+    def get_best(
+        self,
+        models: Optional[Iterable[Model]] = None,
+        criterion: Optional[Union[str, None]] = None,
+    ) -> Model:
         """Get the best model from a collection of models.
 
         The best model is selected based on the selection problem's criterion.
 
         Args:
             models:
-                The best model will be taken from these models.
+                The best model will be taken from these models. Defaults to
+                `self.calibrated_models`.
+            criterion:
+                The criterion by which models will be compared. Defaults to
+                `self.criterion` (e.g. as defined in the PEtab Select problem YAML
+                file).
 
         Returns:
             The best model.
         """
+        if criterion is None:
+            criterion = self.criterion
+        # TODO check if commenting this out broke behavior somewhere
+        #if models is not None:
+        #    self.add_calibrated_models(models)
+        # TODO refactor s.t. `self.calibrated_models is None` when empty.
+        if models is None:
+            if self.calibrated_models:
+                models = self.calibrated_models
+            else:
+                raise ValueError('There are no calibrated models in the problem, and no models were supplied.')  # noqa: E501
+
         best_model = None
         for model in models:
             if best_model is None:
-                if model.has_criterion(self.criterion):
+                if model.has_criterion(criterion):
                     best_model = model
+                # TODO warn if criterion is not available?
                 continue
             if self.compare(best_model, model):
                 best_model = model
         if best_model is None:
-            raise KeyError(
-                'None of the supplied models have a value set for the '
-                f'criterion {self.criterion}.'
-            )
+            raise KeyError('None of the supplied models have a value set for the criterion {criterion}.')  # noqa: E501
         return best_model
+
+    def new_candidate_space(self, *args, **kwargs) -> None:
+        """Construct a new candidate space.
+
+        Args:
+            *args, **kwargs:
+                Arguments are passed to the candidate space constructor.
+        """
+        candidate_space_class = method_to_candidate_space_class(self.method)
+        candidate_space = candidate_space_class()
+        return candidate_space

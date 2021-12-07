@@ -7,4 +7,4 @@
   estimated_parameters:
     k2: 0.15
     k3: 0.0
-  petab_yaml: ../../../doc/examples/model_selection/example_modelSelection.yaml
+  petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml

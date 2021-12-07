@@ -18,20 +18,20 @@ import pytest
 
 # Set to `[]` to test all
 test_cases = [
-    #'0007',
+    #'0002',
     #'0008',
 ]
 
 
 @pytest.fixture
 def test_cases_path():
-    return Path() / '..' / '..' / 'test_cases'
+    return Path(__file__).parent.parent.parent / 'test_cases'
 
 @pytest.fixture
 def minimize_options():
     # Reduce runtime but with high reproducibility
     return {
-        'n_starts': 100,
+        'n_starts': 20,
         'optimizer': pypesto.optimize.FidesOptimizer(),
         'engine': pypesto.engine.MultiProcessEngine(),
     }
@@ -45,15 +45,22 @@ def test_pypesto(test_cases_path, minimize_options):
             test_case_path / 'selection_problem.yaml',
         )
         selector = pypesto.select.ModelSelector(problem=petab_select_problem)
-        
+
         # Run the selection process until "exhausted".
+        selected_model = None
         while True:
             try:
-                _, _, selection_history = \
-                    selector.select(minimize_options=minimize_options)
+                #_, _, selection_history = \
+                #    selector.select(minimize_options=minimize_options)
+                _selected, _local, selection_history = \
+                    selector.select(
+                        initial_model=selected_model,
+                        minimize_options=minimize_options,
+                    )
+                selected_model = one(_selected)
             except StopIteration:
                 break
-    
+
         # Get the best model, load the expected model.
         models = [
             result[MODEL]
@@ -61,11 +68,11 @@ def test_pypesto(test_cases_path, minimize_options):
         ]
         best_model = petab_select_problem.get_best(models)
         expected_model = Model.from_yaml(test_case_path / 'expected.yaml')
-    
+
         # The estimated parameters and criteria values are as expected.
         for dict_attribute in [CRITERIA, ESTIMATED_PARAMETERS]:
             pd.testing.assert_series_equal(
-                pd.Series(getattr(expected_model, dict_attribute)),
-                pd.Series(getattr(best_model, dict_attribute)),
+                pd.Series(getattr(expected_model, dict_attribute)).sort_index(),
+                pd.Series(getattr(best_model, dict_attribute)).sort_index(),
                 atol=1e-3,
             )
