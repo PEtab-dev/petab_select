@@ -10,6 +10,7 @@ from .constants import (
     #LLH,
     #NLLH,
     Criterion,
+    PETAB_PROBLEM,
     TYPE_CRITERION,
 )
 #from .model import Model
@@ -27,7 +28,7 @@ class CriterionComputer():
         self.model = model
         # TODO refactor, if `petab_problem` is going to be produced here anyway, store
         #      in model instance instead, for use elsewhere (e.g. pyPESTO)
-        self.petab_problem, _ = model.to_petab()
+        self.petab_problem = model.to_petab()[PETAB_PROBLEM]
 
     def __call__(self, criterion: Criterion) -> float:
         """Get a criterion value.

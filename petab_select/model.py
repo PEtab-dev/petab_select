@@ -466,7 +466,7 @@ class Model(PetabMixin):
         parameter_ids = '\t'.join(self.parameters.keys())
         parameter_values = '\t'.join(str(v) for v in self.parameters.values())
         header = '\t'.join([MODEL_ID, PETAB_YAML, parameter_ids])
-        data = '\t'.join([self.model_id, self.petab_yaml, parameter_values])
+        data = '\t'.join([self.model_id, str(self.petab_yaml), parameter_values])
         #header = f'{MODEL_ID}\t{PETAB_YAML}\t{parameter_ids}'
         #data = f'{self.model_id}\t{self.petab_yaml}\t{parameter_values}'
         return f'{header}\n{data}'
