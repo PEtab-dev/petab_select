@@ -102,11 +102,7 @@ class CriterionComputer():
 
     def get_n_measurements(self) -> int:
         """Get the number of measurements."""
-        # TODO remove `count_nan` from method.
-        return petab.measurements.get_n_measurements(
-            measurement_df=self.petab_problem.measurement_df,
-            count_nan=False,
-        )
+        return len(self.petab_problem.measurement_df)
 
     def get_n_priors(self) -> int:
         """Get the number of priors."""
