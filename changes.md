@@ -1,4 +1,5 @@
 # Changes
+## 0.0.4 (bugfix)
 ## 0.0.3
 - **Added model subspaces**
   - efficiently searches for candidate models in stepwise methods
