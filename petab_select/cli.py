@@ -1,6 +1,7 @@
 """The PEtab Select command-line interface."""
 from pathlib import Path
 from typing import List
+import warnings
 import yaml
 
 import click
