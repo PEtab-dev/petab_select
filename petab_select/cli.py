@@ -179,8 +179,9 @@ def candidates(
         Path(state).parent.mkdir(parents=True, exist_ok=True)
 
     excluded_models = []
+    # TODO seems like default is `()`, not `None`...
     if excluded_model_files is not None:
-        for model_yaml_list in exclude_model_files:
+        for model_yaml_list in excluded_model_files:
             excluded_models.extend(models_from_yaml_list(model_yaml_list))
 
     # TODO test
