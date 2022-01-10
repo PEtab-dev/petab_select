@@ -5,9 +5,6 @@ import pytest
 
 from petab_select.constants import (
     ESTIMATE,
-    FORWARD,
-    BACKWARD,
-    LATERAL,
 
     MODEL_SUBSPACE_ID,
     PETAB_YAML,

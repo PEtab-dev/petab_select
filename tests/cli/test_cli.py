@@ -42,7 +42,7 @@ def test_model_to_petab(
     output_path_model = output_path / 'model'
     output_path_model.mkdir(parents=True, exist_ok=True)
 
-    result = cli_runner.invoke(petab_select.cli.model2petab, [
+    result = cli_runner.invoke(petab_select.cli.model_to_petab, [
         '-y', model_yaml,
         '-o', output_path_model,
     ])
@@ -77,7 +77,7 @@ def test_models_to_petab(
     output_path_models = output_path / 'models'
     output_path_models.mkdir(parents=True, exist_ok=True)
 
-    result = cli_runner.invoke(petab_select.cli.models2petab, [
+    result = cli_runner.invoke(petab_select.cli.models_to_petab, [
         '-y', models_yaml,
         '-o', output_path_models,
     ])

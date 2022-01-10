@@ -1,4 +1,4 @@
-- criteria: null
+- criteria: {}
   model_id: model
   parameters:
     k1: 0.2

@@ -1,4 +1,4 @@
-- criteria: null
+- criteria: {}
   model_id: model_1
   parameters:
     k1: 0.2
@@ -7,11 +7,11 @@
   estimated_parameters:
     k2: 0.15
     k3: 0.0
-  petab_yaml: ../../../doc/examples/model_selection/example_modelSelection.yaml
-- criteria: null
+  petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml
+- criteria: {}
   model_id: model_2
   parameters:
     k1: estimate
     k2: estimate
     k3: 0
-  petab_yaml: ../../../doc/examples/model_selection/example_modelSelection.yaml
+  petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml

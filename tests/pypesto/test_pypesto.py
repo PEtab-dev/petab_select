@@ -2,6 +2,7 @@ from pathlib import Path
 
 import fides
 from more_itertools import one
+import numpy as np
 import pandas as pd
 import petab_select
 from petab_select import Model
@@ -18,7 +19,7 @@ import pytest
 
 # Set to `[]` to test all
 test_cases = [
-    #'0002',
+    #'0003',
     #'0008',
 ]
 
@@ -27,14 +28,16 @@ test_cases = [
 def test_cases_path():
     return Path(__file__).parent.parent.parent / 'test_cases'
 
+
 @pytest.fixture
 def minimize_options():
     # Reduce runtime but with high reproducibility
     return {
-        'n_starts': 20,
+        'n_starts': 10,
         'optimizer': pypesto.optimize.FidesOptimizer(),
         'engine': pypesto.engine.MultiProcessEngine(),
     }
+
 
 def test_pypesto(test_cases_path, minimize_options):
     for test_case_path in test_cases_path.glob('*'):
@@ -42,37 +45,30 @@ def test_pypesto(test_cases_path, minimize_options):
             continue
         # Setup the pyPESTO model selector instance.
         petab_select_problem = petab_select.Problem.from_yaml(
-            test_case_path / 'selection_problem.yaml',
+            test_case_path / 'petab_select_problem.yaml',
         )
-        selector = pypesto.select.ModelSelector(problem=petab_select_problem)
+        pypesto_select_problem = \
+            pypesto.select.Problem(petab_select_problem=petab_select_problem)
 
         # Run the selection process until "exhausted".
-        selected_model = None
-        while True:
-            try:
-                #_, _, selection_history = \
-                #    selector.select(minimize_options=minimize_options)
-                _selected, _local, selection_history = \
-                    selector.select(
-                        initial_model=selected_model,
-                        minimize_options=minimize_options,
-                    )
-                selected_model = one(_selected)
-            except StopIteration:
-                break
+        pypesto_select_problem.select_to_completion(
+            minimize_options=minimize_options,
+        )
 
         # Get the best model, load the expected model.
-        models = [
-            result[MODEL]
-            for result in selection_history.values()
-        ]
+        models = pypesto_select_problem.history.values()
         best_model = petab_select_problem.get_best(models)
         expected_model = Model.from_yaml(test_case_path / 'expected.yaml')
 
+        def get_series(model) -> pd.Series:
+            return pd.Series(
+                getattr(model, dict_attribute),
+                dtype=np.float64,
+            ).sort_index()
         # The estimated parameters and criteria values are as expected.
         for dict_attribute in [CRITERIA, ESTIMATED_PARAMETERS]:
             pd.testing.assert_series_equal(
-                pd.Series(getattr(expected_model, dict_attribute)).sort_index(),
-                pd.Series(getattr(best_model, dict_attribute)).sort_index(),
-                atol=1e-3,
+                get_series(expected_model),
+                get_series(best_model),
+                atol=1e-2,
             )
