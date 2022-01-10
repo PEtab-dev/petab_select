@@ -16,6 +16,7 @@ from .constants import (
     MODEL_SPACE_FILES,
     VERSION,
     Criterion,
+    Method,
 )
 from .model import (
     Model,
@@ -230,13 +231,22 @@ class Problem(abc.ABC):
             raise KeyError('None of the supplied models have a value set for the criterion {criterion}.')  # noqa: E501
         return best_model
 
-    def new_candidate_space(self, *args, **kwargs) -> None:
+    def new_candidate_space(
+        self,
+        *args,
+        method: Method = None,
+        **kwargs,
+    ) -> None:
         """Construct a new candidate space.
 
         Args:
             *args, **kwargs:
                 Arguments are passed to the candidate space constructor.
+            method:
+                The model selection method.
         """
-        candidate_space_class = method_to_candidate_space_class(self.method)
-        candidate_space = candidate_space_class()
+        if method is None:
+            method = self.method
+        candidate_space_class = method_to_candidate_space_class(method)
+        candidate_space = candidate_space_class(*args, **kwargs)
         return candidate_space

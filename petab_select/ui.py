@@ -16,26 +16,30 @@ from .problem import Problem
 def candidates(
     problem: Problem,
     candidate_space: Optional[CandidateSpace] = None,
-    initial_model: Optional[Model] = None,
+    predecessor_model: Optional[Model] = None,
     limit: Union[float, int] = np.inf,
     excluded_models: Optional[List[Model]] = None,
+    excluded_model_hashes: Optional[List[str]] = None,
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
     Args:
         problem:
-            A Petal Select problem.
+            A PEtab Select problem.
         candidate_space:
             The candidate space. Defaults to a new candidate space based on the method
             defined in the problem.
-        initial_model:
-            The initial model for a compatible method. Defaults to the best model
+        predecessor_model:
+            The predecessor model for a compatible method. Defaults to the best model in
             `Problem.calibrated_models`, if available.
         limit:
             The maximum number of models to add to the candidate space.
         excluded_models:
             Models that will be excluded from model subspaces during the search for
             candidates.
+        excluded_model_hashes:
+            Hashes of models that will be excluded from model subspaces during the
+            search for candidates.
 
     Returns:
         The candidate space, which contains the candidate models.
@@ -44,21 +48,32 @@ def candidates(
         candidate_space = problem.new_candidate_space()
         if problem.calibrated_models:
             candidate_space.exclude(problem.calibrated_models)
+    if excluded_models is None:
+        excluded_models = []
+    if excluded_model_hashes is None:
+        excluded_model_hashes = []
 
     if (
-        initial_model is None
+        predecessor_model is None
         and
         candidate_space.method in VIRTUAL_INITIAL_MODEL_METHODS
         and
         problem.calibrated_models
     ):
-        initial_model = problem.get_best()
-    if initial_model is not None:
-        candidate_space.reset(initial_model)
+        predecessor_model = problem.get_best()
+    if predecessor_model is not None:
+        candidate_space.reset(predecessor_model)
 
-    exclusions = None
-    if excluded_models is not None:
-        exclusions = [model.get_hash() for model in excluded_models]
+    # TODO support excluding model IDs? should be faster but may have issues, e.g.:
+    #      - duplicate model IDs among multiple model subspaces
+    #      - perhaps less portable if model IDs are generated differently on different
+    #        computers
+    exclusions = (
+        [model.get_hash() for model in excluded_models]
+        + excluded_model_hashes
+    )
+    if not exclusions:
+        exclusions = None
 
     problem.model_space.reset_exclusions(exclusions=exclusions)
     problem.model_space.search(candidate_space, limit=limit)
@@ -114,7 +129,7 @@ def best(
     problem: Problem,
     models: List[Model],
     criterion: Optional[Union[str, None]] = None,
-):
+) -> Model:
     """Get the best model from a list of models.
 
     Args:
@@ -129,4 +144,5 @@ def best(
     Returns:
         The best model.
     """
-    return problem.get_best(models)
+    # TODO return list, when multiple models are equally "best"
+    return problem.get_best(models=models, criterion=criterion)

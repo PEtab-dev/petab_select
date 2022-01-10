@@ -106,8 +106,8 @@ class CandidateSpace(abc.ABC):
             #    Whether to keep other models that were previously added to the
             #    candidate space.
         """
-        model.predecessor_model_id = (
-            self.predecessor_model.model_id
+        model.predecessor_model_hash = (
+            self.predecessor_model.get_hash()
             if isinstance(self.predecessor_model, Model)
             else self.predecessor_model
         )
@@ -193,6 +193,33 @@ class CandidateSpace(abc.ABC):
         self.models = []
         self.distances = []
 
+    def set_predecessor_model(self, predecessor_model: Union[Model, str, None]):
+        self.predecessor_model = predecessor_model
+        if (
+            self.predecessor_model == VIRTUAL_INITIAL_MODEL
+            and self.method not in VIRTUAL_INITIAL_MODEL_METHODS
+        ):
+            raise ValueError(f'A virtual initial model was requested for a method ({self.method}) that does not support them.')  # noqa: E501
+
+    def get_predecessor_model(self):
+        return self.predecessor_model
+
+    def set_exclusions(self, exclusions: Union[List[Any], None]):
+        # TODO change to List[str] for hashes?
+        self.exclusions = exclusions
+        if self.exclusions is None:
+            self.exclusions = []
+
+    def get_exclusions(self):
+        return self.exclusions
+
+    def set_limit(self, limit: TYPE_LIMIT = None):
+        if limit is not None:
+            self.limit.set_limit(limit)
+
+    def get_limit(self):
+        return self.limit.get_limit()
+
     def reset(
         self,
         predecessor_model: Optional[Union[Model, str, None]] = None,
@@ -210,19 +237,10 @@ class CandidateSpace(abc.ABC):
             limit:
                 The new upper limit of the number of models in this candidate space.
         """
-        # TODO if is not None?
-        self.predecessor_model = predecessor_model
-        if (
-            self.predecessor_model == VIRTUAL_INITIAL_MODEL
-            and self.method not in VIRTUAL_INITIAL_MODEL_METHODS
-        ):
-            raise ValueError(f'A virtual initial model was requested for a method ({self.method}) that does not support them.')  # noqa: E501
+        self.set_predecessor_model(predecessor_model)
         self.reset_accepted()
-        self.exclusions = exclusions
-        if self.exclusions is None:
-            self.exclusions = []
-        if limit is not None:
-            self.limit.set_limit(limit)
+        self.set_exclusions(exclusions)
+        self.set_limit(limit)
 
     def distances_in_estimated_parameters(
         self,
@@ -321,9 +339,14 @@ class ForwardCandidateSpace(CandidateSpace):
     def __init__(
         self,
         *args,
-        predecessor_model: Union[Model, str] = VIRTUAL_INITIAL_MODEL,
+        predecessor_model: Optional[Union[Model, str]] = None,
         **kwargs,
     ):
+        # Although `VIRTUAL_INITIAL_MODEL` is `str` and can be used as a default
+        # argument, `None` may be passed by other packages, so the default value
+        # is handled here instead.
+        if predecessor_model is None:
+            predecessor_model = VIRTUAL_INITIAL_MODEL
         super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
 
     def is_plausible(self, model: Model) -> bool:
@@ -377,13 +400,19 @@ class BackwardCandidateSpace(ForwardCandidateSpace):
 
 
 class LateralCandidateSpace(ForwardCandidateSpace):
-    """
-    A method class to find models with the same number of estimated parameters.
-    """
+    """Find models with the same number of estimated parameters."""
     method = Method.LATERAL
+
+    def __init__(
+        self,
+        *args,
+        predecessor_model: Union[Model, str],
+        **kwargs,
+    ):
+        super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
+
     def is_plausible(self, model: Model) -> bool:
-        distances = \
-            self.distances_in_estimated_parameters(model)
+        distances = self.distances_in_estimated_parameters(model)
         # A model is plausible if the number of estimated parameters remains
         # the same, but some estimated parameters have become fixed and vice
         # versa.
@@ -406,14 +435,14 @@ class BruteForceCandidateSpace(CandidateSpace):
     method = Method.BRUTE_FORCE
 
     def __init__(self, *args, **kwargs):
-        if args or kwargs:
-            # FIXME remove?
-            # FIXME at least support limit
-            warnings.warn(
-                'Arguments were provided but will be ignored, because of the '
-                'brute force candidate space.'
-            )
-        super().__init__()
+        #if args or kwargs:
+        #    # FIXME remove?
+        #    # FIXME at least support limit
+        #    warnings.warn(
+        #        'Arguments were provided but will be ignored, because of the '
+        #        'brute force candidate space.'
+        #    )
+        super().__init__(*args, **kwargs)
 
     def _consider_method(self, model):
         return True
@@ -427,7 +456,7 @@ candidate_space_classes = [
 ]
 
 
-def method_to_candidate_space_class(method: str) -> str:
+def method_to_candidate_space_class(method: Method) -> str:
     """Instantiate a candidate space given its method name.
 
     Args:
@@ -441,10 +470,7 @@ def method_to_candidate_space_class(method: str) -> str:
     for candidate_space_class in candidate_space_classes:
         if candidate_space_class.method == method:
             return candidate_space_class
-    raise NotImplementedError(
-        f'The provided method name {method} does not correspond to an '
-        'implemented candidate space.'
-    )
+    raise NotImplementedError(f'The provided method name {method} does not correspond to an implemented candidate space.')  # noqa: E501
 
 
 '''

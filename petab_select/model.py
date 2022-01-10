@@ -26,7 +26,7 @@ from .constants import (
     PETAB_ESTIMATE_TRUE,
     PETAB_PROBLEM,
     PETAB_YAML,
-    PREDECESSOR_MODEL_ID,
+    PREDECESSOR_MODEL_HASH,
     TYPE_CRITERION,
     TYPE_PATH,
     TYPE_PARAMETER,
@@ -86,7 +86,7 @@ class Model(PetabMixin):
         MODEL_SUBSPACE_ID,
         MODEL_SUBSPACE_INDICES,
         MODEL_HASH,
-        PREDECESSOR_MODEL_ID,
+        PREDECESSOR_MODEL_HASH,
         PETAB_YAML,
         PARAMETERS,
         ESTIMATED_PARAMETERS,
@@ -97,7 +97,7 @@ class Model(PetabMixin):
         MODEL_SUBSPACE_ID: lambda x: x,
         MODEL_SUBSPACE_INDICES: lambda x: [] if not x else x,
         MODEL_HASH: lambda x: x,
-        PREDECESSOR_MODEL_ID: lambda x: x,
+        PREDECESSOR_MODEL_HASH: lambda x: x,
         PETAB_YAML: lambda x: x,
         PARAMETERS: lambda x: x,
         ESTIMATED_PARAMETERS: lambda x: x,
@@ -112,7 +112,7 @@ class Model(PetabMixin):
         MODEL_SUBSPACE_ID: lambda x: x,
         MODEL_SUBSPACE_INDICES: lambda x: x,
         MODEL_HASH: lambda x: x,
-        PREDECESSOR_MODEL_ID: lambda x: x,
+        PREDECESSOR_MODEL_HASH: lambda x: x,
         PETAB_YAML: lambda x: str(x),
         PARAMETERS: lambda x: x,
         # FIXME handle with a `set_estimated_parameters` method instead?
@@ -158,7 +158,7 @@ class Model(PetabMixin):
         model_subspace_id: str = None,
         model_id: str = None,
         model_subspace_indices: List[int] = None,
-        predecessor_model_id: str = None,
+        predecessor_model_hash: str = None,
         parameters: Dict[str, Union[int, float]] = None,
         estimated_parameters: Dict[str, Union[int, float]] = None,
         criteria: Dict[str, float] = None,
@@ -175,7 +175,7 @@ class Model(PetabMixin):
         self.criteria = criteria
         self.model_hash = model_hash
 
-        self.predecessor_model_id = predecessor_model_id
+        self.predecessor_model_hash = predecessor_model_hash
 
         if self.parameters is None:
             self.parameters = {}
@@ -570,8 +570,9 @@ class Model(PetabMixin):
 
 def default_compare(
     model0: Model,
-    model: Model,
-    criterion: str,
+    model1: Model,
+    criterion: Criterion,
+    criterion_threshold: float = 0,
 ) -> bool:
     """Compare two calibrated models by their criterion values.
 
@@ -581,31 +582,44 @@ def default_compare(
     Args:
         model0:
             The original model.
-        model:
+        model1:
             The new model.
+        criterion:
+            The criterion by which models will be compared.
+        criterion_threshold:
+            The value by which the new model must improve on the original
+            model. Should be non-negative.
 
     Returns:
-        `True` if `model` has a better criterion value than `model0`, else
+        `True` if `model1` has a better criterion value than `model0`, else
         `False`.
     """
-    if not model.has_criterion(criterion):
-        warnings.warn(
-            f'Model "{model.model_id}" does not provide a value for the '
-            f'criterion "{criterion}".'
-        )
+    if not model1.has_criterion(criterion):
+        warnings.warn(f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".')  # noqa: E501
         return False
+    if criterion_threshold < 0:
+        warnings.warn('The provided criterion threshold is negative. The absolute value will be used instead.')  # noqa: E501
+        criterion_threshold = abs(criterion_threshold)
     if criterion in [
         Criterion.AIC,
         Criterion.AICC,
         Criterion.BIC,
         Criterion.NLLH,
     ]:
-        return model.get_criterion(criterion) < model0.get_criterion(criterion)
+        return (
+            model1.get_criterion(criterion)
+            <
+            model0.get_criterion(criterion) - criterion_threshold
+        )
     elif criterion in [
         Criterion.LH,
         Criterion.LLH,
     ]:
-        return model.get_criterion(criterion) > model0.get_criterion(criterion)
+        return (
+            model1.get_criterion(criterion)
+            >
+            model0.get_criterion(criterion) + criterion_threshold
+        )
     else:
         raise NotImplementedError(
             f'Unknown criterion: {criterion}.'

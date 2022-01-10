@@ -31,12 +31,12 @@ MODEL_SUBSPACE_ID = 'model_subspace_id'
 MODEL_SUBSPACE_INDICES = 'model_subspace_indices'
 MODEL_CODE = 'model_code'
 MODEL_HASH = 'model_hash'
-# If `predecessor_model_id` is defined for a model, it is the ID of the model that the
+# If `predecessor_model_hash` is defined for a model, it is the ID of the model that the
 # current model was/is to be compared to. This is part of the result and is
 # only (optionally) set by the PEtab calibration tool. It is not defined by the
 # PEtab Select model selection problem (but may be subsequently stored in the
 # PEtab Select model report format.
-PREDECESSOR_MODEL_ID = 'predecessor_model_id'
+PREDECESSOR_MODEL_HASH = 'predecessor_model_hash'
 PETAB_PROBLEM = 'petab_problem'
 PETAB_YAML = 'petab_yaml'
 SBML = 'sbml'
@@ -53,31 +53,6 @@ YAML_FILENAME = 'yaml'
 #BIDIRECTIONAL = 'bidirectional'
 #LATERAL = 'lateral'
 
-BIDIRECTIONAL = 'bidirectional'
-FORWARD = 'forward'
-BACKWARD = 'backward'
-LATERAL = 'lateral'
-BRUTE_FORCE = 'brute_force'
-# Methods that move through model space by taking steps away from some model.
-STEPWISE_METHODS = [
-    BACKWARD,
-    BIDIRECTIONAL,
-    FORWARD,
-    LATERAL,
-]
-# Methods that require an initial model.
-INITIAL_MODEL_METHODS = [
-    BACKWARD,
-    FORWARD,
-    LATERAL,
-]
-
-# Virtual initial models can be used to initialize some initial model methods.
-VIRTUAL_INITIAL_MODEL = 'virtual_initial_model'
-VIRTUAL_INITIAL_MODEL_METHODS = [
-    FORWARD,
-    BACKWARD
-]
 
 #DISTANCES = {
 #    FORWARD: {
@@ -142,7 +117,6 @@ class Method(str, Enum):
     FORWARD = 'forward'
     LATERAL = 'lateral'
 
-
 class Criterion(str, Enum):
     """String literals for model selection criteria."""
     AIC = 'AIC'
@@ -151,3 +125,25 @@ class Criterion(str, Enum):
     LH = 'LH'
     LLH = 'LLH'
     NLLH = 'NLLH'
+
+
+# Methods that move through model space by taking steps away from some model.
+STEPWISE_METHODS = [
+    Method.BACKWARD,
+    Method.BIDIRECTIONAL,
+    Method.FORWARD,
+    Method.LATERAL,
+]
+# Methods that require an initial model.
+INITIAL_MODEL_METHODS = [
+    Method.BACKWARD,
+    Method.FORWARD,
+    Method.LATERAL,
+]
+
+# Virtual initial models can be used to initialize some initial model methods.
+VIRTUAL_INITIAL_MODEL = 'virtual_initial_model'
+VIRTUAL_INITIAL_MODEL_METHODS = [
+    Method.FORWARD,
+    Method.BACKWARD
+]

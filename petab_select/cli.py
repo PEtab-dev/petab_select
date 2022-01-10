@@ -71,13 +71,21 @@ def cli():
     help='(Optional) The initial model used in the candidate model search.',
 )
 @click.option(
+    '--predecessor',
+    '-p',
+    'predecessor',
+    type=str,
+    default=None,
+    help='(Optional) The predecessor model used in the candidate model search.',
+)
+@click.option(
     '--best',
     '-b',
     'best',
     type=str,
     default=None,
     help=(
-        '(Optional) Initialize with the best model from a collection of '
+        '(Optional) Use the best model as the predecessor model, from a collection of '
         'calibrated models.'
     ),
 )
@@ -97,13 +105,22 @@ def cli():
     help='Whether to output paths relative to the output file.',
 )
 @click.option(
-    '--exclude-models',
+    '--excluded-model-file',
     '-e',
-    'exclude_models',
+    'excluded_model_files',
     type=str,
     multiple=True,
     default=None,
     help='Exclude models in this file.',
+)
+@click.option(
+    '--excluded-model-hash-file',
+    '-E',
+    'excluded_model_hash_files',
+    type=str,
+    multiple=True,
+    default=None,
+    help='Exclude model hashes in this file (one model hash per line).',
 )
 def candidates(
     yaml_: str,
@@ -111,20 +128,34 @@ def candidates(
     output: str,
     method: str = None,
     initial: str = None,
+    predecessor: str = None,
     best: str = None,
     limit: float = np.inf,
     relative_paths: bool = False,
-    exclude_models: List[str] = None,
+    excluded_model_files: List[str] = None,
+    excluded_model_hash_files: List[str] = None,
 ) -> None:
     """Search for candidate models in the model space.
 
     Documentation for arguments can be viewed with
     `petab_select candidates --help`.
     """
-    if initial is not None and best is not None:
+    if initial is not None:
+        warnings.warn(
+            '`initial` (`-i`) is deprecated in favor of `predecessor` (`-p`), '
+            'for internal consistency.',
+            DeprecationWarning,
+        )
+        if predecessor is not None:
+            raise ValueError(
+                'Only one of `initial` (`-i`) or `predecessor` (`-p`) should be set.'
+            )
+        predecessor = initial
+
+    if predecessor is not None and best is not None:
         raise KeyError(
-            'The `initial` (`-i`) and `best` (`-b`) arguments cannot be used '
-            'together, as they both set the initial model.'
+            'The `predecessor` (`-p`) and `best` (`-b`) arguments cannot be used '
+            'together, as they both set the predecessor model.'
         )
 
     paths_relative_to = None
@@ -148,23 +179,31 @@ def candidates(
         Path(state).parent.mkdir(parents=True, exist_ok=True)
 
     excluded_models = []
-    if exclude_models is not None:
-        for model_yaml_list in exclude_models:
+    if excluded_model_files is not None:
+        for model_yaml_list in exclude_model_files:
             excluded_models.extend(models_from_yaml_list(model_yaml_list))
 
-    initial_model = None
+    # TODO test
+    excluded_model_hashes = []
+    if excluded_model_hash_files is not None:
+        for excluded_model_hash_file in excluded_model_hash_files:
+            with open(excluded_model_hash_file, 'r') as f:
+                excluded_model_hashes += f.read().split('\n')
+
+    predecessor_model = None
     if best is not None:
         calibrated_models = models_from_yaml_list(best)
-        initial_model = problem.get_best(calibrated_models)
+        predecessor_model = problem.get_best(calibrated_models)
 
-    if initial is not None:
-        initial_model = Model.from_yaml(initial)
+    if predecessor is not None:
+        predecessor_model = Model.from_yaml(predecessor)
 
     candidate_space = ui.candidates(
         problem=problem,
-        initial_model=initial_model,
+        predecessor_model=predecessor_model,
         limit=limit,
         excluded_models=excluded_models,
+        excluded_model_hashes=excluded_model_hashes,
     )
 
     # Save state

@@ -18,7 +18,6 @@ import numpy as np
 import pandas as pd
 
 from .constants import (
-    Method,
     ESTIMATE,
     HEADER_ROW,
     MODEL_ID,
