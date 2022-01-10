@@ -1,4 +1,13 @@
 # Changes
+## 0.0.5
+- renamed `initial_model` to `predecessor_model` in the UI method `candidates`, to avoid confusion.
+  - "Initial model" is used to refer to the first model used in any algorithm. "Predecessor model" is the first model in a specific iteration of the algorithm. For the first iteration, initial model and predecessor model are the same. To generalize, `predecessor_model` is used everywhere now.
+- added `excluded_model_hashes` as an option to the `candidates` UI method (an alternative to `excluded_models`)
+  - named `excluded_model_hash_files` in the CLI -- files with one model hash per line
+  - **breaking** renamed `exclude_models` to `excluded_model_files` for consistency / avoid naming conflicts
+- the `LateralCandidateSpace` now explicitly requires a predecessor model
+- getters and setters for the predecessor model, model exclusions, and limit on number of models, added to `CandidateSpace`
+- renamed files in the test cases for consistency
 ## 0.0.4 (bugfix)
 ## 0.0.3
 - **Added model subspaces**
@@ -43,3 +52,4 @@
 
 # Upcoming changes
 - Produce graphs given a set of models and their predecessor models
+- Allow specification of `model_id` in a model space file, if the row describes only a single model?
