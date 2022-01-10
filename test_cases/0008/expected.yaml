@@ -13,5 +13,5 @@ parameters:
   k1: 0.2
   k2: 0.1
   k3: 0
-petab_yaml: ../0007/petab_2/petab_2.yaml
-predecessor_model_id: f3c3e61846793d080e8ddda9d67a657618867a394e557e31bc4a4691a5e552b99be78036ebc21a919f647993340fffd9f65a03ae2d2cc0d7eda872fed2a7da1f
+petab_yaml: ../0007/petab/petab_problem.yaml
+predecessor_model_hash: f3c3e61846793d080e8ddda9d67a657618867a394e557e31bc4a4691a5e552b99be78036ebc21a919f647993340fffd9f65a03ae2d2cc0d7eda872fed2a7da1f

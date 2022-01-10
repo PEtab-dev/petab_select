@@ -1,5 +1,5 @@
 format_version: beta_1
 criterion: AIC
-method: forward
+method: brute_force
 model_space_files:
-- _model_space.tsv
+- model_space.tsv

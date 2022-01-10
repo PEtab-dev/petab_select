@@ -14,5 +14,5 @@ parameters:
   k1: 0.2
   k2: 0.1
   k3: 0
-petab_yaml: ../0001/petab_1/petab_1.yaml
-predecessor_model_id: null
+petab_yaml: ../0001/petab/petab_problem.yaml
+predecessor_model_hash: null

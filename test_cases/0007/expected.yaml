@@ -13,5 +13,5 @@ parameters:
   k1: 0.2
   k2: 0.1
   k3: 0
-petab_yaml: petab_2/petab_2.yaml
-predecessor_model_id: virtual_initial_model
+petab_yaml: petab/petab_problem.yaml
+predecessor_model_hash: virtual_initial_model
