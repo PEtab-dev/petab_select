@@ -25,6 +25,7 @@ in the `doc/examples` directory.
 Note that the directional methods (forward, backward) find models with the smallest step size (in terms of number of estimated parameters). For example, given the forward method and an initial model with 2 estimated parameters, if there are no models with 3 estimated parameters, but some models with 4 estimated parameters, then the search may return candidate models with 4 estimated parameters.
 
 ## File formats
+Column or key names that are surrounding by square brackets (e.g. `[constraint_files]`) are optional.
 ### Selection problem
 A YAML file with a description of the model selection problem.
 ```yaml
@@ -32,25 +33,25 @@ format_version: [string]
 criterion: [string]
 method: [string]
 model_space_files: [List of filenames]
-constraint_files: [List of filenames]
-initial_model_files: [List of filenames]
+[constraint_files]: [List of filenames]
+[initial_model_files]: [List of filenames]
 ```
 
 - `format_version`: The version of the model selection extension format (e.g. `'beta_1'`)
 - `criterion`: The criterion by which models should be compared (e.g. `'AIC'`)
 - `method`: The method by which model candidates should be generated (e.g. `'forward'`)
 - `model_space_files`: The filenames of model space files.
-- `constraints_files`: The filenames of constraint files.
+- `constraint_files`: The filenames of constraint files.
 - `initial_model_files`: The filenames of initial model files.
 
 ### Model space
 A TSV with candidate models, in compressed or uncompressed format.
 
-| `model_id`           | `petab_yaml`     | [`sbml`]   | `parameter_id_1`                                       | ... | `parameter_id_n`                                       |
+| `model_subspace_id`  | `petab_yaml`     | [`sbml`]   | `parameter_id_1`                                       | ... | `parameter_id_n`                                       |
 |----------------------|------------------|------------|--------------------------------------------------------|-----|--------------------------------------------------------|
 | (Unique) [string]    | [string]         | [string]   | [string/float] OR [; delimited list of string/float]   | ... | [string/float] OR [; delimited list of string/float]   |
 
-- `model_id`: An ID for the model (or model set, if the row is in the compressed format and specifies multiple models).
+- `model_subspace_id`: An ID for the model subspace.
 - `petab_yaml`: The PEtab YAML filename that serves as the base for a model.
 - `sbml`: An SBML filename. If the PEtab YAML file specifies multiple SBML models, this can select a specific model by model filename.
 - `parameter_id_1`...`parameter_id_n` : Parameter IDs that are specified to take specific values or be estimated. Example valid values are:
@@ -65,8 +66,8 @@ A TSV with candidate models, in compressed or uncompressed format.
 A TSV file with constraints.
 
 | `petab_yaml`     | [`if`]                                    | `constraint`                   |
-|------------|-------------------------------------------|--------------------------------|
-| [string]   | (Optional) [SBML L3 Formula expression]   | [SBML L3 Formula expression]   |
+|------------------|-------------------------------------------|--------------------------------|
+| [string]         | [SBML L3 Formula expression]              | [SBML L3 Formula expression]   |
 
 - `petab_yaml`: The filename of the PEtab YAML file that this constraint applies to.
 - `if`: As a single YAML can relate to multiple models in the model space file, this ensures the constraint is only applies to the models that match this `if` statement
@@ -82,22 +83,26 @@ Here, the format for a single model is shown. Multiple models can be specified a
 The only required key is the PEtab YAML, as a model requires a PEtab problem. All other keys are may be required, for the different uses of the format (e.g. the report format should include `estimated_parameters`), or at different stages of the model selection process (the PEtab-compatible calibration tool should provide `criteria` for model comparison).
 
 ```yaml
-model_id: (Optional) [string]
-predecessor_model_id: (Optional) [string]
+[criteria]: [Dictionary of criterion names and values]
+[estimated_parameters]: [Dictionary of parameter IDs and values]
+[model_hash]: [string]
+[model_id]: [string]
+[parameters]: [Dictionary of parameter IDs and values]
 petab_yaml: [string]
-sbml: (Optional) [string]
-parameters: (Optional) [Dictionary of parameter IDs and values]
-estimated_parameters: (Optional) [Dictionary of parameter IDs and values]
-criteria: (Optional) [Dictionary of criterion names and values]
+[predecessor_model_hash]: [string]
+[sbml]: [string]
 ```
 
-- `model_id`: same as in model space files
-- `predecessor_model_id`: the ID of the model that preceded this model during the model selection process
-- `petab_yaml`: same as in model space files
-- `sbml`: same as in model space files
-- `parameters`: the parameters from the problem (either values or `'estimate'`)
-- `estimated_parameters`: parameter estimates, not only of parameters specified to be estimated in a model space file, but also parameters specified to be estimated in the original PEtab problem of the model
-- `criteria`: the value of the criterion by which model selection was performed, at least. Optionally, other criterion values too.
+- `criteria`: The value of the criterion by which model selection was performed, at least. Optionally, other criterion values too.
+- `estimated_parameters`: Parameter estimates, not only of parameters specified to be estimated in a model space file, but also parameters specified to be estimated in the original PEtab problem of the model.
+- `model_hash`: The model hash, generated by the PEtab Select library.
+- `model_id`: The model ID.
+- `model_subspace_id`: Same as in the model space files.
+- `model_subspace_indices`: The indices that locate this model in its model subspace.
+- `parameters`: The parameters from the problem (either values or `'estimate'`) (a specific combination from a model space file, but uncalibrated).
+- `petab_yaml`: Same as in model space files.
+- `predecessor_model_hash`: The hash of the model that preceded this model during the model selection process.
+- `sbml`: Same as in model space files.
 
 ## Test cases
 Several test cases are provided, to test the compatibility of a PEtab-compatible calibration tool with different PEtab Select features.
