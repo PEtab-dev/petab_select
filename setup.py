@@ -63,23 +63,19 @@ setup(
     packages=find_packages(exclude=['doc*', 'test*']),
     install_requires=[
         # TODO fix versions
-
         'more-itertools',
         'numpy',
+        'pandas',
+        'petab',
         'pyyaml',
-        #'numpy>=1.15.1',
-        #'pandas>=1.2.0',
-        #'matplotlib>=2.2.3',
         #'python-libsbml>=5.17.0',
         #'sympy',
-        #'colorama',
-        #'seaborn',
-        #'pyyaml',
-        #'jsonschema',
-
         # required for CLI
         'click',
         'dill',
+        # plotting
+        #'matplotlib>=2.2.3',
+        #'seaborn',
     ],
     include_package_data=True,
     tests_require=[

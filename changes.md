@@ -1,4 +1,6 @@
 # Changes
+## 0.0.6 (bugfix)
+- fixed calculation of number of priors (GitHub issue #2)
 ## 0.0.5
 - renamed `initial_model` to `predecessor_model` in the UI method `candidates`, to avoid confusion.
   - "Initial model" is used to refer to the first model used in any algorithm. "Predecessor model" is the first model in a specific iteration of the algorithm. For the first iteration, initial model and predecessor model are the same.

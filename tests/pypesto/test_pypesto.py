@@ -19,30 +19,25 @@ import pytest
 
 # Set to `[]` to test all
 test_cases = [
-    #'0003',
+    #'0004',
     #'0008',
 ]
 
+test_cases_path = Path(__file__).resolve().parent.parent.parent / 'test_cases'
 
-@pytest.fixture
-def test_cases_path():
-    return Path(__file__).parent.parent.parent / 'test_cases'
+# Reduce runtime but with high reproducibility
+minimize_options = {
+    'n_starts': 10,
+    'optimizer': pypesto.optimize.FidesOptimizer(),
+    'engine': pypesto.engine.MultiProcessEngine(),
+}
 
-
-@pytest.fixture
-def minimize_options():
-    # Reduce runtime but with high reproducibility
-    return {
-        'n_starts': 10,
-        'optimizer': pypesto.optimize.FidesOptimizer(),
-        'engine': pypesto.engine.MultiProcessEngine(),
-    }
-
-
-def test_pypesto(test_cases_path, minimize_options):
+def test_pypesto():
     for test_case_path in test_cases_path.glob('*'):
         if test_cases and test_case_path.stem not in test_cases:
             continue
+
+        expected_model_yaml = test_case_path / 'expected.yaml'
         # Setup the pyPESTO model selector instance.
         petab_select_problem = petab_select.Problem.from_yaml(
             test_case_path / 'petab_select_problem.yaml',
@@ -58,7 +53,7 @@ def test_pypesto(test_cases_path, minimize_options):
         # Get the best model, load the expected model.
         models = pypesto_select_problem.history.values()
         best_model = petab_select_problem.get_best(models)
-        expected_model = Model.from_yaml(test_case_path / 'expected.yaml')
+        expected_model = Model.from_yaml(expected_model_yaml)
 
         def get_series(model) -> pd.Series:
             return pd.Series(

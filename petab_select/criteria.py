@@ -3,7 +3,11 @@
 import math
 
 import petab
-from petab.C import OBJECTIVE
+from petab.C import (
+    OBJECTIVE,
+    OBJECTIVE_PRIOR_PARAMETERS,
+    OBJECTIVE_PRIOR_TYPE,
+)
 
 from .constants import (
     #LH,
@@ -106,10 +110,27 @@ class CriterionComputer():
 
     def get_n_priors(self) -> int:
         """Get the number of priors."""
-        return len(petab.parameters.get_priors_from_df(
-            parameter_df=self.petab_problem.parameter_df,
-            mode=OBJECTIVE,
-        ))
+        df = self.petab_problem.parameter_df
+
+        # At least one of the objective prior columns should be present.
+        if not (OBJECTIVE_PRIOR_TYPE in df or OBJECTIVE_PRIOR_PARAMETERS in df):
+            return 0
+
+        # If both objective prior columns are not present, raise an error.
+        if not (OBJECTIVE_PRIOR_TYPE in df and OBJECTIVE_PRIOR_PARAMETERS in df):
+            raise NotImplementedError('Currently expect that prior types are specified with prior parameters (no default values). Please provide an example for implementation.')  # noqa: E501
+
+        # Expect that the number of non-empty values in both objective prior columns
+        # are the same.
+        if not (
+            df[OBJECTIVE_PRIOR_TYPE].notna().sum()
+            ==
+            df[OBJECTIVE_PRIOR_PARAMETERS].notna().sum()
+        ):
+            raise NotImplementedError('Some objective prior values are missing.')
+
+        number_of_priors = df[OBJECTIVE_PRIOR_TYPE].notna().sum()
+        return number_of_priors
 
     #def get_criterion(self, id: str) -> TYPE_CRITERION:
     #    """Get a criterion value, by criterion ID.
