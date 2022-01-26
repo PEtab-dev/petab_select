@@ -103,6 +103,19 @@ def test_search_forward(model_subspace, initial_model):
         {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': ESTIMATE}
     assert one(candidate_space.models).parameters == expected_forward_parameterization
 
+    # Test limit via model subspace
+    # FIXME currently only returns 1 model anyway
+    limit_considered_candidates = 1
+    model_subspace.reset_exclusions()
+    candidate_space.reset(predecessor_model=initial_model)
+    model_subspace.search(
+        candidate_space=candidate_space,
+        limit=limit_considered_candidates,
+    )
+    # Test limit: the number of candidate models is at the limit (all models in this
+    # case).
+    assert len(candidate_space.models) == limit_considered_candidates
+
 
 def test_search_backward(model_subspace, initial_model):
     # TODO exclude history, use limit
@@ -129,6 +142,18 @@ def test_search_backward(model_subspace, initial_model):
         parameterization in model_parameterizations
         for parameterization in expected_backward_parameterizations
     ])
+
+    # Test limit via model subspace
+    limit_considered_candidates = 1
+    model_subspace.reset_exclusions()
+    candidate_space.reset(predecessor_model=initial_model)
+    model_subspace.search(
+        candidate_space=candidate_space,
+        limit=limit_considered_candidates,
+    )
+    # Test limit: the number of candidate models is at the limit (all models in this
+    # case).
+    assert len(candidate_space.models) == limit_considered_candidates
 
 
 def test_search_brute_force(model_subspace):
@@ -197,3 +222,15 @@ def test_search_brute_force(model_subspace):
         parameterization in parameterizations
         for parameterization in expected_parameterizations
     ])
+
+    # Test limit via model subspace
+    limit_considered_candidates = 1
+    model_subspace.reset_exclusions()
+    candidate_space.reset()
+    model_subspace.search(
+        candidate_space=candidate_space,
+        limit=limit_considered_candidates,
+    )
+    # Test limit: the number of candidate models is at the limit (all models in this
+    # case).
+    assert len(candidate_space.models) == limit_considered_candidates

@@ -203,12 +203,9 @@ class ModelSubspace(PetabMixin):
                 Whether to exclude models that have been previously sent to any
                 candidate space.
         """
-        # Track whether the `limit` has been reached.
-        model_counter = 0
 
         def continue_searching(
             continue_sending: bool,
-            model_counter: int = model_counter,
             # FIXME refactor to use LimitHandler
             limit: int = limit,
         ) -> bool:
@@ -218,16 +215,17 @@ class ModelSubspace(PetabMixin):
                 continue_sending:
                     Whether to continue sending models to the candidate space for
                     consideration.
-                model_counter:
-                    The current number of models already sent to the candidate space.
                 limit:
                     The maximum number of models to send to the candidate space.
 
             Returns:
                 Whether to continue considering models.
             """
-            model_counter += 1
-            if model_counter >= limit:
+            try:
+                continue_searching.counter += 1
+            except AttributeError:
+                continue_searching.counter = 1
+            if continue_searching.counter >= limit:
                 return False
             if not continue_sending:
                 return False
@@ -328,9 +326,6 @@ class ModelSubspace(PetabMixin):
                        )
                     if not continue_searching(continue_sending):
                         return
-                    #model_counter += 1
-                    #if model_counter == limit:
-                    #    return
 
                 # No need to consider other models, as they will necessarily
                 # be worse than the current set of models in the candidate
@@ -364,18 +359,12 @@ class ModelSubspace(PetabMixin):
                     estimated_parameters=list(estimated_parameters),
                 )
                 for model in models:
-                    #candidate_space.consider(model)
-                    #if not continue_searching():
-                    #    return
                     continue_sending = self.send_model_to_candidate_space(
                         model=model,
                         candidate_space=candidate_space,
                        )
                     if not continue_searching(continue_sending):
                         return
-                    #model_counter += 1
-                    #if model_counter == limit:
-                    #    return
 
         elif candidate_space.method == Method.BACKWARD:
             # There are no parameters that could become fixed in this subspace, so there
@@ -413,12 +402,6 @@ class ModelSubspace(PetabMixin):
                     )
                     if not continue_searching(continue_sending):
                         return
-                    #candidate_space.consider(model)
-                    #if not continue_searching():
-                    #    return
-                    #model_counter += 1
-                    #if model_counter == limit:
-                    #    return
 
                 # No need to consider other models, as they will necessarily
                 # be worse than the current set of models in the candidate
@@ -458,9 +441,6 @@ class ModelSubspace(PetabMixin):
                     )
                     if not continue_searching(continue_sending):
                         return
-                    #model_counter += 1
-                    #if model_counter == limit:
-                    #    return
 
         elif candidate_space.method == Method.BRUTE_FORCE:
             # TODO remove list?
