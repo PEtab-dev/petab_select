@@ -99,6 +99,17 @@ def cli():
     help='(Optional) Limit the number of models in the output.',
 )
 @click.option(
+    '--limit-sent',
+    '-L',
+    'limit_sent',
+    type=float,
+    default=np.inf,
+    help=(
+        '(Optional) Limit the number of models sent to the candidate space '
+        '(which are possibly rejected and excluded from the output).'
+    ),
+)
+@click.option(
     '--relative-paths/--absolute-paths',
     'relative_paths',
     type=bool,
@@ -132,6 +143,7 @@ def candidates(
     predecessor: str = None,
     best: str = None,
     limit: float = np.inf,
+    limit_sent: float = np.inf,
     relative_paths: bool = False,
     excluded_model_files: List[str] = None,
     excluded_model_hash_files: List[str] = None,
@@ -204,6 +216,7 @@ def candidates(
         problem=problem,
         predecessor_model=predecessor_model,
         limit=limit,
+        limit_sent=limit_sent,
         excluded_models=excluded_models,
         excluded_model_hashes=excluded_model_hashes,
     )

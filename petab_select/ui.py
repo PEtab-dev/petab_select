@@ -18,6 +18,7 @@ def candidates(
     candidate_space: Optional[CandidateSpace] = None,
     predecessor_model: Optional[Model] = None,
     limit: Union[float, int] = np.inf,
+    limit_sent: Union[float, int] = np.inf,
     excluded_models: Optional[List[Model]] = None,
     excluded_model_hashes: Optional[List[str]] = None,
 ) -> CandidateSpace:
@@ -34,6 +35,9 @@ def candidates(
             `Problem.calibrated_models`, if available.
         limit:
             The maximum number of models to add to the candidate space.
+        limit_sent:
+            The maximum number of models sent to the candidate space (which are possibly
+            rejected and excluded).
         excluded_models:
             Models that will be excluded from model subspaces during the search for
             candidates.
@@ -45,7 +49,7 @@ def candidates(
         The candidate space, which contains the candidate models.
     """
     if candidate_space is None:
-        candidate_space = problem.new_candidate_space()
+        candidate_space = problem.new_candidate_space(limit=limit)
         if problem.calibrated_models:
             candidate_space.exclude(problem.calibrated_models)
     if excluded_models is None:
@@ -76,7 +80,7 @@ def candidates(
         exclusions = None
 
     problem.model_space.reset_exclusions(exclusions=exclusions)
-    problem.model_space.search(candidate_space, limit=limit)
+    problem.model_space.search(candidate_space, limit=limit_sent)
 
     return candidate_space
 

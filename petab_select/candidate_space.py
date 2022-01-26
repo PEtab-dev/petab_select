@@ -45,11 +45,11 @@ class CandidateSpace(abc.ABC):
         # TODO add MODEL_TYPE = Union[str, Model], str for VIRTUAL_INITIAL_MODEL
         predecessor_model: Optional[Model] = None,
         exclusions: Optional[List[Any]] = None,
-        upper_limit: TYPE_LIMIT = np.inf,
+        limit: TYPE_LIMIT = np.inf,
     ):
         self.limit = LimitHandler(
             current=self.n_accepted,
-            limit=upper_limit,
+            limit=limit,
         )
         self.reset(predecessor_model=predecessor_model, exclusions=exclusions)
 
