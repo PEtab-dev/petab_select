@@ -1,8 +1,18 @@
 # Changes
+
+## 0.0.8
+Previously, use of a `limit` via the UI (e.g. CLI) limited the number of models sent to the candidate space. The candidate space may then reject some models, which means this limit is not the number of models seen in the output.
+
+This version has a breaking change. The `limit` is now the number of models in the output (if the model space has sufficient acceptable models to reach the limit). This `limit` now matches the description that was already provided in the Python and CLI docs.
+
+The behavior of the previous `limit` is now implemented as `limit_sent` in the Python or CLI UI.
+
 ## 0.0.7 (bugfix)
 - fix implementation of limit in model subspace (GitHub issue #3)
+
 ## 0.0.6 (bugfix)
 - fixed calculation of number of priors (GitHub issue #2)
+
 ## 0.0.5
 - renamed `initial_model` to `predecessor_model` in the UI method `candidates`, to avoid confusion.
   - "Initial model" is used to refer to the first model used in any algorithm. "Predecessor model" is the first model in a specific iteration of the algorithm. For the first iteration, initial model and predecessor model are the same.
@@ -12,7 +22,9 @@
 - the `LateralCandidateSpace` now explicitly requires a predecessor model
 - getters and setters for the predecessor model, model exclusions, and limit on number of models, added to `CandidateSpace`
 - renamed files in the test cases for consistency
+
 ## 0.0.4 (bugfix)
+
 ## 0.0.3
 - **Added model subspaces**
   - efficiently searches for candidate models in stepwise methods
@@ -43,6 +55,7 @@
   - `model2petab` -> `model_to_petab`
   - `models2petab` -> `models_to_petab`
 - Predecessor model ID, to indicate the model that was previous to a model during model selection iterations
+
 ## 0.0.2
 - Renamed the `search` method of the CLI to `candidates`
 - Added selection ability
