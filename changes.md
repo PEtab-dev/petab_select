@@ -1,4 +1,6 @@
 # Changes
+## 0.0.7 (bugfix)
+- fix implementation of limit in model subspace (GitHub issue #3)
 ## 0.0.6 (bugfix)
 - fixed calculation of number of priors (GitHub issue #2)
 ## 0.0.5
