@@ -68,9 +68,9 @@ class ModelSubspace(PetabMixin):
         # TODO switch from mixin to attribute
         super().__init__(petab_yaml=petab_yaml, parameters_as_lists=True)
 
-        self.exclusions = exclusions
-        if exclusions is None:
-            self.exclusions = []
+        self.exclusions = set()
+        if exclusions is not None:
+            self.exclusions = set(exclusions)
 
     def check_compatibility_stepwise_method(
         self,
@@ -187,7 +187,6 @@ class ModelSubspace(PetabMixin):
         self,
         candidate_space: CandidateSpace,
         limit: int = np.inf,
-        exclude: bool = True,
     ):
         """Search for candidate models in this model subspace.
 
@@ -199,9 +198,6 @@ class ModelSubspace(PetabMixin):
                 The candidate space.
             limit:
                 Limit the number of models.
-            exclude:
-                Whether to exclude models that have been previously sent to any
-                candidate space.
         """
 
         def continue_searching(
@@ -323,7 +319,7 @@ class ModelSubspace(PetabMixin):
                     continue_sending = self.send_model_to_candidate_space(
                         model=model,
                         candidate_space=candidate_space,
-                       )
+                    )
                     if not continue_searching(continue_sending):
                         return
 
@@ -362,7 +358,7 @@ class ModelSubspace(PetabMixin):
                     continue_sending = self.send_model_to_candidate_space(
                         model=model,
                         candidate_space=candidate_space,
-                       )
+                    )
                     if not continue_searching(continue_sending):
                         return
 
@@ -492,10 +488,29 @@ class ModelSubspace(PetabMixin):
         #    return True
 
         if exclude:
-            self.exclude(model)
+            self.exclude_model(model)
         # `result` is whether it is OK to send additional models to the candidate space.
         continue_sending = candidate_space.consider(model)
         return continue_sending
+
+    def exclude_model_hash(self, model_hash: str) -> None:
+        """Exclude a model hash from the model subspace.
+
+        Args:
+            model_hash:
+                The model hash.
+        """
+        self.exclusions.add(model_hash)
+
+    def exclude_model_hashes(self, model_hashes: Iterable[str]) -> None:
+        """Exclude model hashes from the model subspace.
+
+        Args:
+            model_hashes:
+                The model hashes.
+        """
+        for model_hash in model_hashes:
+            self.exclude_model_hash(model_hash=model_hash)
 
     def exclude_model(self, model: Model) -> None:
         """Exclude a model from the model subspace.
@@ -507,7 +522,7 @@ class ModelSubspace(PetabMixin):
             model:
                 The model that will be excluded.
         """
-        self.exclusions.append(model.get_hash())
+        self.exclude_model_hash(model_hash=model.get_hash())
 
     def exclude_models(self, models: Iterable[Model]) -> None:
         """Exclude models from the model subspace.
@@ -522,23 +537,6 @@ class ModelSubspace(PetabMixin):
         for model in models:
             self.exclude_model(model)
 
-    def exclude(
-        self,
-        model: Model,
-    ):
-        """Exclude a model from the model subspace.
-
-        #Models are excluded in `ModelSubspace.send_model_to_candidate_space`
-        Models are excluded in `ModelSubspace.indices_to_model`, which contains the
-        only call to `Model.__init__` in the `ModelSubspace` class.
-
-        Args:
-            model:
-                The model that will be excluded.
-        """
-        # TODO remove, superceded by `exclude_model` and `exclude_models`
-        self.exclusions.append(model.get_hash())
-
     def excluded(
         self,
         model: Model,
@@ -551,9 +549,9 @@ class ModelSubspace(PetabMixin):
         # TODO change typing with `List[Any]` to some `List[TYPE_MODEL_HASH]`
         exclusions: Optional[Union[List[Any], None]] = None,
     ):
-        self.exclusions = []
+        self.exclusions = set()
         if exclusions is not None:
-            self.exclusions = exclusions
+            self.exclusions = set(exclusions)
 
     def reset(
         self,
@@ -620,7 +618,6 @@ class ModelSubspace(PetabMixin):
         )
         if self.excluded(model):
             return None
-        #breakpoint()
         return model
 
     def indices_to_parameters(

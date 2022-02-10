@@ -72,14 +72,8 @@ def candidates(
     #      - duplicate model IDs among multiple model subspaces
     #      - perhaps less portable if model IDs are generated differently on different
     #        computers
-    exclusions = (
-        [model.get_hash() for model in excluded_models]
-        + excluded_model_hashes
-    )
-    if not exclusions:
-        exclusions = None
-
-    problem.model_space.reset_exclusions(exclusions=exclusions)
+    problem.model_space.exclude_models(models=excluded_models)
+    problem.model_space.exclude_model_hashes(model_hashes=excluded_model_hashes)
     problem.model_space.search(candidate_space, limit=limit_sent)
 
     return candidate_space

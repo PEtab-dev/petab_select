@@ -145,7 +145,6 @@ class ModelSpace():
             model_subspace.model_subspace_id: model_subspace
             for model_subspace in model_subspaces
         }
-        self.exclusions = []
 
     @staticmethod
     def from_files(
@@ -181,19 +180,22 @@ class ModelSpace():
         """...TODO
 
         Args:
+            candidate_space:
+                The candidate space.
             limit:
+                The maximum number of models to send to the candidate space (i.e. this
+                limit is on the number of models considered, not necessarily approved
+                as candidates).
                 Note that using a limit may produce unexpected results. For
                 example, it may bias candidate models to be chosen only from
                 a subset of model subspaces.
+            exclude:
+                Whether to exclude the new candidates from the model subspaces.
         """
         # TODO change dict to list of subspaces. Each subspace should manage its own
         #      ID
         for model_subspace in self.model_subspaces.values():
-            model_subspace.search(
-                candidate_space=candidate_space,
-                limit=limit,
-                exclude=exclude,
-            )
+            model_subspace.search(candidate_space=candidate_space, limit=limit)
             if len(candidate_space.models) == limit:
                 break
             elif len(candidate_space.models) > limit:
@@ -230,10 +232,15 @@ class ModelSpace():
     def exclude_models(self, models: Iterable[Model]):
         # FIXME add Exclusions Mixin (or object) to handle exclusions on the subspace
         # and space level.
-
         for model_subspace in self.model_subspaces.values():
             model_subspace.exclude_models(models)
             #model_subspace.reset_exclusions()
+
+    def exclude_model_hashes(self, model_hashes: Iterable[str]):
+        # FIXME add Exclusions Mixin (or object) to handle exclusions on the subspace
+        # and space level.
+        for model_subspace in self.model_subspaces.values():
+            model_subspace.exclude_model_hashes(model_hashes=model_hashes)
 
     def reset_exclusions(
         self,
