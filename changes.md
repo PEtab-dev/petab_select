@@ -1,5 +1,8 @@
 # Changes
 
+## 0.0.9
+Fixed automatic exclusions from the Python interface. Now, exclusions are only automatically managed in `Problem`s (thereby also the model space and model subspaces) and `CandidateSpace`s.
+
 ## 0.0.8
 Previously, use of a `limit` via the UI (e.g. CLI) limited the number of models sent to the candidate space. The candidate space may then reject some models, which means this limit is not the number of models seen in the output.
 
