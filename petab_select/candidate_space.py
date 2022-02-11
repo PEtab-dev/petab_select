@@ -178,7 +178,7 @@ class CandidateSpace(abc.ABC):
         if self.limit.reached():
             return False
         if self.excluded(model):
-            warnings.warn(f'Model has been previously excluded from the model space so is skipped here. Model subspace ID: {model.model_subspace_id}. Parameterization: {model.parameters}')
+            warnings.warn(f'Model has been previously excluded from the candidate space so is skipped here. Model subspace ID: {model.model_subspace_id}. Parameterization: {model.parameters}',  RuntimeWarning)
             return True
         if not self.is_plausible(model):
             return True

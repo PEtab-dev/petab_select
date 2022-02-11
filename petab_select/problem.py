@@ -228,7 +228,7 @@ class Problem(abc.ABC):
             if self.compare(best_model, model):
                 best_model = model
         if best_model is None:
-            raise KeyError('None of the supplied models have a value set for the criterion {criterion}.')  # noqa: E501
+            raise KeyError(f'None of the supplied models have a value set for the criterion {criterion}.')  # noqa: E501
         return best_model
 
     def new_candidate_space(

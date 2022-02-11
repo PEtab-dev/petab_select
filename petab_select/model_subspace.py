@@ -233,7 +233,7 @@ class ModelSubspace(PetabMixin):
             return
 
         if candidate_space.limit.reached():
-            warnings.warn('The candidate space has already reached its limit of accepted models.')  # noqa: E501
+            warnings.warn('The candidate space has already reached its limit of accepted models.', RuntimeWarning)
             return
 
         # Compute parameter sets that are useful for finding minimal forward or backward
@@ -463,7 +463,7 @@ class ModelSubspace(PetabMixin):
         self,
         model: Model,
         candidate_space: CandidateSpace,
-        exclude: Optional[bool] = True,
+        exclude: Optional[bool] = False,
         #use_exclusions: Optional[bool] = True,
     ) -> bool:
         """Send a model to a candidate space for consideration.

@@ -190,23 +190,30 @@ def test_search_brute_force(model_subspace):
     limit_accepted_candidates = 3
     candidate_space.reset(limit=limit_accepted_candidates)
     model_subspace.search(candidate_space=candidate_space)
+    """ FIXME remove, since models now have to be explicitly excluded. TODO Test exclusions via problem `add_calibrated_model`
     # Test exclusions: no models are in the candidate space as the model subspace
     # already previously sent the models to the candidate space.
     assert len(candidate_space.models) == 0
     model_subspace.reset_exclusions()
     model_subspace.search(candidate_space=candidate_space)
+    """
     # Test limit: the number of candidate models is at the limit.
     assert len(candidate_space.models) == limit_accepted_candidates
     # Test limit: a warning is emitted, as the candidate space is already at its limit
     # of models.
-    with pytest.warns(None):
+    with pytest.warns(RuntimeWarning, match="The candidate space has already reached its limit of accepted models.") as warning_record:
         model_subspace.search(candidate_space=candidate_space)
+    # The search stopped after the limit was reached, hence only warned once.
+    assert len(warning_record) == 1
     # Test limit: the search adds no additional models to the "full" candidate space.
     assert len(candidate_space.models) == limit_accepted_candidates
 
     limit_accepted_candidates = 6
     candidate_space.limit.set_limit(limit_accepted_candidates)
-    model_subspace.search(candidate_space=candidate_space)
+    with pytest.warns(RuntimeWarning, match="Model has been previously excluded from the candidate space so is skipped here.") as warning_record:
+        model_subspace.search(candidate_space=candidate_space)
+    # Three models were excluded from the candidate space in the previous code block.
+    assert len(warning_record) == 3
     # Test limit: the number of candidate models is at the limit (all models in this
     # case).
     assert len(candidate_space.models) == limit_accepted_candidates
