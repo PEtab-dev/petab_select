@@ -564,16 +564,18 @@ class ModelSubspace(PetabMixin):
 
     @staticmethod
     def from_definition(
+        model_subspace_id: str,
         definition: Union[Dict[str, str], pd.Series],
         parent_path: TYPE_PATH = None,
     ) -> 'ModelSubspace':
         """Create a `ModelSubspace` from a definition.
 
         Args:
+            model_subspace_id:
+                The model subspace ID.
             definition:
                 A description of the model subspace. Keys are properties of the
-                model subspace, including its ID and parameters that can take
-                different values.
+                model subspace, including parameters that can take different values.
             parent_path:
                 Any paths in the definition will be set relative to this path.
 
@@ -589,7 +591,7 @@ class ModelSubspace(PetabMixin):
         if parent_path is not None:
             petab_yaml = Path(parent_path) / petab_yaml
         return ModelSubspace(
-            model_subspace_id=definition[MODEL_SUBSPACE_ID],
+            model_subspace_id=model_subspace_id,
             petab_yaml=petab_yaml,
             parameters=parameters,
         )

@@ -11,6 +11,7 @@ from typing import (
     Optional,
     TextIO,
     Union,
+    get_args,
 )
 
 from more_itertools import nth
@@ -163,8 +164,9 @@ class ModelSpace():
         model_space_dfs = [get_model_space_df(filename) for filename in filenames]
         model_subspaces = []
         for model_space_df, model_space_filename in zip(model_space_dfs, filenames):
-            for index, definition in model_space_df.iterrows():
+            for model_subspace_id, definition in model_space_df.iterrows():
                 model_subspaces.append(ModelSubspace.from_definition(
+                    model_subspace_id=model_subspace_id,
                     definition=definition,
                     parent_path=Path(model_space_filename).parent
                 ))
@@ -251,18 +253,24 @@ class ModelSpace():
             model_subspace.reset_exclusions(exclusions)
 
 
-def get_model_space_df(filename: TYPE_PATH) -> pd.DataFrame:
+def get_model_space_df(df: Union[TYPE_PATH, pd.DataFrame]) -> pd.DataFrame:
     #model_space_df = pd.read_csv(filename, sep='\t', index_col=MODEL_SUBSPACE_ID)  # FIXME
-    model_space_df = pd.read_csv(filename, sep='\t')
-    return model_space_df
+    if isinstance(df, get_args(TYPE_PATH)):
+        df = pd.read_csv(df, sep='\t')
+    df.set_index([MODEL_SUBSPACE_ID], inplace=True)
+    return df
 
 
-def get_model_space(
-    filename: TYPE_PATH,
-) -> List[ModelSubspace]:
-    model_space_df = get_model_space_df(filename)
-    model_subspaces = []
-    for definition in model_space_df.iterrows():
-        model_subspaces.append(ModelSubspace.from_definition(definition))
-    model_space = ModelSpace(model_subspaces=model_subspaces)
-    return model_space
+def write_model_space_df(df: pd.DataFrame, filename: TYPE_PATH) -> None:
+    df.to_csv(filename, sep='\t', index=True)
+
+
+#def get_model_space(
+#    filename: TYPE_PATH,
+#) -> List[ModelSubspace]:
+#    model_space_df = get_model_space_df(filename)
+#    model_subspaces = []
+#    for definition in model_space_df.iterrows():
+#        model_subspaces.append(ModelSubspace.from_definition(definition))
+#    model_space = ModelSpace(model_subspaces=model_subspaces)
+#    return model_space
