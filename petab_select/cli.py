@@ -25,6 +25,7 @@ from .candidate_space import (
 from .model import (
     Model,
     models_from_yaml_list,
+    models_to_yaml_list,
 )
 from .problem import Problem
 
@@ -171,10 +172,6 @@ def candidates(
             'together, as they both set the predecessor model.'
         )
 
-    paths_relative_to = None
-    if relative_paths:
-        paths_relative_to = Path(output).parent
-
     problem = Problem.from_yaml(yaml_)
     if method is None:
         method = problem.method
@@ -225,14 +222,12 @@ def candidates(
     with open(state, 'wb') as f:
         dill.dump(problem.get_state(), f)
 
-    model_dicts = [
-        model.to_dict(paths_relative_to=paths_relative_to)
-        for model in candidate_space.models
-    ]
-    model_dicts = None if not model_dicts else model_dicts
     # Save candidates
-    with open(output, 'w') as f:
-        yaml.dump(model_dicts, f)
+    models_to_yaml_list(
+        models=candidate_space.models,
+        output_yaml=output,
+        relative_paths=relative_paths,
+    )
 
 
 @cli.command("model_to_petab")

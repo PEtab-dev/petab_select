@@ -645,3 +645,20 @@ def models_from_yaml_list(model_list_yaml: TYPE_PATH) -> List[Model]:
         Model.from_dict(model_dict, base_path=Path(model_list_yaml).parent)
         for model_dict in model_dict_list
     ]
+
+
+def models_to_yaml_list(
+    models: List[Model],
+    output_yaml: TYPE_PATH,
+    relative_paths: bool = True,
+):
+    paths_relative_to = None
+    if relative_paths:
+        paths_relative_to = Path(output_yaml).parent
+    model_dicts = [
+        model.to_dict(paths_relative_to=paths_relative_to)
+        for model in models
+    ]
+    model_dicts = None if not model_dicts else model_dicts
+    with open(output_yaml, 'w') as f:
+        yaml.dump(model_dicts, f)
