@@ -1,10 +1,11 @@
 import filecmp
 from pathlib import Path
 
-from click.testing import CliRunner
-#from petab_select import Model
-import petab_select.cli
 import pytest
+from click.testing import CliRunner
+
+# from petab_select import Model
+import petab_select.cli
 
 base_dir = Path(__file__).parent
 
@@ -44,14 +45,21 @@ def test_model_to_petab(
     output_path_model = output_path / 'model'
     output_path_model.mkdir(parents=True, exist_ok=True)
 
-    result = cli_runner.invoke(petab_select.cli.model_to_petab, [
-        '-y', model_yaml,
-        '-o', output_path_model,
-    ])
+    result = cli_runner.invoke(
+        petab_select.cli.model_to_petab,
+        [
+            '-y',
+            model_yaml,
+            '-o',
+            output_path_model,
+        ],
+    )
 
     print(result.stdout)
     # The new PEtab problem YAML file is output to stdout correctly.
-    assert result.stdout == f'{base_dir / "output" / "model" / "problem.yaml"}\n'
+    assert (
+        result.stdout == f'{base_dir / "output" / "model" / "problem.yaml"}\n'
+    )
 
     comparison = filecmp.dircmp(
         expected_output_path / 'model',
@@ -79,10 +87,15 @@ def test_models_to_petab(
     output_path_models = output_path / 'models'
     output_path_models.mkdir(parents=True, exist_ok=True)
 
-    result = cli_runner.invoke(petab_select.cli.models_to_petab, [
-        '-y', models_yaml,
-        '-o', output_path_models,
-    ])
+    result = cli_runner.invoke(
+        petab_select.cli.models_to_petab,
+        [
+            '-y',
+            models_yaml,
+            '-o',
+            output_path_models,
+        ],
+    )
 
     # The new PEtab problem YAML files are output with model IDs to `stdout`
     # correctly.

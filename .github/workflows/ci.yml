@@ -46,3 +46,6 @@ jobs:
 
     - name: Run tox
       run: python -m tox
+
+    - name: Run pre-commit hooks
+      run: pre-commit run --all-files

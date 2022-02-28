@@ -1,19 +1,15 @@
 from pathlib import Path
 
 import fides
-from more_itertools import one
 import pandas as pd
-import petab_select
-from petab_select import Model
-from petab_select.constants import (
-    CRITERIA,
-    ESTIMATED_PARAMETERS,
-    MODEL,
-)
 import pypesto.engine
 import pypesto.optimize
 import pypesto.select
+from more_itertools import one
 
+import petab_select
+from petab_select import Model
+from petab_select.constants import CRITERIA, ESTIMATED_PARAMETERS, MODEL
 
 SKIP_TEST_CASES_WITH_PREEXISTING_EXPECTED_MODEL = False
 
@@ -52,8 +48,9 @@ if True:
         petab_select_problem = petab_select.Problem.from_yaml(
             test_case_path / 'petab_select_problem.yaml',
         )
-        pypesto_select_problem = \
-            pypesto.select.Problem(petab_select_problem=petab_select_problem)
+        pypesto_select_problem = pypesto.select.Problem(
+            petab_select_problem=petab_select_problem
+        )
 
         # Run the selection process until "exhausted".
         pypesto_select_problem.select_to_completion(
@@ -65,4 +62,6 @@ if True:
         best_model = petab_select_problem.get_best(models)
 
         # Generate the expected model.
-        best_model.to_yaml(expected_model_yaml, paths_relative_to=test_case_path)
+        best_model.to_yaml(
+            expected_model_yaml, paths_relative_to=test_case_path
+        )

@@ -1,19 +1,15 @@
 """The PEtab Select command-line interface."""
+import warnings
 from pathlib import Path
 from typing import List
-import warnings
-import yaml
 
 import click
 import dill
 import numpy as np
 import pandas as pd
+import yaml
 
 from . import ui
-from .constants import (
-    INITIAL_MODEL_METHODS,
-    PETAB_YAML,
-)
 from .candidate_space import (
     BackwardCandidateSpace,
     BruteForceCandidateSpace,
@@ -22,11 +18,8 @@ from .candidate_space import (
     LateralCandidateSpace,
     method_to_candidate_space_class,
 )
-from .model import (
-    Model,
-    models_from_yaml_list,
-    models_to_yaml_list,
-)
+from .constants import INITIAL_MODEL_METHODS, PETAB_YAML
+from .model import Model, models_from_yaml_list, models_to_yaml_list
 from .problem import Problem
 
 
@@ -62,7 +55,7 @@ def cli():
     'method',
     type=str,
     default=None,
-    help='The method used to identify the candidate models. Defaults to the method in the problem YAML.',  # noqa: E501
+    help='The method used to identify the candidate models. Defaults to the method in the problem YAML.',
 )
 @click.option(
     '--initial',
@@ -281,11 +274,9 @@ def model_to_petab(
         try:
             models = models_from_yaml_list(yaml_)
             try:
-                model = one([
-                    model
-                    for model in models
-                    if model.model_id == model_id
-                ])
+                model = one(
+                    [model for model in models if model.model_id == model_id]
+                )
             except ValueError:
                 raise ValueError(
                     'There must be exactly one model with the provided model '
@@ -349,10 +340,12 @@ def models_to_petab(
         models,
         output_path_prefix=output_path_prefix,
     )
-    result_string = '\n'.join([
-        '\t'.join([model.model_id, result[PETAB_YAML]])
-        for model, result in zip(models, results)
-    ])
+    result_string = '\n'.join(
+        [
+            '\t'.join([model.model_id, result[PETAB_YAML]])
+            for model, result in zip(models, results)
+        ]
+    )
     print(result_string)
 
 
@@ -424,7 +417,9 @@ def best(
             problem.set_state(dill.load(f))
 
     calibrated_models = models_from_yaml_list(models_yaml)
-    best_model = ui.best(problem=problem, models=calibrated_models, criterion=criterion)
+    best_model = ui.best(
+        problem=problem, models=calibrated_models, criterion=criterion
+    )
     best_model.to_yaml(output, paths_relative_to=paths_relative_to)
 
 

@@ -27,5 +27,3 @@
   estimated_parameters:
     k2: 0.05
   petab_yaml: ../petab_problem.yaml
-
-
