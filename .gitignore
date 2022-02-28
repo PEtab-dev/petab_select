@@ -3,3 +3,10 @@ __pycache__
 dist
 amici_models
 *egg-info
+
+# coverage
+.coverage
+coverage.xml
+
+# tox
+.tox

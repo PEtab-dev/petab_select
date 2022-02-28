@@ -89,6 +89,10 @@ setup(
     python_requires=f'>={minimum_python_version}',
     entry_points=ENTRY_POINTS,
     extras_require={
+        'test': [
+            'pytest >= 5.4.3',
+            'pytest-cov >= 2.10.0',
+        ],
         #'reports': ['Jinja2'],
         #'combine': ['python-libcombine>=0.2.6'],
         #'doc': [
