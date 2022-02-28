@@ -14,10 +14,11 @@ from typing import (
     get_args,
 )
 
-from more_itertools import nth
 import numpy as np
 import pandas as pd
+from more_itertools import nth
 
+from .candidate_space import CandidateSpace
 from .constants import (
     ESTIMATE,
     HEADER_ROW,
@@ -31,7 +32,6 @@ from .constants import (
     PETAB_YAML_COLUMN,
     TYPE_PATH,
 )
-from .candidate_space import CandidateSpace
 from .model import Model
 from .model_subspace import ModelSubspace
 
@@ -129,7 +129,7 @@ def line2row(
     return metadata + parameters
 
 
-class ModelSpace():
+class ModelSpace:
     """A model space, as a collection of model subspaces.
 
     Attributes:
@@ -138,6 +138,7 @@ class ModelSpace():
         exclusions:
             Hashes of models that are excluded from the model space.
     """
+
     def __init__(
         self,
         model_subspaces: List[ModelSubspace],
@@ -161,15 +162,21 @@ class ModelSpace():
             The corresponding model space.
         """
         # TODO validate input?
-        model_space_dfs = [get_model_space_df(filename) for filename in filenames]
+        model_space_dfs = [
+            get_model_space_df(filename) for filename in filenames
+        ]
         model_subspaces = []
-        for model_space_df, model_space_filename in zip(model_space_dfs, filenames):
+        for model_space_df, model_space_filename in zip(
+            model_space_dfs, filenames
+        ):
             for model_subspace_id, definition in model_space_df.iterrows():
-                model_subspaces.append(ModelSubspace.from_definition(
-                    model_subspace_id=model_subspace_id,
-                    definition=definition,
-                    parent_path=Path(model_space_filename).parent
-                ))
+                model_subspaces.append(
+                    ModelSubspace.from_definition(
+                        model_subspace_id=model_subspace_id,
+                        definition=definition,
+                        parent_path=Path(model_space_filename).parent,
+                    )
+                )
         model_space = ModelSpace(model_subspaces=model_subspaces)
         return model_space
 
@@ -202,13 +209,13 @@ class ModelSpace():
                 break
             elif len(candidate_space.models) > limit:
                 raise ValueError(
-                    'An unknown error has occurred. Too many models were '
-                    f'generated. Requested limit: {limit}. Number of '
-                    f'generated models: {len(candidate_space.models)}.'
+                    "An unknown error has occurred. Too many models were "
+                    f"generated. Requested limit: {limit}. Number of "
+                    f"generated models: {len(candidate_space.models)}."
                 )
 
         ## FIXME implement source_path.. somewhere
-        #if self.source_path is not None:
+        # if self.source_path is not None:
         #    for model in candidate_space.models:
         #        # TODO do this change elsewhere instead?
         #        # e.g. model subspace
@@ -236,7 +243,7 @@ class ModelSpace():
         # and space level.
         for model_subspace in self.model_subspaces.values():
             model_subspace.exclude_models(models)
-            #model_subspace.reset_exclusions()
+            # model_subspace.reset_exclusions()
 
     def exclude_model_hashes(self, model_hashes: Iterable[str]):
         # FIXME add Exclusions Mixin (or object) to handle exclusions on the subspace
@@ -254,20 +261,20 @@ class ModelSpace():
 
 
 def get_model_space_df(df: Union[TYPE_PATH, pd.DataFrame]) -> pd.DataFrame:
-    #model_space_df = pd.read_csv(filename, sep='\t', index_col=MODEL_SUBSPACE_ID)  # FIXME
+    # model_space_df = pd.read_csv(filename, sep='\t', index_col=MODEL_SUBSPACE_ID)  # FIXME
     if isinstance(df, get_args(TYPE_PATH)):
-        df = pd.read_csv(df, sep='\t')
+        df = pd.read_csv(df, sep="\t")
     df.set_index([MODEL_SUBSPACE_ID], inplace=True)
     return df
 
 
 def write_model_space_df(df: pd.DataFrame, filename: TYPE_PATH) -> None:
-    df.to_csv(filename, sep='\t', index=True)
+    df.to_csv(filename, sep="\t", index=True)
 
 
-#def get_model_space(
+# def get_model_space(
 #    filename: TYPE_PATH,
-#) -> List[ModelSubspace]:
+# ) -> List[ModelSubspace]:
 #    model_space_df = get_model_space_df(filename)
 #    model_subspaces = []
 #    for definition in model_space_df.iterrows():

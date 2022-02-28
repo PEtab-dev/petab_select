@@ -2,23 +2,17 @@ from pathlib import Path
 from typing import List, Optional
 
 import petab
-from petab.C import (
-    ESTIMATE,
-    NOMINAL_VALUE,
-)
+from petab.C import ESTIMATE, NOMINAL_VALUE
 
-from .constants import (
-    PETAB_ESTIMATE_FALSE,
-    TYPE_PATH,
-    TYPE_PARAMETER_DICT,
-)
+from .constants import PETAB_ESTIMATE_FALSE, TYPE_PARAMETER_DICT, TYPE_PATH
 
 
-class PetabMixin():
+class PetabMixin:
     """Useful things for classes that contain a PEtab problem.
 
     All attributes/methods are prefixed with `petab_`.
     """
+
     def __init__(
         self,
         petab_yaml: Optional[TYPE_PATH] = None,
@@ -27,8 +21,8 @@ class PetabMixin():
     ):
         if petab_yaml is None and petab_problem is None:
             raise ValueError(
-                'Please supply at least one of either the location of the '
-                'PEtab problem YAML file, or an instance of the PEtab problem.'
+                "Please supply at least one of either the location of the "
+                "PEtab problem YAML file, or an instance of the PEtab problem."
             )
         self.petab_yaml = petab_yaml
         if self.petab_yaml is not None:
@@ -47,7 +41,9 @@ class PetabMixin():
             for parameter_id, row in self.petab_problem.parameter_df.iterrows()
         }
         if parameters_as_lists:
-            self.petab_parameters = {k: [v] for k, v in self.petab_parameters.items()}
+            self.petab_parameters = {
+                k: [v] for k, v in self.petab_parameters.items()
+            }
 
     @property
     def petab_parameter_ids_estimated(self) -> List[str]:

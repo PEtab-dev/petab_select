@@ -4,12 +4,10 @@ from functools import partial
 from itertools import chain
 from pathlib import Path
 from typing import Callable, Iterable, Optional, Union
+
 import yaml
 
-from .candidate_space import (
-    CandidateSpace,
-    method_to_candidate_space_class,
-)
+from .candidate_space import CandidateSpace, method_to_candidate_space_class
 from .constants import (
     CRITERION,
     METHOD,
@@ -18,10 +16,7 @@ from .constants import (
     Criterion,
     Method,
 )
-from .model import (
-    Model,
-    default_compare,
-)
+from .model import Model, default_compare
 from .model_space import ModelSpace
 
 
@@ -55,6 +50,7 @@ class Problem(abc.ABC):
                 Essentially reproducible from `Problem.method` and
                 `Problem.calibrated_models`.
     """
+
     def __init__(
         self,
         model_space: ModelSpace,
@@ -139,7 +135,7 @@ class Problem(abc.ABC):
     @staticmethod
     def from_yaml(
         yaml_path: Union[str, Path],
-    ) -> 'Problem':
+    ) -> "Problem":
         """Generate a problem from a PEtab Select problem YAML file.
 
         Args:
@@ -150,26 +146,28 @@ class Problem(abc.ABC):
             A `Problem` instance.
         """
         yaml_path = Path(yaml_path)
-        with open(yaml_path, 'r') as f:
+        with open(yaml_path, "r") as f:
             problem_specification = yaml.safe_load(f)
 
         if not problem_specification.get(MODEL_SPACE_FILES, []):
             raise KeyError(
-                'The model selection problem specification file is missing '
-                'model space files.'
+                "The model selection problem specification file is missing "
+                "model space files."
             )
 
         model_space = ModelSpace.from_files(
-            #problem_specification[MODEL_SPACE_FILES],
+            # problem_specification[MODEL_SPACE_FILES],
             [
                 # `pathlib.Path` appears to handle absolute `model_space_file` paths
                 # correctly, even if used as a relative path.
                 # TODO test
                 # This is similar to the `Problem.get_path` method.
                 yaml_path.parent / model_space_file
-                for model_space_file in problem_specification[MODEL_SPACE_FILES]
+                for model_space_file in problem_specification[
+                    MODEL_SPACE_FILES
+                ]
             ],
-            #source_path=yaml_path.parent,
+            # source_path=yaml_path.parent,
         )
 
         criterion = problem_specification.get(CRITERION, None)
@@ -209,14 +207,16 @@ class Problem(abc.ABC):
         if criterion is None:
             criterion = self.criterion
         # TODO check if commenting this out broke behavior somewhere
-        #if models is not None:
+        # if models is not None:
         #    self.add_calibrated_models(models)
         # TODO refactor s.t. `self.calibrated_models is None` when empty.
         if models is None:
             if self.calibrated_models:
                 models = self.calibrated_models
             else:
-                raise ValueError('There are no calibrated models in the problem, and no models were supplied.')  # noqa: E501
+                raise ValueError(
+                    "There are no calibrated models in the problem, and no models were supplied."
+                )  # noqa: E501
 
         best_model = None
         for model in models:
@@ -228,7 +228,9 @@ class Problem(abc.ABC):
             if self.compare(best_model, model):
                 best_model = model
         if best_model is None:
-            raise KeyError(f'None of the supplied models have a value set for the criterion {criterion}.')  # noqa: E501
+            raise KeyError(
+                f"None of the supplied models have a value set for the criterion {criterion}."
+            )  # noqa: E501
         return best_model
 
     def new_candidate_space(

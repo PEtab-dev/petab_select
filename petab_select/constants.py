@@ -3,7 +3,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Union
 
-
 # Zero-indexed column/row indices
 MODEL_ID_COLUMN = 0
 PETAB_YAML_COLUMN = 1
@@ -12,49 +11,49 @@ PETAB_YAML_COLUMN = 1
 PARAMETER_DEFINITIONS_START = 2
 HEADER_ROW = 0
 
-PARAMETER_VALUE_DELIMITER = ';'
-CODE_DELIMITER = '-'
-ESTIMATE = 'estimate'
+PARAMETER_VALUE_DELIMITER = ";"
+CODE_DELIMITER = "-"
+ESTIMATE = "estimate"
 PETAB_ESTIMATE_FALSE = 0
 PETAB_ESTIMATE_TRUE = 1
 
-#TYPING_PATH = Union[str, Path]
+# TYPING_PATH = Union[str, Path]
 TYPE_PATH = Union[str, Path]
 
 # Model space file columns
 # TODO ensure none of these occur twice in the column header (this would
 #      suggest that a parameter has a conflicting name)
-#MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
-#YAML = 'YAML'  # FIXME
-MODEL_ID = 'model_id'
-MODEL_SUBSPACE_ID = 'model_subspace_id'
-MODEL_SUBSPACE_INDICES = 'model_subspace_indices'
-MODEL_CODE = 'model_code'
-MODEL_HASH = 'model_hash'
+# MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
+# YAML = 'YAML'  # FIXME
+MODEL_ID = "model_id"
+MODEL_SUBSPACE_ID = "model_subspace_id"
+MODEL_SUBSPACE_INDICES = "model_subspace_indices"
+MODEL_CODE = "model_code"
+MODEL_HASH = "model_hash"
 # If `predecessor_model_hash` is defined for a model, it is the ID of the model that the
 # current model was/is to be compared to. This is part of the result and is
 # only (optionally) set by the PEtab calibration tool. It is not defined by the
 # PEtab Select model selection problem (but may be subsequently stored in the
 # PEtab Select model report format.
-PREDECESSOR_MODEL_HASH = 'predecessor_model_hash'
-PETAB_PROBLEM = 'petab_problem'
-PETAB_YAML = 'petab_yaml'
-SBML = 'sbml'
-HASH = 'hash'
+PREDECESSOR_MODEL_HASH = "predecessor_model_hash"
+PETAB_PROBLEM = "petab_problem"
+PETAB_YAML = "petab_yaml"
+SBML = "sbml"
+HASH = "hash"
 
-#MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
+# MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
 MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_SUBSPACE_ID, PETAB_YAML]
 
-#COMPARED_MODEL_ID = 'compared_'+MODEL_ID
-YAML_FILENAME = 'yaml'
+# COMPARED_MODEL_ID = 'compared_'+MODEL_ID
+YAML_FILENAME = "yaml"
 
-#FORWARD = 'forward'
-#BACKWARD = 'backward'
-#BIDIRECTIONAL = 'bidirectional'
-#LATERAL = 'lateral'
+# FORWARD = 'forward'
+# BACKWARD = 'backward'
+# BIDIRECTIONAL = 'bidirectional'
+# LATERAL = 'lateral'
 
 
-#DISTANCES = {
+# DISTANCES = {
 #    FORWARD: {
 #        'l1': 1,
 #        'size': 1,
@@ -67,34 +66,34 @@ YAML_FILENAME = 'yaml'
 #        'l1': 2,
 #        'size': 0,
 #    },
-#}
+# }
 
-CRITERIA = 'criteria'
+CRITERIA = "criteria"
 # FIXME remove, change all uses to Enum below
-#AIC = 'AIC'
-#AICC = 'AICc'
-#BIC = 'BIC'
-#AKAIKE_INFORMATION_CRITERION = AIC
-#CORRECTED_AKAIKE_INFORMATION_CRITERION = AICC
-#BAYESIAN_INFORMATION_CRITERION = BIC
-#LH = 'LH'
-#LLH = 'LLH'
-#NLLH = 'NLLH'
-#LIKELIHOOD = LH
-#LOG_LIKELIHOOD = LLH
-#NEGATIVE_LOG_LIKELIHOOD = NLLH
+# AIC = 'AIC'
+# AICC = 'AICc'
+# BIC = 'BIC'
+# AKAIKE_INFORMATION_CRITERION = AIC
+# CORRECTED_AKAIKE_INFORMATION_CRITERION = AICC
+# BAYESIAN_INFORMATION_CRITERION = BIC
+# LH = 'LH'
+# LLH = 'LLH'
+# NLLH = 'NLLH'
+# LIKELIHOOD = LH
+# LOG_LIKELIHOOD = LLH
+# NEGATIVE_LOG_LIKELIHOOD = NLLH
 
 
-PARAMETERS = 'parameters'
-#PARAMETER_ESTIMATE = 'parameter_estimate'
-ESTIMATED_PARAMETERS = 'estimated_parameters'
+PARAMETERS = "parameters"
+# PARAMETER_ESTIMATE = 'parameter_estimate'
+ESTIMATED_PARAMETERS = "estimated_parameters"
 
-CRITERION = 'criterion'
-METHOD = 'method'
-VERSION = 'version'
-MODEL_SPACE_FILES = 'model_space_files'
+CRITERION = "criterion"
+METHOD = "method"
+VERSION = "version"
+MODEL_SPACE_FILES = "model_space_files"
 
-MODEL = 'model'
+MODEL = "model"
 
 # Parameters can be fixed to a value, or estimated if indicated with the string
 # `ESTIMATE`.
@@ -111,20 +110,23 @@ TYPE_CRITERION = float
 
 class Method(str, Enum):
     """String literals for model selection methods."""
-    BACKWARD = 'backward'
-    BIDIRECTIONAL = 'bidirectional'
-    BRUTE_FORCE = 'brute_force'
-    FORWARD = 'forward'
-    LATERAL = 'lateral'
+
+    BACKWARD = "backward"
+    BIDIRECTIONAL = "bidirectional"
+    BRUTE_FORCE = "brute_force"
+    FORWARD = "forward"
+    LATERAL = "lateral"
+
 
 class Criterion(str, Enum):
     """String literals for model selection criteria."""
-    AIC = 'AIC'
-    AICC = 'AICc'
-    BIC = 'BIC'
-    LH = 'LH'
-    LLH = 'LLH'
-    NLLH = 'NLLH'
+
+    AIC = "AIC"
+    AICC = "AICc"
+    BIC = "BIC"
+    LH = "LH"
+    LLH = "LLH"
+    NLLH = "NLLH"
 
 
 # Methods that move through model space by taking steps away from some model.
@@ -142,8 +144,5 @@ INITIAL_MODEL_METHODS = [
 ]
 
 # Virtual initial models can be used to initialize some initial model methods.
-VIRTUAL_INITIAL_MODEL = 'virtual_initial_model'
-VIRTUAL_INITIAL_MODEL_METHODS = [
-    Method.FORWARD,
-    Method.BACKWARD
-]
+VIRTUAL_INITIAL_MODEL = "virtual_initial_model"
+VIRTUAL_INITIAL_MODEL_METHODS = [Method.FORWARD, Method.BACKWARD]

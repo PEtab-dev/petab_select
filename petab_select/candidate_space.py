@@ -6,8 +6,12 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from more_itertools import one
 
-from .constants import (ESTIMATE, VIRTUAL_INITIAL_MODEL,
-                        VIRTUAL_INITIAL_MODEL_METHODS, Method)
+from .constants import (
+    ESTIMATE,
+    VIRTUAL_INITIAL_MODEL,
+    VIRTUAL_INITIAL_MODEL_METHODS,
+    Method,
+)
 from .handlers import TYPE_LIMIT, LimitHandler
 from .misc import snake_case_to_camel_case
 from .model import Model
@@ -93,7 +97,7 @@ class CandidateSpace(abc.ABC):
         self,
         model: Model,
         distance: Union[None, float, int],
-        #keep_others: bool = True,
+        # keep_others: bool = True,
     ) -> None:
         """Add a candidate model to the candidate space.
 
@@ -178,7 +182,10 @@ class CandidateSpace(abc.ABC):
         if self.limit.reached():
             return False
         if self.excluded(model):
-            warnings.warn(f'Model has been previously excluded from the candidate space so is skipped here. Model subspace ID: {model.model_subspace_id}. Parameterization: {model.parameters}',  RuntimeWarning)
+            warnings.warn(
+                f"Model has been previously excluded from the candidate space so is skipped here. Model subspace ID: {model.model_subspace_id}. Parameterization: {model.parameters}",
+                RuntimeWarning,
+            )
             return True
         if not self.is_plausible(model):
             return True
@@ -193,13 +200,17 @@ class CandidateSpace(abc.ABC):
         self.models = []
         self.distances = []
 
-    def set_predecessor_model(self, predecessor_model: Union[Model, str, None]):
+    def set_predecessor_model(
+        self, predecessor_model: Union[Model, str, None]
+    ):
         self.predecessor_model = predecessor_model
         if (
             self.predecessor_model == VIRTUAL_INITIAL_MODEL
             and self.method not in VIRTUAL_INITIAL_MODEL_METHODS
         ):
-            raise ValueError(f'A virtual initial model was requested for a method ({self.method}) that does not support them.')  # noqa: E501
+            raise ValueError(
+                f"A virtual initial model was requested for a method ({self.method}) that does not support them."
+            )  # noqa: E501
 
     def get_predecessor_model(self):
         return self.predecessor_model
@@ -271,14 +282,13 @@ class CandidateSpace(abc.ABC):
             model0 = self.predecessor_model
         model1 = model
 
-        if (
-            model0 != VIRTUAL_INITIAL_MODEL
-            and not model1.petab_yaml.samefile(model0.petab_yaml)
+        if model0 != VIRTUAL_INITIAL_MODEL and not model1.petab_yaml.samefile(
+            model0.petab_yaml
         ):
             raise NotImplementedError(
-                'Computation of distances between different PEtab problems is '
-                'currently not supported. This error is also raised if the same '
-                'PEtab problem is read from YAML files in different locations.'
+                "Computation of distances between different PEtab problems is "
+                "currently not supported. This error is also raised if the same "
+                "PEtab problem is read from YAML files in different locations."
             )
 
         # All parameters from the PEtab problem are used in the computation.
@@ -294,15 +304,19 @@ class CandidateSpace(abc.ABC):
                 parameters0 = np.array([ESTIMATE for _ in parameter_ids])
             else:
                 raise NotImplementedError(
-                    'Distances for the virtual initial model have not yet been '
+                    "Distances for the virtual initial model have not yet been "
                     f'implemented for the method "{self.method}". Please notify the'
-                    'developers.'
+                    "developers."
                 )
         else:
             parameter_ids = list(model0.petab_parameters)
-            parameters0 = np.array(model0.get_parameter_values(parameter_ids=parameter_ids))
+            parameters0 = np.array(
+                model0.get_parameter_values(parameter_ids=parameter_ids)
+            )
 
-        parameters1 = np.array(model1.get_parameter_values(parameter_ids=parameter_ids))
+        parameters1 = np.array(
+            model1.get_parameter_values(parameter_ids=parameter_ids)
+        )
 
         # TODO change to some numpy elementwise operation
         estimated0 = np.array([p == ESTIMATE for p in parameters0]).astype(int)
@@ -318,12 +332,11 @@ class CandidateSpace(abc.ABC):
 
         # TODO constants?
         distances = {
-            'l1': l1,
-            'size': size,
-           }
+            "l1": l1,
+            "size": size,
+        }
 
         return distances
-
 
 
 class ForwardCandidateSpace(CandidateSpace):
@@ -333,6 +346,7 @@ class ForwardCandidateSpace(CandidateSpace):
         direction:
             `1` for the forward method, `-1` for the backward method.
     """
+
     method = Method.FORWARD
     direction = 1
 
@@ -350,18 +364,13 @@ class ForwardCandidateSpace(CandidateSpace):
         super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
 
     def is_plausible(self, model: Model) -> bool:
-        distances = \
-            self.distances_in_estimated_parameters(model)
-        unsigned_size = self.direction * distances['size']
+        distances = self.distances_in_estimated_parameters(model)
+        unsigned_size = self.direction * distances["size"]
         # A model is plausible if the number of estimated parameters strictly
         # increases (or decreases, if `self.direction == -1`), and no
         # previously estimated parameters become fixed.
-        if (
-            self.predecessor_model == VIRTUAL_INITIAL_MODEL
-            or (
-                unsigned_size > 0
-                and distances['l1'] == unsigned_size
-            )
+        if self.predecessor_model == VIRTUAL_INITIAL_MODEL or (
+            unsigned_size > 0 and distances["l1"] == unsigned_size
         ):
             return True
         return False
@@ -369,9 +378,8 @@ class ForwardCandidateSpace(CandidateSpace):
     def distance(self, model: Model) -> int:
         # TODO calculated here and `is_plausible`. Rewrite to only calculate
         #      once?
-        distances = \
-            self.distances_in_estimated_parameters(model)
-        return distances['l1']
+        distances = self.distances_in_estimated_parameters(model)
+        return distances["l1"]
 
     def _consider_method(self, model) -> bool:
         """See `CandidateSpace._consider_method`."""
@@ -382,8 +390,8 @@ class ForwardCandidateSpace(CandidateSpace):
         if self.distances:
             distance0 = one(set(self.distances))
             # TODO store each or just one?
-            #distance0 = one(self.distances)
-        #breakpoint()
+            # distance0 = one(self.distances)
+        # breakpoint()
 
         # Only keep the best model(s).
         if distance > distance0:
@@ -395,12 +403,14 @@ class ForwardCandidateSpace(CandidateSpace):
 
 class BackwardCandidateSpace(ForwardCandidateSpace):
     """The backward method class."""
+
     method = Method.BACKWARD
     direction = -1
 
 
 class LateralCandidateSpace(ForwardCandidateSpace):
     """Find models with the same number of estimated parameters."""
+
     method = Method.LATERAL
 
     def __init__(
@@ -417,11 +427,12 @@ class LateralCandidateSpace(ForwardCandidateSpace):
         # the same, but some estimated parameters have become fixed and vice
         # versa.
         if (
-            distances['size'] == 0 and
+            distances["size"] == 0
+            and
             # distances['size'] == 0 implies L1 % 2 == 0.
             # FIXME here and elsewhere, deal with models that are equal
             #       except for the values of their fixed parameters.
-            distances['l1'] > 0
+            distances["l1"] > 0
         ):
             return True
         return False
@@ -432,10 +443,11 @@ class LateralCandidateSpace(ForwardCandidateSpace):
 
 class BruteForceCandidateSpace(CandidateSpace):
     """The brute-force method class."""
+
     method = Method.BRUTE_FORCE
 
     def __init__(self, *args, **kwargs):
-        #if args or kwargs:
+        # if args or kwargs:
         #    # FIXME remove?
         #    # FIXME at least support limit
         #    warnings.warn(
@@ -470,7 +482,9 @@ def method_to_candidate_space_class(method: Method) -> str:
     for candidate_space_class in candidate_space_classes:
         if candidate_space_class.method == method:
             return candidate_space_class
-    raise NotImplementedError(f'The provided method name {method} does not correspond to an implemented candidate space.')  # noqa: E501
+    raise NotImplementedError(
+        f"The provided method name {method} does not correspond to an implemented candidate space."
+    )  # noqa: E501
 
 
 '''

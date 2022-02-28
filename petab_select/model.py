@@ -1,21 +1,17 @@
 """The `Model` class."""
 import abc
-from pathlib import Path
-from os.path import relpath
-from typing import Any, Dict, List, Optional, Tuple, Union
 import warnings
-import yaml
+from os.path import relpath
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-from more_itertools import one
 import numpy as np
 import petab
-from petab.C import (
-    ESTIMATE,
-    NOMINAL_VALUE,
-)
+import yaml
+from more_itertools import one
+from petab.C import ESTIMATE, NOMINAL_VALUE
 
 from .constants import (
-    Criterion,
     CRITERIA,
     ESTIMATED_PARAMETERS,
     MODEL_HASH,
@@ -28,16 +24,15 @@ from .constants import (
     PETAB_YAML,
     PREDECESSOR_MODEL_HASH,
     TYPE_CRITERION,
-    TYPE_PATH,
     TYPE_PARAMETER,
+    TYPE_PATH,
+    Criterion,
 )
-from .criteria import (
-    CriterionComputer,
-)
+from .criteria import CriterionComputer
 from .misc import (
     hash_list,
-    hash_str,
     hash_parameter_dict,
+    hash_str,
     parameter_string_to_value,
 )
 from .petab import PetabMixin
@@ -119,10 +114,9 @@ class Model(PetabMixin):
         # to avoid `float` cast here. Reason for cast is because e.g. pyPESTO
         # can provide type `np.float64`, which causes issues when writing to
         # YAML.
-        #ESTIMATED_PARAMETERS: lambda x: x,
+        # ESTIMATED_PARAMETERS: lambda x: x,
         ESTIMATED_PARAMETERS: lambda x: {
-            id: float(value)
-            for id, value in x.items()
+            id: float(value) for id, value in x.items()
         },
         CRITERIA: lambda x: {
             criterion_id.value: criterion_value
@@ -147,7 +141,7 @@ class Model(PetabMixin):
         #      up being calibrated to be the same... probably should be the former.
         #      Currently, the hash is stored, hence will "persist" after calibration
         #      if the same `Model` instance is used.
-        #PETAB_YAML: lambda x: hash(x),
+        # PETAB_YAML: lambda x: hash(x),
         PETAB_YAML: hash_str,
         PARAMETERS: hash_parameter_dict,
     }
@@ -202,15 +196,15 @@ class Model(PetabMixin):
         """
         if criterion in self.criteria:
             warnings.warn(
-                'Overwriting saved criterion value. '
-                f'Criterion: {criterion}. Value: {self.get_criterion(criterion)}.'
+                "Overwriting saved criterion value. "
+                f"Criterion: {criterion}. Value: {self.get_criterion(criterion)}."
             )
             # FIXME debug why value is overwritten during test case 0002.
             if False:
                 print(
-                    'Overwriting saved criterion value. '
-                    f'Criterion: {criterion}. Value: {self.get_criterion(criterion)}.'
-                   )
+                    "Overwriting saved criterion value. "
+                    f"Criterion: {criterion}. Value: {self.get_criterion(criterion)}."
+                )
                 breakpoint()
         self.criteria[criterion] = value
 
@@ -246,8 +240,8 @@ class Model(PetabMixin):
         """
         if criterion not in self.criteria and compute:
             self.compute_criterion(criterion=criterion)
-            #value = self.criterion_computer(criterion=id)
-            #self.set_criterion(id=id, value=value)
+            # value = self.criterion_computer(criterion=id)
+            # self.set_criterion(id=id, value=value)
 
         return self.criteria.get(criterion, None)
 
@@ -272,7 +266,7 @@ class Model(PetabMixin):
     def from_dict(
         model_dict: Dict[str, Any],
         base_path: TYPE_PATH = None,
-    ) -> 'Model':
+    ) -> "Model":
         """Generate a model from a dictionary of attributes.
 
         Args:
@@ -292,8 +286,7 @@ class Model(PetabMixin):
         unknown_attributes = set(model_dict).difference(Model.converters_load)
         if unknown_attributes:
             warnings.warn(
-                'Ignoring unknown attributes: ' +
-                ', '.join(unknown_attributes)
+                "Ignoring unknown attributes: " + ", ".join(unknown_attributes)
             )
 
         if base_path is not None:
@@ -307,7 +300,7 @@ class Model(PetabMixin):
         return Model(**model_dict)
 
     @staticmethod
-    def from_yaml(model_yaml: TYPE_PATH) -> 'Model':
+    def from_yaml(model_yaml: TYPE_PATH) -> "Model":
         """Generate a model from a PEtab Select model YAML file.
 
         Args:
@@ -327,10 +320,10 @@ class Model(PetabMixin):
                 if len(model_dict) <= 1:
                     raise
                 raise ValueError(
-                    'The provided YAML file contains a list with greater than '
-                    'one element. Use the `models_from_yaml_list` method or '
-                    'provide a PEtab Select model YAML file with only one '
-                    'model specified.'
+                    "The provided YAML file contains a list with greater than "
+                    "one element. Use the `models_from_yaml_list` method or "
+                    "provide a PEtab Select model YAML file with only one "
+                    "model specified."
                 )
 
         return Model.from_dict(model_dict, base_path=Path(model_yaml).parent)
@@ -363,8 +356,9 @@ class Model(PetabMixin):
         # TODO test
         if resolve_paths:
             if model_dict[PETAB_YAML]:
-                model_dict[PETAB_YAML] = \
-                    str(Path(model_dict[PETAB_YAML]).resolve())
+                model_dict[PETAB_YAML] = str(
+                    Path(model_dict[PETAB_YAML]).resolve()
+                )
         if paths_relative_to is not None:
             if model_dict[PETAB_YAML]:
                 model_dict[PETAB_YAML] = relpath(
@@ -386,9 +380,9 @@ class Model(PetabMixin):
         # FIXME change `getattr(self, PETAB_YAML)` to be relative to
         # destination?
         # kind of fixed, as the path will be resolved in `to_dict`.
-        with open(petab_yaml, 'w') as f:
+        with open(petab_yaml, "w") as f:
             yaml.dump(self.to_dict(*args, **kwargs), f)
-        #yaml.dump(self.to_dict(), str(petab_yaml))
+        # yaml.dump(self.to_dict(), str(petab_yaml))
 
     def to_petab(
         self,
@@ -406,7 +400,7 @@ class Model(PetabMixin):
             with a PEtab-compatible tool for calibration of this model. If
             `output_path` is not `None`, the second value is the path to a
             PEtab YAML file that can be used to load the PEtab problem (the
-            first value) into any PEtab-compatible tool. If 
+            first value) into any PEtab-compatible tool. If
         """
         # TODO could use `copy.deepcopy(self.petab_problem)` from PetabMixin?
         petab_problem = petab.Problem.from_yaml(str(self.petab_yaml))
@@ -417,15 +411,18 @@ class Model(PetabMixin):
             # Else the parameter is to be fixed.
             else:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 0
-                petab_problem.parameter_df.loc[parameter_id, NOMINAL_VALUE] = \
-                    parameter_string_to_value(parameter_value)
-                #parameter_value
+                petab_problem.parameter_df.loc[
+                    parameter_id, NOMINAL_VALUE
+                ] = parameter_string_to_value(parameter_value)
+                # parameter_value
 
         petab_yaml = None
         if output_path is not None:
             output_path = Path(output_path)
             output_path.mkdir(exist_ok=True, parents=True)
-            petab_yaml = petab_problem.to_files_generic(prefix_path=output_path)
+            petab_yaml = petab_problem.to_files_generic(
+                prefix_path=output_path
+            )
 
         return {
             PETAB_PROBLEM: petab_problem,
@@ -447,15 +444,17 @@ class Model(PetabMixin):
             The hash.
         """
         if self.model_hash is None:
-            self.model_hash = hash_list([
-                method(getattr(self, attribute))
-                for attribute, method in Model.hash_attributes.items()
-            ])
+            self.model_hash = hash_list(
+                [
+                    method(getattr(self, attribute))
+                    for attribute, method in Model.hash_attributes.items()
+                ]
+            )
         return self.model_hash
 
     def __hash__(self) -> None:
         """Use `Model.get_hash` instead."""
-        raise NotImplementedError('Use `Model.get_hash() instead.`')
+        raise NotImplementedError("Use `Model.get_hash() instead.`")
 
     def __str__(self):
         """Get a print-ready string representation of the model.
@@ -463,13 +462,15 @@ class Model(PetabMixin):
         Returns:
             The print-ready string representation, in TSV format.
         """
-        parameter_ids = '\t'.join(self.parameters.keys())
-        parameter_values = '\t'.join(str(v) for v in self.parameters.values())
-        header = '\t'.join([MODEL_ID, PETAB_YAML, parameter_ids])
-        data = '\t'.join([self.model_id, str(self.petab_yaml), parameter_values])
-        #header = f'{MODEL_ID}\t{PETAB_YAML}\t{parameter_ids}'
-        #data = f'{self.model_id}\t{self.petab_yaml}\t{parameter_values}'
-        return f'{header}\n{data}'
+        parameter_ids = "\t".join(self.parameters.keys())
+        parameter_values = "\t".join(str(v) for v in self.parameters.values())
+        header = "\t".join([MODEL_ID, PETAB_YAML, parameter_ids])
+        data = "\t".join(
+            [self.model_id, str(self.petab_yaml), parameter_values]
+        )
+        # header = f'{MODEL_ID}\t{PETAB_YAML}\t{parameter_ids}'
+        # data = f'{self.model_id}\t{self.petab_yaml}\t{parameter_values}'
+        return f"{header}\n{data}"
 
     def get_mle(self) -> Dict[str, float]:
         """Get the maximum likelihood estimate of the model.
@@ -512,7 +513,10 @@ class Model(PetabMixin):
         # Add all estimated parameters in the PEtab problem.
         petab_problem = petab.Problem.from_yaml(str(self.petab_yaml))
         for parameter_id in petab_problem.parameter_df.index:
-            if petab_problem.parameter_df.loc[parameter_id, ESTIMATE] == PETAB_ESTIMATE_TRUE:  # noqa: E501
+            if (
+                petab_problem.parameter_df.loc[parameter_id, ESTIMATE]
+                == PETAB_ESTIMATE_TRUE
+            ):  # noqa: E501
                 estimated_parameter_ids.append(parameter_id)
 
         # Add additional estimated parameters, and collect fixed parameters,
@@ -521,8 +525,7 @@ class Model(PetabMixin):
         for parameter_id, value in self.parameters.items():
             if (
                 value == ESTIMATE
-                and
-                parameter_id not in estimated_parameter_ids
+                and parameter_id not in estimated_parameter_ids
             ):
                 estimated_parameter_ids.append(parameter_id)
             elif value != ESTIMATE:
@@ -562,7 +565,7 @@ class Model(PetabMixin):
             self.parameters.get(
                 parameter_id,
                 # Default to PEtab problem.
-                self.petab_parameters[parameter_id]
+                self.petab_parameters[parameter_id],
             )
             for parameter_id in parameter_ids
         ]
@@ -595,10 +598,14 @@ def default_compare(
         `False`.
     """
     if not model1.has_criterion(criterion):
-        warnings.warn(f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".')  # noqa: E501
+        warnings.warn(
+            f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".'
+        )  # noqa: E501
         return False
     if criterion_threshold < 0:
-        warnings.warn('The provided criterion threshold is negative. The absolute value will be used instead.')  # noqa: E501
+        warnings.warn(
+            "The provided criterion threshold is negative. The absolute value will be used instead."
+        )  # noqa: E501
         criterion_threshold = abs(criterion_threshold)
     if criterion in [
         Criterion.AIC,
@@ -608,8 +615,7 @@ def default_compare(
     ]:
         return (
             model1.get_criterion(criterion)
-            <
-            model0.get_criterion(criterion) - criterion_threshold
+            < model0.get_criterion(criterion) - criterion_threshold
         )
     elif criterion in [
         Criterion.LH,
@@ -617,13 +623,10 @@ def default_compare(
     ]:
         return (
             model1.get_criterion(criterion)
-            >
-            model0.get_criterion(criterion) + criterion_threshold
+            > model0.get_criterion(criterion) + criterion_threshold
         )
     else:
-        raise NotImplementedError(
-            f'Unknown criterion: {criterion}.'
-        )
+        raise NotImplementedError(f"Unknown criterion: {criterion}.")
 
 
 def models_from_yaml_list(model_list_yaml: TYPE_PATH) -> List[Model]:
@@ -656,9 +659,8 @@ def models_to_yaml_list(
     if relative_paths:
         paths_relative_to = Path(output_yaml).parent
     model_dicts = [
-        model.to_dict(paths_relative_to=paths_relative_to)
-        for model in models
+        model.to_dict(paths_relative_to=paths_relative_to) for model in models
     ]
     model_dicts = None if not model_dicts else model_dicts
-    with open(output_yaml, 'w') as f:
+    with open(output_yaml, "w") as f:
         yaml.dump(model_dicts, f)
