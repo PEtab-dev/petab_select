@@ -32,8 +32,8 @@ def absolute_links(txt):
     return txt
 
 
-# 3.7.1 for NumPy
-minimum_python_version = '3.7.1'
+# 3.7.1 for NumPy, 3.8 for `typing.get_args`
+minimum_python_version = '3.8'
 if sys.version_info < tuple(map(int, minimum_python_version.split('.'))):
     sys.exit(f'PEtab Select requires Python >= {minimum_python_version}')
 
@@ -62,7 +62,7 @@ setup(
     url=f'https://github.com/{org}/{repo}',
     packages=find_packages(exclude=['doc*', 'test*']),
     install_requires=[
-        # TODO fix versions
+        # TODO minimum versions
         'more-itertools',
         'numpy',
         'pandas',
@@ -78,17 +78,18 @@ setup(
         #'seaborn',
     ],
     include_package_data=True,
-    tests_require=[
-        #'flake8',
-        'pytest',
-        #'python-libcombine',
-        'amici',
-        'fides',
-        'pypesto',
-    ],
     python_requires=f'>={minimum_python_version}',
     entry_points=ENTRY_POINTS,
     extras_require={
+        'test': [
+            'pytest >= 5.4.3',
+            'pytest-cov >= 2.10.0',
+            'amici >= 0.11.25',
+            'fides >= 0.7.5',
+            'pypesto >= 0.2.11',
+            # TODO remove upon next release
+            'petab @ git+https://github.com/PEtab-dev/libpetab-python.git@develop#egg=petab',
+        ],
         #'reports': ['Jinja2'],
         #'combine': ['python-libcombine>=0.2.6'],
         #'doc': [

@@ -6,25 +6,27 @@ from click.testing import CliRunner
 import petab_select.cli
 import pytest
 
+base_dir = Path(__file__).parent
+
 
 @pytest.fixture
 def output_path() -> Path:
-    return Path('output')
+    return base_dir / 'output'
 
 
 @pytest.fixture
 def expected_output_path() -> Path:
-    return Path('expected_output')
+    return base_dir / 'expected_output'
 
 
 @pytest.fixture
-def model_yaml() -> str:
-    return 'input/model.yaml'
+def model_yaml() -> Path:
+    return base_dir / 'input' / 'model.yaml'
 
 
 @pytest.fixture
-def models_yaml() -> str:
-    return 'input/models.yaml'
+def models_yaml() -> Path:
+    return base_dir / 'input' / 'models.yaml'
 
 
 @pytest.fixture
@@ -49,7 +51,7 @@ def test_model_to_petab(
 
     print(result.stdout)
     # The new PEtab problem YAML file is output to stdout correctly.
-    assert result.stdout == 'output/model/problem.yaml\n'
+    assert result.stdout == f'{base_dir / "output" / "model" / "problem.yaml"}\n'
 
     comparison = filecmp.dircmp(
         expected_output_path / 'model',
@@ -85,8 +87,8 @@ def test_models_to_petab(
     # The new PEtab problem YAML files are output with model IDs to `stdout`
     # correctly.
     assert result.stdout == (
-        'model_1\toutput/models/model_1/problem.yaml\n'
-        'model_2\toutput/models/model_2/problem.yaml\n'
+        f'model_1\t{base_dir / "output" / "models" / "model_1" / "problem.yaml"}\n'
+        f'model_2\t{base_dir / "output" / "models" / "model_2" / "problem.yaml"}\n'
     )
 
     comparison = filecmp.dircmp(

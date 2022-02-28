@@ -25,21 +25,25 @@ from petab_select.model_subspace import (
 
 
 @pytest.fixture
-def definition() -> pd.Series:
+def model_subspace_id_and_definition() -> pd.Series:
+    model_subspace_id = 'model_subspace_1'
     data = {
-        MODEL_SUBSPACE_ID: 'model_subspace_1',
         PETAB_YAML: Path(__file__).parent.parent.parent / 'doc' / 'examples' / 'model_selection' / 'petab_problem.yaml',  # noqa: E501
         'k1': 0.2,
         'k2': PARAMETER_VALUE_DELIMITER.join(['0.1', ESTIMATE]),
         'k3': ESTIMATE,
         'k4': PARAMETER_VALUE_DELIMITER.join(['0', '0.1', ESTIMATE]),
     }
-    return pd.Series(data=data, dtype=str)
+    return model_subspace_id, pd.Series(data=data, dtype=str)
 
 
 @pytest.fixture
-def model_subspace(definition) -> ModelSubspace:
-    return petab_select.model_subspace.ModelSubspace.from_definition(definition)
+def model_subspace(model_subspace_id_and_definition) -> ModelSubspace:
+    model_subspace_id, definition = model_subspace_id_and_definition
+    return petab_select.model_subspace.ModelSubspace.from_definition(
+        model_subspace_id=model_subspace_id,
+        definition=definition,
+    )
 
 
 @pytest.fixture

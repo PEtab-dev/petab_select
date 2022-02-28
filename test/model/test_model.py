@@ -5,17 +5,22 @@ from petab_select import Model
 import pytest
 
 
+base_dir = Path(__file__).parent
+
+
 @pytest.fixture
 def output_path() -> Path:
-    return Path('output')
+    return base_dir / 'output'
+
 
 @pytest.fixture
 def expected_output_path() -> Path:
-    return Path('expected_output')
+    return base_dir / 'expected_output'
+
 
 @pytest.fixture
 def model() -> Model:
-    return Model.from_yaml('input/model.yaml')
+    return Model.from_yaml(base_dir / 'input' / 'model.yaml')
 
 
 def test_model_to_petab(model, output_path, expected_output_path) -> None:
