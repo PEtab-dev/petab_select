@@ -51,7 +51,7 @@ def initial_model(model_subspace) -> Model:
     return model
 
 
-def test_from_definition(model_subspace):
+def _test_from_definition(model_subspace):
     """A model subspace definition is parsed correctly."""
     # Model subspace ID is parsed
     assert model_subspace.model_subspace_id == 'model_subspace_1'

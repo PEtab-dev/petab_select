@@ -1,4 +1,5 @@
 from typing import List
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -25,11 +26,14 @@ from petab_select.candidate_space import (
 )
 
 
+base_dir = Path(__file__).parent
+
+
 @pytest.fixture
-def model_space_files() -> List[str]:
+def model_space_files() -> List[Path]:
     return [
-        'model_space_file_1.tsv',
-        'model_space_file_2.tsv',
+        base_dir / 'model_space_file_1.tsv',
+        base_dir / 'model_space_file_2.tsv',
     ]
 
 
