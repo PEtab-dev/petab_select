@@ -34,7 +34,7 @@ jobs:
         key: ci-${{ runner.os }}-${{ matrix.python-version }}-base
 
     - name: Install dependencies
-      run: pip install -r requirements-dev.txt
+      run: pip install -r requirements_dev.txt
 
     - name: Run tox
       run: python -m tox
