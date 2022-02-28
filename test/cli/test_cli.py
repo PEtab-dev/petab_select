@@ -87,8 +87,8 @@ def test_models_to_petab(
     # The new PEtab problem YAML files are output with model IDs to `stdout`
     # correctly.
     assert result.stdout == (
-        f'model_1\t{base_dir / "output/models/model_1/problem.yaml"}\n'
-        f'model_2\t{base_dir / "output/models/model_2/problem.yaml"}\n'
+        f'model_1\t{base_dir / "output" / "models" / "model_1" / "problem.yaml"}\n'
+        f'model_2\t{base_dir / "output" / "models" / "model_2" / "problem.yaml"}\n'
     )
 
     comparison = filecmp.dircmp(
