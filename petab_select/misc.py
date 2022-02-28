@@ -1,12 +1,12 @@
 import hashlib
-#import json
+
+# import json
 from typing import Any, Dict, List, Union
 
-from .constants import (
+from .constants import (  # TYPE_PARAMETER_OPTIONS_DICT,
     ESTIMATE,
     TYPE_PARAMETER_DICT,
     TYPE_PARAMETER_OPTIONS,
-    #TYPE_PARAMETER_OPTIONS_DICT,
 )
 
 
@@ -21,7 +21,7 @@ def hashify(x: Any) -> str:
     Returns:
         The hash.
     """
-    #return int(hashlib.sha256(str(x).encode('utf-8')).hexdigest(), 16)
+    # return int(hashlib.sha256(str(x).encode('utf-8')).hexdigest(), 16)
     return hashlib.blake2b(str(x).encode('utf-8')).hexdigest()
 
 
@@ -89,10 +89,9 @@ def parameter_string_to_value(
     return float_value
 
 
-
-#def hash_dictionary(dictionary: Dict[str, Union[]]):
+# def hash_dictionary(dictionary: Dict[str, Union[]]):
 #    return hash(json.dumps(dictionary, sort_keys=True))
 #
 #
-#def hash_list(list_: List):
+# def hash_list(list_: List):
 #    return hash(json.dumps(list_, sort_keys=True))

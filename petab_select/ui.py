@@ -5,10 +5,7 @@ import numpy as np
 import petab
 
 from .candidate_space import CandidateSpace
-from .constants import (
-    TYPE_PATH,
-    VIRTUAL_INITIAL_MODEL_METHODS,
-)
+from .constants import TYPE_PATH, VIRTUAL_INITIAL_MODEL_METHODS
 from .model import Model
 from .problem import Problem
 
@@ -59,10 +56,8 @@ def candidates(
 
     if (
         predecessor_model is None
-        and
-        candidate_space.method in VIRTUAL_INITIAL_MODEL_METHODS
-        and
-        problem.calibrated_models
+        and candidate_space.method in VIRTUAL_INITIAL_MODEL_METHODS
+        and problem.calibrated_models
     ):
         predecessor_model = problem.get_best()
     if predecessor_model is not None:
@@ -73,7 +68,9 @@ def candidates(
     #      - perhaps less portable if model IDs are generated differently on different
     #        computers
     problem.model_space.exclude_models(models=excluded_models)
-    problem.model_space.exclude_model_hashes(model_hashes=excluded_model_hashes)
+    problem.model_space.exclude_model_hashes(
+        model_hashes=excluded_model_hashes
+    )
     problem.model_space.search(candidate_space, limit=limit_sent)
 
     return candidate_space

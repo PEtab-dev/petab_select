@@ -3,26 +3,19 @@
 import math
 
 import petab
-from petab.C import (
-    OBJECTIVE,
-    OBJECTIVE_PRIOR_PARAMETERS,
-    OBJECTIVE_PRIOR_TYPE,
-)
+from petab.C import OBJECTIVE, OBJECTIVE_PRIOR_PARAMETERS, OBJECTIVE_PRIOR_TYPE
 
-from .constants import (
-    #LH,
-    #LLH,
-    #NLLH,
-    Criterion,
+from .constants import (  # LH,; LLH,; NLLH,
     PETAB_PROBLEM,
     TYPE_CRITERION,
+    Criterion,
 )
-#from .model import Model
 
+# from .model import Model
 
 
 # use as attribute e.g. `Model.criterion_computer`?
-class CriterionComputer():
+class CriterionComputer:
     """Compute various criterion."""
 
     def __init__(
@@ -44,7 +37,7 @@ class CriterionComputer():
         Returns:
             The criterion value.
         """
-        return getattr(self, 'get_'+criterion.value.lower())()
+        return getattr(self, 'get_' + criterion.value.lower())()
 
     def get_aic(self) -> float:
         """Get the Akaike information criterion."""
@@ -98,7 +91,9 @@ class CriterionComputer():
         elif nllh is not None:
             return math.exp(-1 * nllh)
 
-        raise ValueError('Please supply the likelihood (LH) or a compatible transformation. Compatible transformations: log(LH), -log(LH).')  # noqa: E501
+        raise ValueError(
+            'Please supply the likelihood (LH) or a compatible transformation. Compatible transformations: log(LH), -log(LH).'
+        )  # noqa: E501
 
     def get_n_estimated(self) -> int:
         """Get the number of estimated parameters."""
@@ -113,26 +108,33 @@ class CriterionComputer():
         df = self.petab_problem.parameter_df
 
         # At least one of the objective prior columns should be present.
-        if not (OBJECTIVE_PRIOR_TYPE in df or OBJECTIVE_PRIOR_PARAMETERS in df):
+        if not (
+            OBJECTIVE_PRIOR_TYPE in df or OBJECTIVE_PRIOR_PARAMETERS in df
+        ):
             return 0
 
         # If both objective prior columns are not present, raise an error.
-        if not (OBJECTIVE_PRIOR_TYPE in df and OBJECTIVE_PRIOR_PARAMETERS in df):
-            raise NotImplementedError('Currently expect that prior types are specified with prior parameters (no default values). Please provide an example for implementation.')  # noqa: E501
+        if not (
+            OBJECTIVE_PRIOR_TYPE in df and OBJECTIVE_PRIOR_PARAMETERS in df
+        ):
+            raise NotImplementedError(
+                'Currently expect that prior types are specified with prior parameters (no default values). Please provide an example for implementation.'
+            )  # noqa: E501
 
         # Expect that the number of non-empty values in both objective prior columns
         # are the same.
         if not (
             df[OBJECTIVE_PRIOR_TYPE].notna().sum()
-            ==
-            df[OBJECTIVE_PRIOR_PARAMETERS].notna().sum()
+            == df[OBJECTIVE_PRIOR_PARAMETERS].notna().sum()
         ):
-            raise NotImplementedError('Some objective prior values are missing.')
+            raise NotImplementedError(
+                'Some objective prior values are missing.'
+            )
 
         number_of_priors = df[OBJECTIVE_PRIOR_TYPE].notna().sum()
         return number_of_priors
 
-    #def get_criterion(self, id: str) -> TYPE_CRITERION:
+    # def get_criterion(self, id: str) -> TYPE_CRITERION:
     #    """Get a criterion value, by criterion ID.
     #    FIXME: superseded by `__call__`
 
@@ -163,7 +165,7 @@ def calculate_aic(
     Returns:
         The AIC value.
     """
-    return 2*(n_estimated + nllh)
+    return 2 * (n_estimated + nllh)
 
 
 def calculate_aicc(
@@ -188,11 +190,9 @@ def calculate_aicc(
     Returns:
         The AICc value.
     """
-    return (
-        calculate_aic(n_estimated, nllh)
-        + 2*n_estimated*(n_estimated + 1)
-        / (n_measurements + n_priors - n_estimated - 1)
-    )
+    return calculate_aic(n_estimated, nllh) + 2 * n_estimated * (
+        n_estimated + 1
+    ) / (n_measurements + n_priors - n_estimated - 1)
 
 
 def calculate_bic(
@@ -217,4 +217,4 @@ def calculate_bic(
     Returns:
         The BIC value.
     """
-    return n_estimated*math.log(n_measurements + n_priors) + 2*nllh
+    return n_estimated * math.log(n_measurements + n_priors) + 2 * nllh

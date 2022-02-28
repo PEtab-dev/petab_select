@@ -3,7 +3,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Union
 
-
 # Zero-indexed column/row indices
 MODEL_ID_COLUMN = 0
 PETAB_YAML_COLUMN = 1
@@ -18,14 +17,14 @@ ESTIMATE = 'estimate'
 PETAB_ESTIMATE_FALSE = 0
 PETAB_ESTIMATE_TRUE = 1
 
-#TYPING_PATH = Union[str, Path]
+# TYPING_PATH = Union[str, Path]
 TYPE_PATH = Union[str, Path]
 
 # Model space file columns
 # TODO ensure none of these occur twice in the column header (this would
 #      suggest that a parameter has a conflicting name)
-#MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
-#YAML = 'YAML'  # FIXME
+# MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
+# YAML = 'YAML'  # FIXME
 MODEL_ID = 'model_id'
 MODEL_SUBSPACE_ID = 'model_subspace_id'
 MODEL_SUBSPACE_INDICES = 'model_subspace_indices'
@@ -42,19 +41,19 @@ PETAB_YAML = 'petab_yaml'
 SBML = 'sbml'
 HASH = 'hash'
 
-#MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
+# MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
 MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_SUBSPACE_ID, PETAB_YAML]
 
-#COMPARED_MODEL_ID = 'compared_'+MODEL_ID
+# COMPARED_MODEL_ID = 'compared_'+MODEL_ID
 YAML_FILENAME = 'yaml'
 
-#FORWARD = 'forward'
-#BACKWARD = 'backward'
-#BIDIRECTIONAL = 'bidirectional'
-#LATERAL = 'lateral'
+# FORWARD = 'forward'
+# BACKWARD = 'backward'
+# BIDIRECTIONAL = 'bidirectional'
+# LATERAL = 'lateral'
 
 
-#DISTANCES = {
+# DISTANCES = {
 #    FORWARD: {
 #        'l1': 1,
 #        'size': 1,
@@ -67,26 +66,26 @@ YAML_FILENAME = 'yaml'
 #        'l1': 2,
 #        'size': 0,
 #    },
-#}
+# }
 
 CRITERIA = 'criteria'
 # FIXME remove, change all uses to Enum below
-#AIC = 'AIC'
-#AICC = 'AICc'
-#BIC = 'BIC'
-#AKAIKE_INFORMATION_CRITERION = AIC
-#CORRECTED_AKAIKE_INFORMATION_CRITERION = AICC
-#BAYESIAN_INFORMATION_CRITERION = BIC
-#LH = 'LH'
-#LLH = 'LLH'
-#NLLH = 'NLLH'
-#LIKELIHOOD = LH
-#LOG_LIKELIHOOD = LLH
-#NEGATIVE_LOG_LIKELIHOOD = NLLH
+# AIC = 'AIC'
+# AICC = 'AICc'
+# BIC = 'BIC'
+# AKAIKE_INFORMATION_CRITERION = AIC
+# CORRECTED_AKAIKE_INFORMATION_CRITERION = AICC
+# BAYESIAN_INFORMATION_CRITERION = BIC
+# LH = 'LH'
+# LLH = 'LLH'
+# NLLH = 'NLLH'
+# LIKELIHOOD = LH
+# LOG_LIKELIHOOD = LLH
+# NEGATIVE_LOG_LIKELIHOOD = NLLH
 
 
 PARAMETERS = 'parameters'
-#PARAMETER_ESTIMATE = 'parameter_estimate'
+# PARAMETER_ESTIMATE = 'parameter_estimate'
 ESTIMATED_PARAMETERS = 'estimated_parameters'
 
 CRITERION = 'criterion'
@@ -111,14 +110,17 @@ TYPE_CRITERION = float
 
 class Method(str, Enum):
     """String literals for model selection methods."""
+
     BACKWARD = 'backward'
     BIDIRECTIONAL = 'bidirectional'
     BRUTE_FORCE = 'brute_force'
     FORWARD = 'forward'
     LATERAL = 'lateral'
 
+
 class Criterion(str, Enum):
     """String literals for model selection criteria."""
+
     AIC = 'AIC'
     AICC = 'AICc'
     BIC = 'BIC'
@@ -143,7 +145,4 @@ INITIAL_MODEL_METHODS = [
 
 # Virtual initial models can be used to initialize some initial model methods.
 VIRTUAL_INITIAL_MODEL = 'virtual_initial_model'
-VIRTUAL_INITIAL_MODEL_METHODS = [
-    Method.FORWARD,
-    Method.BACKWARD
-]
+VIRTUAL_INITIAL_MODEL_METHODS = [Method.FORWARD, Method.BACKWARD]

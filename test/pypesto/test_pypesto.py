@@ -1,21 +1,17 @@
 from pathlib import Path
 
 import fides
-from more_itertools import one
 import numpy as np
 import pandas as pd
-import petab_select
-from petab_select import Model
-from petab_select.constants import (
-    CRITERIA,
-    ESTIMATED_PARAMETERS,
-    MODEL,
-)
 import pypesto.engine
 import pypesto.optimize
 import pypesto.select
 import pytest
+from more_itertools import one
 
+import petab_select
+from petab_select import Model
+from petab_select.constants import CRITERIA, ESTIMATED_PARAMETERS, MODEL
 
 # Set to `[]` to test all
 test_cases = [
@@ -32,6 +28,7 @@ minimize_options = {
     'engine': pypesto.engine.MultiProcessEngine(),
 }
 
+
 def test_pypesto():
     for test_case_path in test_cases_path.glob('*'):
         if test_cases and test_case_path.stem not in test_cases:
@@ -42,8 +39,9 @@ def test_pypesto():
         petab_select_problem = petab_select.Problem.from_yaml(
             test_case_path / 'petab_select_problem.yaml',
         )
-        pypesto_select_problem = \
-            pypesto.select.Problem(petab_select_problem=petab_select_problem)
+        pypesto_select_problem = pypesto.select.Problem(
+            petab_select_problem=petab_select_problem
+        )
 
         # Run the selection process until "exhausted".
         pypesto_select_problem.select_to_completion(
@@ -60,6 +58,7 @@ def test_pypesto():
                 getattr(model, dict_attribute),
                 dtype=np.float64,
             ).sort_index()
+
         # The estimated parameters and criteria values are as expected.
         for dict_attribute in [CRITERIA, ESTIMATED_PARAMETERS]:
             pd.testing.assert_series_equal(

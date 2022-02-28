@@ -10,7 +10,7 @@ TYPE_LIMIT = Union[float, int]
 # TODO exclusions handler
 
 
-class LimitHandler():
+class LimitHandler:
     """A handler for classes that have a limit.
 
     Attributes:
@@ -50,4 +50,3 @@ class LimitHandler():
             The limit.
         """
         return self.limit
-

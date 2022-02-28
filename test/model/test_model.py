@@ -1,9 +1,9 @@
 import filecmp
 from pathlib import Path
 
-from petab_select import Model
 import pytest
 
+from petab_select import Model
 
 base_dir = Path(__file__).parent
 
@@ -29,8 +29,9 @@ def test_model_to_petab(model, output_path, expected_output_path) -> None:
     output_path_petab.mkdir(parents=True, exist_ok=True)
     # TODO test `petab_problem`? Shouldn't be necessary since the generated
     # files are tested below.
-    petab_problem, petab_problem_yaml = \
-        model.to_petab(output_path=output_path_petab)
+    petab_problem, petab_problem_yaml = model.to_petab(
+        output_path=output_path_petab
+    )
 
     comparison = filecmp.dircmp(
         expected_output_path / 'petab',
