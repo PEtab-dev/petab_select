@@ -20,7 +20,7 @@ def expected_output_path() -> Path:
 
 @pytest.fixture
 def model() -> Model:
-    return Model.from_yaml(base_dir / 'input/model.yaml')
+    return Model.from_yaml(base_dir / 'input' / 'model.yaml')
 
 
 def test_model_to_petab(model, output_path, expected_output_path) -> None:
