@@ -26,7 +26,7 @@ def model_yaml() -> Path:
 
 @pytest.fixture
 def models_yaml() -> Path:
-    return base_dir / 'input/models.yaml'
+    return base_dir / 'input' / 'models.yaml'
 
 
 @pytest.fixture
