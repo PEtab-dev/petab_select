@@ -21,7 +21,7 @@ def expected_output_path() -> Path:
 
 @pytest.fixture
 def model_yaml() -> Path:
-    return base_dir / 'input/model.yaml'
+    return base_dir / 'input' / 'model.yaml'
 
 
 @pytest.fixture
