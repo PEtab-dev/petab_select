@@ -21,12 +21,12 @@ def expected_output_path() -> Path:
 
 @pytest.fixture
 def model_yaml() -> Path:
-    return base_dir / 'input/model.yaml'
+    return base_dir / 'input' / 'model.yaml'
 
 
 @pytest.fixture
 def models_yaml() -> Path:
-    return base_dir / 'input/models.yaml'
+    return base_dir / 'input' / 'models.yaml'
 
 
 @pytest.fixture
@@ -51,7 +51,7 @@ def test_model_to_petab(
 
     print(result.stdout)
     # The new PEtab problem YAML file is output to stdout correctly.
-    assert result.stdout == f'{base_dir / "output/model/problem.yaml"}\n'
+    assert result.stdout == f'{base_dir / "output" / "model" / "problem.yaml"}\n'
 
     comparison = filecmp.dircmp(
         expected_output_path / 'model',
@@ -87,8 +87,8 @@ def test_models_to_petab(
     # The new PEtab problem YAML files are output with model IDs to `stdout`
     # correctly.
     assert result.stdout == (
-        f'model_1\t{base_dir / "output/models/model_1/problem.yaml"}\n'
-        f'model_2\t{base_dir / "output/models/model_2/problem.yaml"}\n'
+        f'model_1\t{base_dir / "output" / "models" / "model_1" / "problem.yaml"}\n'
+        f'model_2\t{base_dir / "output" / "models" / "model_2" / "problem.yaml"}\n'
     )
 
     comparison = filecmp.dircmp(
