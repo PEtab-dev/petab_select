@@ -32,8 +32,8 @@ def absolute_links(txt):
     return txt
 
 
-# 3.7.1 for NumPy
-minimum_python_version = '3.7.1'
+# 3.7.1 for NumPy, 3.8 for `typing.get_args`
+minimum_python_version = '3.8'
 if sys.version_info < tuple(map(int, minimum_python_version.split('.'))):
     sys.exit(f'PEtab Select requires Python >= {minimum_python_version}')
 
