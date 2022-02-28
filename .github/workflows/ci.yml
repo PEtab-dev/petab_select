@@ -33,7 +33,15 @@ jobs:
         path: ~ /.cache
         key: ci-${{ runner.os }}-${{ matrix.python-version }}-base
 
-    - name: Install dependencies
+    # install system dependencies
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update \
+          && sudo apt-get install -y \
+          swig \
+          libatlas-base-dev
+
+    - name: Install Python dependencies
       run: pip install -r requirements_dev.txt
 
     - name: Run tox
