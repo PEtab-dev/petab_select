@@ -216,7 +216,7 @@ class Problem(abc.ABC):
             else:
                 raise ValueError(
                     'There are no calibrated models in the problem, and no models were supplied.'
-                )  # noqa: E501
+                )
 
         best_model = None
         for model in models:
@@ -230,7 +230,7 @@ class Problem(abc.ABC):
         if best_model is None:
             raise KeyError(
                 f'None of the supplied models have a value set for the criterion {criterion}.'
-            )  # noqa: E501
+            )
         return best_model
 
     def new_candidate_space(

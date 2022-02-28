@@ -256,7 +256,7 @@ class ModelSubspace(PetabMixin):
         # predecessor model but are necessarily estimated in this subspace.
         new_must_estimate_all = set(self.must_estimate_all).difference(
             old_estimated_all
-        )  # noqa: E501
+        )
         new_can_fix_all = set(old_estimated_all).difference(
             self.must_estimate_all
         )

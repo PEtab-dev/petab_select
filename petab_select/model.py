@@ -516,7 +516,7 @@ class Model(PetabMixin):
             if (
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE]
                 == PETAB_ESTIMATE_TRUE
-            ):  # noqa: E501
+            ):
                 estimated_parameter_ids.append(parameter_id)
 
         # Add additional estimated parameters, and collect fixed parameters,
@@ -600,12 +600,12 @@ def default_compare(
     if not model1.has_criterion(criterion):
         warnings.warn(
             f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".'
-        )  # noqa: E501
+        )
         return False
     if criterion_threshold < 0:
         warnings.warn(
             'The provided criterion threshold is negative. The absolute value will be used instead.'
-        )  # noqa: E501
+        )
         criterion_threshold = abs(criterion_threshold)
     if criterion in [
         Criterion.AIC,

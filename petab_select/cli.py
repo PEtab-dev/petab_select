@@ -55,7 +55,7 @@ def cli():
     'method',
     type=str,
     default=None,
-    help='The method used to identify the candidate models. Defaults to the method in the problem YAML.',  # noqa: E501
+    help='The method used to identify the candidate models. Defaults to the method in the problem YAML.',
 )
 @click.option(
     '--initial',

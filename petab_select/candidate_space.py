@@ -210,7 +210,7 @@ class CandidateSpace(abc.ABC):
         ):
             raise ValueError(
                 f'A virtual initial model was requested for a method ({self.method}) that does not support them.'
-            )  # noqa: E501
+            )
 
     def get_predecessor_model(self):
         return self.predecessor_model
@@ -484,7 +484,7 @@ def method_to_candidate_space_class(method: Method) -> str:
             return candidate_space_class
     raise NotImplementedError(
         f'The provided method name {method} does not correspond to an implemented candidate space.'
-    )  # noqa: E501
+    )
 
 
 '''

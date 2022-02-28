@@ -93,7 +93,7 @@ class CriterionComputer:
 
         raise ValueError(
             'Please supply the likelihood (LH) or a compatible transformation. Compatible transformations: log(LH), -log(LH).'
-        )  # noqa: E501
+        )
 
     def get_n_estimated(self) -> int:
         """Get the number of estimated parameters."""
@@ -119,7 +119,7 @@ class CriterionComputer:
         ):
             raise NotImplementedError(
                 'Currently expect that prior types are specified with prior parameters (no default values). Please provide an example for implementation.'
-            )  # noqa: E501
+            )
 
         # Expect that the number of non-empty values in both objective prior columns
         # are the same.
