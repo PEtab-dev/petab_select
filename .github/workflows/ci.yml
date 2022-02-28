@@ -39,7 +39,7 @@ jobs:
     # TODO remove once released
     - name: Install custom libpetab-python
       run: |
-        pip install --upgrade --upgrade-strategy eager -e git+https://github.com/PEtab-dev/libpetab-python.git@develop
+        pip install --upgrade --upgrade-strategy eager -e git+https://github.com/PEtab-dev/libpetab-python.git@develop#egg=petab
 
     - name: Run tox
       run: python -m tox
