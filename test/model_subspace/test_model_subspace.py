@@ -28,7 +28,7 @@ def model_subspace_id_and_definition() -> pd.Series:
         / 'doc'
         / 'examples'
         / 'model_selection'
-        / 'petab_problem.yaml',  # noqa: E501
+        / 'petab_problem.yaml',
         'k1': 0.2,
         'k2': PARAMETER_VALUE_DELIMITER.join(['0.1', ESTIMATE]),
         'k3': ESTIMATE,
@@ -72,7 +72,7 @@ def test_from_definition(model_subspace):
         / 'doc'
         / 'examples'
         / 'model_selection'
-        / 'petab_problem.yaml',  # noqa: E501
+        / 'petab_problem.yaml',
     )
     # Fixed parameters are parsed
     assert model_subspace.parameters['k1'] == [0.2]
