@@ -23,9 +23,24 @@ class CriterionComputer:
         model: 'petab_select.Model',
     ):
         self.model = model
+        self._petab_problem = None
+
+    @property
+    def petab_problem(self) -> petab.Problem:
+        """The PEtab problem that corresponds to the model.
+
+        Implemented as a property such that the `petab.Problem` object
+        is only constructed if explicitly requested.
+
+        Improves speed of operations on models by a lot. For example, analysis of models
+        that already have criteria computed can skip loading their PEtab problem again.
+        """
         # TODO refactor, if `petab_problem` is going to be produced here anyway, store
         #      in model instance instead, for use elsewhere (e.g. pyPESTO)
-        self.petab_problem = model.to_petab()[PETAB_PROBLEM]
+        #      i.e.: this is a property of a `Model` instance, not `CriterionComputer`
+        if self._petab_problem is None:
+            self._petab_problem = self.model.to_petab()[PETAB_PROBLEM]
+        return self._petab_problem
 
     def __call__(self, criterion: Criterion) -> float:
         """Get a criterion value.

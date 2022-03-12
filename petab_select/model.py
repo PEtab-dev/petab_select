@@ -266,6 +266,7 @@ class Model(PetabMixin):
     def from_dict(
         model_dict: Dict[str, Any],
         base_path: TYPE_PATH = None,
+        petab_problem: petab.Problem = None,
     ) -> 'Model':
         """Generate a model from a dictionary of attributes.
 
@@ -279,6 +280,11 @@ class Model(PetabMixin):
                 The path that any relative paths in the model are relative to
                 (e.g. the path to the PEtab problem YAML file
                 `Model.petab_yaml` may be relative).
+            petab_problem:
+                Optionally provide the PEtab problem, to avoid loading it multiple
+                times.
+                NB: This may causes issues if multiple models write to the same PEtab
+                problem in memory.
 
         Returns:
             A model instance, initialized with the provided attributes.
@@ -297,6 +303,7 @@ class Model(PetabMixin):
             for attribute, value in model_dict.items()
             if attribute in Model.converters_load
         }
+        model_dict[PETAB_PROBLEM] = petab_problem
         return Model(**model_dict)
 
     @staticmethod
@@ -629,12 +636,17 @@ def default_compare(
         raise NotImplementedError(f'Unknown criterion: {criterion}.')
 
 
-def models_from_yaml_list(model_list_yaml: TYPE_PATH) -> List[Model]:
+def models_from_yaml_list(
+    model_list_yaml: TYPE_PATH,
+    petab_problem: petab.Problem = None,
+) -> List[Model]:
     """Generate a model from a PEtab Select list of model YAML file.
 
     Args:
         model_list_yaml:
             The path to the PEtab Select list of model YAML file.
+        petab_problem:
+            See `Model.from_dict`.
 
     Returns:
         A list of model instances, initialized with the provided
@@ -645,7 +657,11 @@ def models_from_yaml_list(model_list_yaml: TYPE_PATH) -> List[Model]:
     if model_dict_list is None:
         return []
     return [
-        Model.from_dict(model_dict, base_path=Path(model_list_yaml).parent)
+        Model.from_dict(
+            model_dict,
+            base_path=Path(model_list_yaml).parent,
+            petab_problem=petab_problem,
+        )
         for model_dict in model_dict_list
     ]
 
