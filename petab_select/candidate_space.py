@@ -57,6 +57,7 @@ class CandidateSpace(abc.ABC):
         #limit:
         #    Models will fail `self.consider` if `len(self.models) >= limit`.
     """
+
     method: Method = None
     retry_model_space_search_if_no_models: bool = False
 
@@ -259,8 +260,10 @@ class CandidateSpace(abc.ABC):
             search_subspaces:
                 The method that searches the subspaces of a model space.
         """
+
         def wrapper():
             search_subspaces()
+
         return wrapper
 
     def reset(
@@ -516,13 +519,13 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
             # Repeat until models are found or switching doesn't help.
             iterate()
             while (
-                not self.models
-                and self.retry_model_space_search_if_no_models
+                not self.models and self.retry_model_space_search_if_no_models
             ):
                 iterate()
 
             # Reset flag for next time.
             self.retry_model_space_search_if_no_models = True
+
         return wrapper
 
 
@@ -542,11 +545,13 @@ class ForwardAndBackwardCandidateSpace(BidirectionalCandidateSpace):
                 self.update_method(method=method)
                 search_subspaces()
                 self.setup_after_model_subspaces_search()
+
         return wrapper
 
     # Disable unused interface
     setup_before_model_subspaces_search = None
     switch_method = None
+
     def setup_after_model_space_search(self):
         pass
 

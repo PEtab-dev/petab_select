@@ -220,12 +220,15 @@ class ModelSpace:
             exclude:
                 Whether to exclude the new candidates from the model subspaces.
         """
+
         @candidate_space.wrap_search_subspaces
         def search_subspaces():
             # TODO change dict to list of subspaces. Each subspace should manage its own
             #      ID
             for model_subspace in self.model_subspaces.values():
-                model_subspace.search(candidate_space=candidate_space, limit=limit)
+                model_subspace.search(
+                    candidate_space=candidate_space, limit=limit
+                )
                 if len(candidate_space.models) == limit:
                     break
                 elif len(candidate_space.models) > limit:
