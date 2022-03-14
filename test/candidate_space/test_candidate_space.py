@@ -5,25 +5,20 @@ import pytest
 from more_itertools import one
 
 import petab_select
-from petab_select.candidate_space import (
-    #BackwardCandidateSpace,
-    #BruteForceCandidateSpace,
-    #ForwardCandidateSpace,
+from petab_select.candidate_space import (  # BackwardCandidateSpace,; BruteForceCandidateSpace,; ForwardCandidateSpace,; ForwardAndBackwardCandidateSpace,; LateralCandidateSpace,
     BidirectionalCandidateSpace,
-    #ForwardAndBackwardCandidateSpace,
-    #LateralCandidateSpace,
 )
 from petab_select.constants import (
     ESTIMATE,
     MODEL_SUBSPACE_ID,
+    MODELS,
     PARAMETER_VALUE_DELIMITER,
     PETAB_YAML,
     Criterion,
-    MODELS,
 )
 from petab_select.model import Model, default_compare
+from petab_select.model_space import ModelSpace, get_model_space_df
 from petab_select.model_subspace import ModelSubspace
-from petab_select.model_space import get_model_space_df, ModelSpace
 
 
 @pytest.fixture
@@ -67,14 +62,10 @@ def calibrated_model_space(ordered_model_parameterizations):
     # As good models are ordered ascending by "goodness", and criteria
     # decreases for better models, the criteria decreases as the index increases.
     good_model_criteria = {
-        model: 100 - index
-        for index, model in enumerate(good_models_ascending)
+        model: 100 - index for index, model in enumerate(good_models_ascending)
     }
     # All bad models are currently set to the same "bad" criterion value.
-    bad_model_criteria = {
-        model: 1000
-        for model in bad_models
-    }
+    bad_model_criteria = {model: 1000 for model in bad_models}
 
     model_criteria = {
         **good_model_criteria,
@@ -104,7 +95,9 @@ def model_space(calibrated_model_space) -> pd.DataFrame:
             / 'model_selection'
             / 'petab_problem.yaml'
         )
-        k1, k2, k3, k4, k5 = ['0' if parameter == '0' else ESTIMATE for parameter in model]
+        k1, k2, k3, k4, k5 = [
+            '0' if parameter == '0' else ESTIMATE for parameter in model
+        ]
         data["k1"].append(k1)
         data["k2"].append(k2)
         data["k3"].append(k3)
@@ -116,9 +109,13 @@ def model_space(calibrated_model_space) -> pd.DataFrame:
     return model_space
 
 
-def test_bidirectional(model_space, calibrated_model_space, ordered_model_parameterizations):
+def test_bidirectional(
+    model_space, calibrated_model_space, ordered_model_parameterizations
+):
     criterion = Criterion.AIC
-    model_id_length = one(set([len(model_id) for model_id in calibrated_model_space]))
+    model_id_length = one(
+        set([len(model_id) for model_id in calibrated_model_space])
+    )
 
     candidate_space = BidirectionalCandidateSpace()
     calibrated_models = []
@@ -135,7 +132,9 @@ def test_bidirectional(model_space, calibrated_model_space, ordered_model_parame
         # Calibrate models.
         for model in candidate_space.models:
             model_id = model.model_subspace_id[-model_id_length:]
-            model.set_criterion(criterion=criterion, value=calibrated_model_space[model_id])
+            model.set_criterion(
+                criterion=criterion, value=calibrated_model_space[model_id]
+            )
             new_calibrated_models.append(model)
 
         # End if no more models were found.
@@ -148,11 +147,15 @@ def test_bidirectional(model_space, calibrated_model_space, ordered_model_parame
             if best_new_model is None:
                 best_new_model = model
                 continue
-            if default_compare(model0=best_new_model, model1=model, criterion=criterion):
+            if default_compare(
+                model0=best_new_model, model1=model, criterion=criterion
+            ):
                 best_new_model = model
 
         # Set next predecessor and exclusions.
-        calibrated_model_hashes = [model.get_hash() for model in calibrated_models]
+        calibrated_model_hashes = [
+            model.get_hash() for model in calibrated_models
+        ]
         candidate_space.reset(
             predecessor_model=best_new_model,
             exclusions=calibrated_model_hashes,
@@ -162,15 +165,22 @@ def test_bidirectional(model_space, calibrated_model_space, ordered_model_parame
         model_space.exclude_model_hashes(model_hashes=calibrated_model_hashes)
 
     # Check that expected models are found at each iteration.
-    good_model_parameterizations_ascending, bad_model_parameterizations = ordered_model_parameterizations
+    (
+        good_model_parameterizations_ascending,
+        bad_model_parameterizations,
+    ) = ordered_model_parameterizations
     search_iteration = 0
     for history_item in candidate_space.history:
         models = history_item[MODELS]
         if not models:
             continue
-        model_parameterizations = [model.model_subspace_id[-5:] for model in models]
+        model_parameterizations = [
+            model.model_subspace_id[-5:] for model in models
+        ]
 
-        good_model_parameterization = good_model_parameterizations_ascending[search_iteration]
+        good_model_parameterization = good_model_parameterizations_ascending[
+            search_iteration
+        ]
         # The expected good model was found.
         assert good_model_parameterization in model_parameterizations
         model_parameterizations.remove(good_model_parameterization)
@@ -181,17 +191,37 @@ def test_bidirectional(model_space, calibrated_model_space, ordered_model_parame
             search_iteration += 1
             continue
 
-        previous_model_parameterization = good_model_parameterizations_ascending[search_iteration-1]
+        previous_model_parameterization = (
+            good_model_parameterizations_ascending[search_iteration - 1]
+        )
 
         # The expected bad model is also found.
         # If a bad model is the same dimension and also represents a similar stepwise move away from the previous
         # model parameterization, it should also be in the parameterizations.
         for bad_model_parameterization in bad_model_parameterizations:
             # Skip if different dimensions
-            if sum(map(int, bad_model_parameterization)) != sum(map(int, good_model_parameterization)):
+            if sum(map(int, bad_model_parameterization)) != sum(
+                map(int, good_model_parameterization)
+            ):
                 continue
             # Skip if different distances from previous model parameterization
-            if sum([a != b for a,b in zip(bad_model_parameterization, previous_model_parameterization)]) != sum([a != b for a,b in zip(good_model_parameterization, previous_model_parameterization)]):
+            if sum(
+                [
+                    a != b
+                    for a, b in zip(
+                        bad_model_parameterization,
+                        previous_model_parameterization,
+                    )
+                ]
+            ) != sum(
+                [
+                    a != b
+                    for a, b in zip(
+                        good_model_parameterization,
+                        previous_model_parameterization,
+                    )
+                ]
+            ):
                 continue
             assert bad_model_parameterization in model_parameterizations
             model_parameterizations.remove(bad_model_parameterization)

@@ -1,18 +1,18 @@
 """Classes and methods related to candidate spaces."""
 import abc
 import warnings
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 from more_itertools import one
 
 from .constants import (
     ESTIMATE,
+    METHOD,
+    MODELS,
     VIRTUAL_INITIAL_MODEL,
     VIRTUAL_INITIAL_MODEL_METHODS,
     Method,
-    METHOD,
-    MODELS,
 )
 from .handlers import TYPE_LIMIT, LimitHandler
 from .misc import snake_case_to_camel_case
