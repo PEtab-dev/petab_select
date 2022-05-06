@@ -26,6 +26,7 @@ minimize_options = {
     'n_starts': 10,
     'optimizer': pypesto.optimize.FidesOptimizer(),
     'engine': pypesto.engine.MultiProcessEngine(),
+    'filename': None,
 }
 
 

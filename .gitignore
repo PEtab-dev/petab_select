@@ -5,7 +5,7 @@ amici_models
 *egg-info
 
 # coverage
-.coverage
+.coverage*
 coverage.xml
 
 # tox

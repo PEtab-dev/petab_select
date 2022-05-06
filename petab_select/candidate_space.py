@@ -1,13 +1,15 @@
 """Classes and methods related to candidate spaces."""
 import abc
 import warnings
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 from more_itertools import one
 
 from .constants import (
     ESTIMATE,
+    METHOD,
+    MODELS,
     VIRTUAL_INITIAL_MODEL,
     VIRTUAL_INITIAL_MODEL_METHODS,
     Method,
@@ -38,11 +40,26 @@ class CandidateSpace(abc.ABC):
             are added to `exclusions`.
         limit:
             A handler to limit the number of accepted models.
+        method:
+            The model selection method of the candidate space.
+        governing_method:
+            Used to store the search method that governs the choice of method during
+            a search. In some cases, this is always the same as the method attribute.
+            An example of a difference is in the bidirectional method, where `governing_method`
+            stores the bidirectional method, whereas `method` may also store the forward or
+            backward methods.
+        retry_model_space_search_if_no_models:
+            Whether a search with a candidate space should be repeated upon failure.
+            Useful for the `BidirectionalCandidateSpace`, which switches directions
+            upon failure.
         #limited:
         #    A descriptor that handles the limit on the number of accepted models.
         #limit:
         #    Models will fail `self.consider` if `len(self.models) >= limit`.
     """
+
+    method: Method = None
+    retry_model_space_search_if_no_models: bool = False
 
     def __init__(
         self,
@@ -55,6 +72,8 @@ class CandidateSpace(abc.ABC):
             current=self.n_accepted,
             limit=limit,
         )
+        # Each candidate class specifies this as a class attribute.
+        self.governing_method = self.method
         self.reset(predecessor_model=predecessor_model, exclusions=exclusions)
 
     def is_plausible(self, model: Model) -> bool:
@@ -215,7 +234,7 @@ class CandidateSpace(abc.ABC):
     def get_predecessor_model(self):
         return self.predecessor_model
 
-    def set_exclusions(self, exclusions: Union[List[Any], None]):
+    def set_exclusions(self, exclusions: Union[List[str], None]):
         # TODO change to List[str] for hashes?
         self.exclusions = exclusions
         if self.exclusions is None:
@@ -231,11 +250,27 @@ class CandidateSpace(abc.ABC):
     def get_limit(self):
         return self.limit.get_limit()
 
+    def wrap_search_subspaces(self, search_subspaces: Callable[[], None]):
+        """Decorate the subspace searches of a model space.
+
+        Used by candidate spaces to perform changes that alter the search.
+        See `BidirectionalCandidateSpace` for an example, where it's used to switch directions.
+
+        Args:
+            search_subspaces:
+                The method that searches the subspaces of a model space.
+        """
+
+        def wrapper():
+            search_subspaces()
+
+        return wrapper
+
     def reset(
         self,
         predecessor_model: Optional[Union[Model, str, None]] = None,
         # FIXME change `Any` to some `TYPE_MODEL_HASH` (e.g. union of str/int/float)
-        exclusions: Optional[Union[List[Any], None]] = None,
+        exclusions: Optional[Union[List[str], None]] = None,
         limit: TYPE_LIMIT = None,
     ) -> None:
         """Reset the candidate models, optionally reinitialize with a model.
@@ -408,6 +443,119 @@ class BackwardCandidateSpace(ForwardCandidateSpace):
     direction = -1
 
 
+class BidirectionalCandidateSpace(ForwardCandidateSpace):
+    """The bidirectional method class.
+
+    Attributes:
+        method_history:
+            The history of models that were found at each search.
+            A list of dictionaries, where each dictionary contains keys for the `METHOD`
+            and the list of `MODELS`.
+    """
+
+    method = Method.BIDIRECTIONAL
+    retry_model_space_search_if_no_models = True
+
+    def __init__(
+        self,
+        *args,
+        initial_method: Method = Method.FORWARD,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+
+        # FIXME cannot access from CLI
+        self.initial_method = initial_method
+
+        self.history: List[Dict[str, Union[Method, List[Model]]]] = []
+
+    def update_method(self, method: Method):
+        if method == Method.FORWARD:
+            self.direction = 1
+        elif method == Method.BACKWARD:
+            self.direction = -1
+        else:
+            raise NotImplementedError(
+                f'Bidirectional direction must be either `Method.FORWARD` or `Method.BACKWARD`, not {method}.'
+            )
+
+        self.method = method
+
+    def switch_method(self):
+        if self.method == Method.FORWARD:
+            method = Method.BACKWARD
+        elif self.method == Method.BACKWARD:
+            method = Method.FORWARD
+
+        self.update_method(method=method)
+
+    def setup_before_model_subspaces_search(self):
+        # If previous search found no models, then switch method.
+        previous_search = None if not self.history else self.history[-1]
+        if previous_search is None:
+            self.update_method(self.initial_method)
+            return
+
+        self.update_method(previous_search[METHOD])
+        if not previous_search[MODELS]:
+            self.switch_method()
+            self.retry_model_space_search_if_no_models = False
+
+    def setup_after_model_subspaces_search(self):
+        current_search = {
+            METHOD: self.method,
+            MODELS: self.models,
+        }
+        self.history.append(current_search)
+        self.method = self.governing_method
+
+    def wrap_search_subspaces(self, search_subspaces):
+        def wrapper():
+            def iterate():
+                self.setup_before_model_subspaces_search()
+                search_subspaces()
+                self.setup_after_model_subspaces_search()
+
+            # Repeat until models are found or switching doesn't help.
+            iterate()
+            while (
+                not self.models and self.retry_model_space_search_if_no_models
+            ):
+                iterate()
+
+            # Reset flag for next time.
+            self.retry_model_space_search_if_no_models = True
+
+        return wrapper
+
+
+# TODO rewrite so BidirectionalCandidateSpace inherits from ForwardAndBackwardCandidateSpace
+#      instead
+class ForwardAndBackwardCandidateSpace(BidirectionalCandidateSpace):
+    method = Method.FORWARD_AND_BACKWARD
+    governing_method = Method.FORWARD_AND_BACKWARD
+    retry_model_space_search_if_no_models = False
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs, initial_method=None)
+
+    def wrap_search_subspaces(self, search_subspaces):
+        def wrapper():
+            for method in [Method.FORWARD, Method.BACKWARD]:
+                self.update_method(method=method)
+                search_subspaces()
+                self.setup_after_model_subspaces_search()
+
+        return wrapper
+
+    # Disable unused interface
+    setup_before_model_subspaces_search = None
+    switch_method = None
+
+    def setup_after_model_space_search(self):
+        pass
+
+
 class LateralCandidateSpace(ForwardCandidateSpace):
     """Find models with the same number of estimated parameters."""
 
@@ -463,8 +611,10 @@ class BruteForceCandidateSpace(CandidateSpace):
 candidate_space_classes = [
     ForwardCandidateSpace,
     BackwardCandidateSpace,
+    BidirectionalCandidateSpace,
     LateralCandidateSpace,
     BruteForceCandidateSpace,
+    ForwardAndBackwardCandidateSpace,
 ]
 
 

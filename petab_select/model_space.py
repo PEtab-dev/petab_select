@@ -180,6 +180,25 @@ class ModelSpace:
         model_space = ModelSpace(model_subspaces=model_subspaces)
         return model_space
 
+    @staticmethod
+    def from_df(
+        df: pd.DataFrame,
+        parent_path: TYPE_PATH = None,
+    ):
+        model_subspaces = []
+        for model_subspace_id, definition in df.iterrows():
+            model_subspaces.append(
+                ModelSubspace.from_definition(
+                    model_subspace_id=model_subspace_id,
+                    definition=definition,
+                    parent_path=parent_path,
+                )
+            )
+        model_space = ModelSpace(model_subspaces=model_subspaces)
+        return model_space
+
+    # TODO: `to_df` / `to_file`
+
     def search(
         self,
         candidate_space: CandidateSpace,
@@ -201,18 +220,25 @@ class ModelSpace:
             exclude:
                 Whether to exclude the new candidates from the model subspaces.
         """
-        # TODO change dict to list of subspaces. Each subspace should manage its own
-        #      ID
-        for model_subspace in self.model_subspaces.values():
-            model_subspace.search(candidate_space=candidate_space, limit=limit)
-            if len(candidate_space.models) == limit:
-                break
-            elif len(candidate_space.models) > limit:
-                raise ValueError(
-                    'An unknown error has occurred. Too many models were '
-                    f'generated. Requested limit: {limit}. Number of '
-                    f'generated models: {len(candidate_space.models)}.'
+
+        @candidate_space.wrap_search_subspaces
+        def search_subspaces():
+            # TODO change dict to list of subspaces. Each subspace should manage its own
+            #      ID
+            for model_subspace in self.model_subspaces.values():
+                model_subspace.search(
+                    candidate_space=candidate_space, limit=limit
                 )
+                if len(candidate_space.models) == limit:
+                    break
+                elif len(candidate_space.models) > limit:
+                    raise ValueError(
+                        'An unknown error has occurred. Too many models were '
+                        f'generated. Requested limit: {limit}. Number of '
+                        f'generated models: {len(candidate_space.models)}.'
+                    )
+
+        search_subspaces()
 
         ## FIXME implement source_path.. somewhere
         # if self.source_path is not None:
@@ -264,7 +290,8 @@ def get_model_space_df(df: Union[TYPE_PATH, pd.DataFrame]) -> pd.DataFrame:
     # model_space_df = pd.read_csv(filename, sep='\t', index_col=MODEL_SUBSPACE_ID)  # FIXME
     if isinstance(df, get_args(TYPE_PATH)):
         df = pd.read_csv(df, sep='\t')
-    df.set_index([MODEL_SUBSPACE_ID], inplace=True)
+    if df.index.name != MODEL_SUBSPACE_ID:
+        df.set_index([MODEL_SUBSPACE_ID], inplace=True)
     return df
 
 

@@ -30,6 +30,7 @@ MODEL_SUBSPACE_ID = 'model_subspace_id'
 MODEL_SUBSPACE_INDICES = 'model_subspace_indices'
 MODEL_CODE = 'model_code'
 MODEL_HASH = 'model_hash'
+MODEL_HASHES = 'model_hashes'
 # If `predecessor_model_hash` is defined for a model, it is the ID of the model that the
 # current model was/is to be compared to. This is part of the result and is
 # only (optionally) set by the PEtab calibration tool. It is not defined by the
@@ -94,6 +95,7 @@ VERSION = 'version'
 MODEL_SPACE_FILES = 'model_space_files'
 
 MODEL = 'model'
+MODELS = 'models'
 
 # Parameters can be fixed to a value, or estimated if indicated with the string
 # `ESTIMATE`.
@@ -115,6 +117,7 @@ class Method(str, Enum):
     BIDIRECTIONAL = 'bidirectional'
     BRUTE_FORCE = 'brute_force'
     FORWARD = 'forward'
+    FORWARD_AND_BACKWARD = 'forward_and_backward'
     LATERAL = 'lateral'
 
 
@@ -134,15 +137,23 @@ STEPWISE_METHODS = [
     Method.BACKWARD,
     Method.BIDIRECTIONAL,
     Method.FORWARD,
+    Method.FORWARD_AND_BACKWARD,
     Method.LATERAL,
 ]
 # Methods that require an initial model.
 INITIAL_MODEL_METHODS = [
     Method.BACKWARD,
+    Method.BIDIRECTIONAL,
     Method.FORWARD,
+    Method.FORWARD_AND_BACKWARD,
     Method.LATERAL,
 ]
 
 # Virtual initial models can be used to initialize some initial model methods.
 VIRTUAL_INITIAL_MODEL = 'virtual_initial_model'
-VIRTUAL_INITIAL_MODEL_METHODS = [Method.FORWARD, Method.BACKWARD]
+VIRTUAL_INITIAL_MODEL_METHODS = [
+    Method.BACKWARD,
+    Method.BIDIRECTIONAL,
+    Method.FORWARD,
+    Method.FORWARD_AND_BACKWARD,
+]
