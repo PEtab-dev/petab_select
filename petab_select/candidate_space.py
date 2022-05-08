@@ -528,6 +528,109 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
 
         return wrapper
 
+method_swapping = {('forward','forward'): 'backward',
+                    ('swap','forward') : 'backward',
+                    ('backward','forward'): 'swap',
+                    ('forward','backward'): 'swap',
+                    ('backward','backward'): 'forward',
+                    ('forward', 'swap'):'terminate',
+                    ('backward', 'swap'):'terminate'}
+
+class FAMoSCandidateSpace(ForwardCandidateSpace):
+    """The FAMoS method class.
+
+    Attributes:
+        method_history ??:
+            The history of models that were found at each search.
+            A list of dictionaries, where each dictionary contains keys for the `METHOD`
+            and the list of `MODELS`.
+    """
+
+    method = Method.BIDIRECTIONAL
+    previous: Method = None
+    retry_model_space_search_if_no_models = True
+
+    def __init__(
+        self,
+        *args,
+        initial_method: Method = Method.FORWARD,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+
+        # FIXME cannot access from CLI
+        self.initial_method = initial_method
+
+        self.history: List[Dict[str, Union[Method, List[Model]]]] = []
+
+        self.crit_parms = []
+        self.swap_parms = []
+
+    def update_method(self, method: Method):
+        if method == Method.FORWARD:
+            self.direction = 1
+        elif method == Method.BACKWARD:
+            self.direction = -1
+        elif method == Method.SWAP:
+            self.direction = 'change this'
+        elif method == Method.TE
+        else:
+            raise NotImplementedError(
+                f'FAMoS direction must be either `Method.FORWARD` or `Method.BACKWARD` or `Method.SWAP`, not {method}.'
+            )
+
+        self.method = method
+
+    def switch_method(self):
+        method = method_swapping[(self.previous, self.method)]
+        if(method == Method.SWAP and len(self.crit_parms)==0 and len(self.swap_parms==0)):
+            self.terminate=True
+            print("We need to terminate here")
+
+        self.update_method(method=method)
+
+    def setup_before_next_model_subspaces_search(self):
+        # If previous search found no models, then switch method.
+        previous_search = None if not self.history else self.history[-1]
+        if previous_search is None:
+            self.update_method(self.initial_method)
+            return
+
+        self.update_method(previous_search[METHOD])
+        if not previous_search[MODELS]:
+            self.switch_method()
+            self.retry_model_space_search_if_no_models = False
+
+    def setup_after_model_subspaces_search(self):
+        current_search = {
+            METHOD: self.method,
+            MODELS: self.models
+            #CRITERION: self.criterion 
+        }
+        self.history.append(current_search)
+        self.method = self.governing_method
+
+    def wrap_search_subspaces(self, search_subspaces):
+        def wrapper():
+            #initialize method?
+
+            def iterate():
+                search_subspaces()
+                self.setup_after_model_subspaces_search()
+                self.setup_before_next_model_subspaces_search()
+
+            # Repeat until models are found or switching doesn't help. ONLY one switch is needed. For us kind of 3... 
+            # Or I can just use terminate somehow
+            iterate()
+            while (
+                not self.models and self.retry_model_space_search_if_no_models and not self.terminate
+            ):
+                iterate()
+
+            # Reset flag for next time.
+            self.retry_model_space_search_if_no_models = True
+
+        return wrapper
 
 # TODO rewrite so BidirectionalCandidateSpace inherits from ForwardAndBackwardCandidateSpace
 #      instead
