@@ -2,6 +2,7 @@
 import abc
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Union
+from argon2 import Parameters
 
 import numpy as np
 from more_itertools import one
@@ -536,6 +537,9 @@ method_swapping = {('forward','forward'): 'backward',
                     ('forward', 'swap'):'terminate',
                     ('backward', 'swap'):'terminate'}
 
+#TODO: 
+# -if method did not return a better results switch method.
+
 class FAMoSCandidateSpace(ForwardCandidateSpace):
     """The FAMoS method class.
 
@@ -546,9 +550,8 @@ class FAMoSCandidateSpace(ForwardCandidateSpace):
             and the list of `MODELS`.
     """
 
-    method = Method.BIDIRECTIONAL
+    method = Method.FAMOS
     previous: Method = None
-    retry_model_space_search_if_no_models = True
 
     def __init__(
         self,
@@ -560,55 +563,131 @@ class FAMoSCandidateSpace(ForwardCandidateSpace):
 
         # FIXME cannot access from CLI
         self.initial_method = initial_method
+        self.previous = None
 
         self.history: List[Dict[str, Union[Method, List[Model]]]] = []
-
+        
+        # have inside them lists with indexes of crit and swap parms
+        # e.g. [[1,6,7], [0,2]]
         self.crit_parms = []
         self.swap_parms = []
 
-    def update_method(self, method: Method):
+        self.reattempt = True
+        self.failed_global = False
+        self.terminate = False
+        self.terminate_if_found_no_neighbors = False
+        self.do_not_jump = False
+        self.jump_run = 0
+
+        self.most_distant_max_number = 100 #needs to be specified by user
+
+    def update_method(self, method: Method, previous: Method):
         if method == Method.FORWARD:
             self.direction = 1
         elif method == Method.BACKWARD:
             self.direction = -1
         elif method == Method.SWAP:
             self.direction = 'change this'
-        elif method == Method.TE
+        elif method == Method.TERMINATE:
+            self.terminate = True
         else:
             raise NotImplementedError(
-                f'FAMoS direction must be either `Method.FORWARD` or `Method.BACKWARD` or `Method.SWAP`, not {method}.'
+                f'FAMoS direction must be either `Method.FORWARD` or `Method.BACKWARD` or `Method.SWAP` or `Method.TERMINATE`, not {method}.'
             )
-
+        self.previous = previous
         self.method = method
 
     def switch_method(self):
+        previous = self.method
         method = method_swapping[(self.previous, self.method)]
+        # Should I add this in update_method instead? Kind of the same, except if we use update_method somewhere else too
+        # In that case we should have it there? 
         if(method == Method.SWAP and len(self.crit_parms)==0 and len(self.swap_parms==0)):
             self.terminate=True
             print("We need to terminate here")
 
-        self.update_method(method=method)
+        self.update_method(method=method, previous=previous)
 
     def setup_before_next_model_subspaces_search(self):
-        # If previous search found no models, then switch method.
+        # If current search found no models, then switch method for the next one.
         previous_search = None if not self.history else self.history[-1]
         if previous_search is None:
             self.update_method(self.initial_method)
             return
 
         self.update_method(previous_search[METHOD])
+        # teminate if method found no valid neighbours
         if not previous_search[MODELS]:
+            self.terminate_if_found_no_neighbors = True
+            return
+
+        # if we came to the null model with the backward method
+        # change method to forward
+        if previous_search[MODELS].sum()==0:
+            self.previous = Method.BACKWARD
+            self.method = Method.FORWARD
+            # if we have come down from the superset model then terminate
+            if self.failed_global:
+                self.terminate = True
+
+        # terminate if swap method found no better model
+        if "We have tested all models but found no better model" and \
+          self.method == Method.SWAP:
+            self.terminate = True
+
+        # switch method if method found no better model (and method!=swap)
+        if "We have tested all models but found no better model":
             self.switch_method()
-            self.retry_model_space_search_if_no_models = False
 
     def setup_after_model_subspaces_search(self):
         current_search = {
             METHOD: self.method,
             MODELS: self.models
-            #CRITERION: self.criterion 
+            #CRITERION: self.criterion add for find furthest?
         }
         self.history.append(current_search)
+        self.previous = self.governing_previous #QUES what is this?
         self.method = self.governing_method
+
+
+    def jump_to_most_distant(self):
+        # if we jumped already, we check if we arrived to the same "best" model again
+        if(self.jump_run > 0):
+            if(self.history[-1][MODELS] == "close to last optimal"):
+                self.do_not_jump = True
+                return
+            #maybe print if we're better or worse than the last "best" QUESTION
+        #do we add do_not_fit? QUESTION, does that exist even, or do we deal with only do_fit parameters?
+        new_init_model = self.get_most_distant()
+        
+        #check if the new_init_model is [0, 0, ..., 0], no untested model found
+        if(new_init_model.sum()==0):
+            self.do_not_jump = True
+            return
+
+        # if model not appropriate make it so by adding first crit parms
+        if not self.is_appropriate(new_init_model):
+            for i in len(self.crit_parms):
+                new_init_model[self.crit_parms[i][0]] = 1
+        
+        #THIS is in their code SWAP, but for us doesn't have to be with arbitrary method swapping
+        self.previous = self.method  
+        self.method = Method.FORWARD
+
+        self.jump_run += 1
+        self.terminate = False
+        return
+
+    def get_most_distant(self) -> Model:
+        #need history of last self.most_distant_max_number runs with their criteria result
+        #sort history by criteria
+        #get complement of all or last self.most_distant_max_number models
+        #calculate L_\inf distance (abs of difference basically to all tested models and get min)
+        #get the model with biggest L_\inf
+        return "most distant"
+
+    def is_appropriate(self, model: Model) -> bool:
+        return True
 
     def wrap_search_subspaces(self, search_subspaces):
         def wrapper():
@@ -617,18 +696,25 @@ class FAMoSCandidateSpace(ForwardCandidateSpace):
             def iterate():
                 search_subspaces()
                 self.setup_after_model_subspaces_search()
-                self.setup_before_next_model_subspaces_search()
+                self.setup_before_next_model_subspaces_search() #I need to have this before the while check so it checks self.terminate
 
-            # Repeat until models are found or switching doesn't help. ONLY one switch is needed. For us kind of 3... 
-            # Or I can just use terminate somehow
             iterate()
             while (
-                not self.models and self.retry_model_space_search_if_no_models and not self.terminate
+                not self.models and not self.terminate_if_found_no_neighbors
             ):
+                # check if we exhausted the search methods and if we can start over with most_distant
+                if self.terminate and self.reattempt:
+                    self.jump_to_most_distant()
+                    if self.do_not_jump:
+                        break
+                elif self.terminate:
+                    break
+
                 iterate()
 
             # Reset flag for next time.
-            self.retry_model_space_search_if_no_models = True
+            self.terminate_if_found_no_neighbors= False
+            self.terminate = False
 
         return wrapper
 
