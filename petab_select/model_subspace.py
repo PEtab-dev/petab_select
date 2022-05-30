@@ -350,6 +350,7 @@ class ModelSubspace(PetabMixin):
                 # The case of a "minimal" model in the subspace being a valid candidate
                 # in this case should have been handled above already with
                 # `new_must_estimate_all`
+                print(parameter_set)
                 if not parameter_set:
                     continue
                 # Stop considering models as candidates once all models with a minimal

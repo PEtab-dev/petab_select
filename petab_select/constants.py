@@ -120,7 +120,7 @@ class Method(str, Enum):
     FORWARD_AND_BACKWARD = 'forward_and_backward'
     LATERAL = 'lateral'
     SWAP = 'swap'
-    TERMINATE = 'terminate'
+    FAMOS = 'famos'
 
 class Criterion(str, Enum):
     """String literals for model selection criteria."""

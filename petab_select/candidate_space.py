@@ -2,7 +2,7 @@
 import abc
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Union
-from argon2 import Parameters
+#from argon2 import Parameters
 
 import numpy as np
 from more_itertools import one
@@ -529,84 +529,137 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
 
         return wrapper
 
-method_swapping = {('forward','forward'): 'backward',
-                    ('swap','forward') : 'backward',
-                    ('backward','forward'): 'swap',
-                    ('forward','backward'): 'swap',
-                    ('backward','backward'): 'forward',
-                    ('forward', 'swap'):'terminate',
-                    ('backward', 'swap'):'terminate'}
+
 
 #TODO: 
-# -if method did not return a better results switch method.
+# - if method did not return a better results switch method.
+# - specifiy initial model (Implement)
+# - make it work, without swap, compare results (similar)
+# - write is_plausible
+# - write get_most_distant
+# - write coming from global
+# later : General constraints (critical, swap, something else...)
 
-class FAMoSCandidateSpace(ForwardCandidateSpace):
+class FAMoSCandidateSpace(CandidateSpace):
     """The FAMoS method class.
 
     Attributes:
-        method_history ??:
+        method_history:
             The history of models that were found at each search.
             A list of dictionaries, where each dictionary contains keys for the `METHOD`
             and the list of `MODELS`.
     """
 
     method = Method.FAMOS
-    previous: Method = None
+    default_method_swapping = {(Method.FORWARD, Method.FORWARD): Method.BACKWARD,
+                               (Method.SWAP, Method.FORWARD) : Method.BACKWARD,
+                               (Method.BACKWARD, Method.FORWARD): Method.SWAP,
+                               (Method.FORWARD, Method.BACKWARD): Method.SWAP,
+                               (Method.BACKWARD, Method.BACKWARD): Method.FORWARD,
+                               (Method.SWAP, ): None}
 
     def __init__(
         self,
         *args,
         initial_method: Method = Method.FORWARD,
+        crit_parms: List = [],
+        swap_parms: List = [],
+        reattempt: int = 0,
+        method_swapping: Dict[tuple,str] = default_method_swapping,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
         # FIXME cannot access from CLI
         self.initial_method = initial_method
-        self.previous = None
+        self.method_history = [] #take last 2
 
-        self.history: List[Dict[str, Union[Method, List[Model]]]] = []
+        self.history: List[Dict[str, Union[Method, List[Model]]]] = [] #need different history, from method_caller
         
         # have inside them lists with indexes of crit and swap parms
         # e.g. [[1,6,7], [0,2]]
-        self.crit_parms = []
-        self.swap_parms = []
-
-        self.reattempt = True
+        #specified by the user, add them up
+        self.crit_parms = crit_parms
+        self.swap_parms = swap_parms
+        self.reattempt = reattempt
+        self.method_swapping = method_swapping
+        
+        if self.reattempt:
+            self.most_distant_max_number = self.reattempt
+        else:
+            self.most_distant_max_number = 1
+        
+        self.inner_candidate_space = method_to_candidate_space_class(initial_method)(*args, **kwargs)
+        self.found_new_best = True
         self.failed_global = False
-        self.terminate = False
-        self.terminate_if_found_no_neighbors = False
         self.do_not_jump = False
         self.jump_run = 0
 
-        self.most_distant_max_number = 100 #needs to be specified by user
+        #Construct all the candidate spaces needed
+        ForwardCandidateSpace_instance = ForwardCandidateSpace(*args, **kwargs)
+        BackwardCandidateSpace_instance = BackwardCandidateSpace(*args, **kwargs)
+        #TODO rename LATERAL to SWAP when swap is going to be made
+        LateralCandidateSpace_instance = LateralCandidateSpace(*args, **kwargs) 
 
-    def update_method(self, method: Method, previous: Method):
+    def check_if_should_switch_method(self):
+        #TODO this changes the method right away, doesn't only check...
+        if not self.found_new_best:
+            self.switch_method() 
+
+        #return not self.found_new_best
+    
+    def update_method(self, method: Method):
         if method == Method.FORWARD:
             self.direction = 1
         elif method == Method.BACKWARD:
             self.direction = -1
-        elif method == Method.SWAP:
-            self.direction = 'change this'
-        elif method == Method.TERMINATE:
-            self.terminate = True
-        else:
+        if method not in [Method.FORWARD, Method.SWAP, Method.BACKWARD]:
             raise NotImplementedError(
-                f'FAMoS direction must be either `Method.FORWARD` or `Method.BACKWARD` or `Method.SWAP` or `Method.TERMINATE`, not {method}.'
-            )
-        self.previous = previous
+                f'FAMoS direction must be either `Method.FORWARD` or `Method.BACKWARD` or `Method.SWAP`, not {method}.'
+            ) #TODO add here in the error that it comes from wrong method_swapping scheme?
+        
         self.method = method
+        self.method_history.append(method)
+
+    def update_from_local_history(..., local_history):
+        self.best_models # update best models
+        # update found new best
 
     def switch_method(self):
-        previous = self.method
-        method = method_swapping[(self.previous, self.method)]
-        # Should I add this in update_method instead? Kind of the same, except if we use update_method somewhere else too
-        # In that case we should have it there? 
-        if(method == Method.SWAP and len(self.crit_parms)==0 and len(self.swap_parms==0)):
-            self.terminate=True
-            print("We need to terminate here")
+        previous = self.method #TODO is this necessary here?
+        
+        #iterate through the method_swapping dictionary to see which method to switch to
+        #check if the previous_methods match the 
+        for previous_methods in self.method_swapping:
+            if previous_methods == tuple(self.method_history[-len(previous_methods):]):
+                method = self.method_swapping[previous_methods]
+                #if found a switch just break (choosing first good switch)
+                break
+        
+        #raise error if the method didn't change
+        if method==previous:
+            raise ValueError("Method didn't switch when it had to. \
+                              The method_swapping provided is not sufficient. \
+                              Please provide a correct method_swapping scheme")
 
-        self.update_method(method=method, previous=previous)
+        # if the next method is None (in default case
+        # if SWAP method didn't find any better models) then terminate
+        if not self.method:
+            if self.reattempt and not self.do_not_jump:
+                self.jump_to_most_distant()
+                return
+            else:
+                raise StopIteration("No valid models found.") #TODO Should I do this?
+        
+        #If we try to switch to SWAP method but it's not available (no crit or swap parameter groups)
+        if method == Method.SWAP and not self.crit_parms and not self.swap_parms:
+            if self.reattempt and not self.do_not_jump:
+                self.jump_to_most_distant()
+                return
+            else:
+                raise StopIteration("No valid models found.") #TODO Should I do this?
+
+        self.update_method(method=method)
 
     def setup_before_next_model_subspaces_search(self):
         # If current search found no models, then switch method for the next one.
@@ -615,7 +668,7 @@ class FAMoSCandidateSpace(ForwardCandidateSpace):
             self.update_method(self.initial_method)
             return
 
-        self.update_method(previous_search[METHOD])
+        self.update_method(previous_search[METHOD]) #FIXME
         # teminate if method found no valid neighbours
         if not previous_search[MODELS]:
             self.terminate_if_found_no_neighbors = True
@@ -623,21 +676,15 @@ class FAMoSCandidateSpace(ForwardCandidateSpace):
 
         # if we came to the null model with the backward method
         # change method to forward
-        if previous_search[MODELS].sum()==0:
-            self.previous = Method.BACKWARD
-            self.method = Method.FORWARD
-            # if we have come down from the superset model then terminate
-            if self.failed_global:
-                self.terminate = True
+        #TODO famos implements terminate if visited global, 
+        # if previous_search[MODELS].sum()==0:
+        #     self.previous = Method.BACKWARD
+        #     self.method = Method.FORWARD
+        #     # if we have come down from the superset model then terminate
+        #     if self.failed_global:
+        #         self.terminate_if_found_no_neighbors = True
+        #     return
 
-        # terminate if swap method found no better model
-        if "We have tested all models but found no better model" and \
-          self.method == Method.SWAP:
-            self.terminate = True
-
-        # switch method if method found no better model (and method!=swap)
-        if "We have tested all models but found no better model":
-            self.switch_method()
 
     def setup_after_model_subspaces_search(self):
         current_search = {
@@ -645,7 +692,7 @@ class FAMoSCandidateSpace(ForwardCandidateSpace):
             MODELS: self.models
             #CRITERION: self.criterion add for find furthest?
         }
-        self.history.append(current_search)
+        self.history.append(current_search) #What is this history?
         self.previous = self.governing_previous #QUES what is this?
         self.method = self.governing_method
 
@@ -653,7 +700,7 @@ class FAMoSCandidateSpace(ForwardCandidateSpace):
     def jump_to_most_distant(self):
         # if we jumped already, we check if we arrived to the same "best" model again
         if(self.jump_run > 0):
-            if(self.history[-1][MODELS] == "close to last optimal"):
+            if(self.history[-1][MODELS] == "equal to last optimal"):
                 self.do_not_jump = True
                 return
             #maybe print if we're better or worse than the last "best" QUESTION
@@ -676,6 +723,8 @@ class FAMoSCandidateSpace(ForwardCandidateSpace):
 
         self.jump_run += 1
         self.terminate = False
+
+        self.models = [new_init_model] #TODO check if this is good
         return
 
     def get_most_distant(self) -> Model:
@@ -686,37 +735,10 @@ class FAMoSCandidateSpace(ForwardCandidateSpace):
         #get the model with biggest L_\inf
         return "most distant"
 
-    def is_appropriate(self, model: Model) -> bool:
-        return True
-
-    def wrap_search_subspaces(self, search_subspaces):
-        def wrapper():
-            #initialize method?
-
-            def iterate():
-                search_subspaces()
-                self.setup_after_model_subspaces_search()
-                self.setup_before_next_model_subspaces_search() #I need to have this before the while check so it checks self.terminate
-
-            iterate()
-            while (
-                not self.models and not self.terminate_if_found_no_neighbors
-            ):
-                # check if we exhausted the search methods and if we can start over with most_distant
-                if self.terminate and self.reattempt:
-                    self.jump_to_most_distant()
-                    if self.do_not_jump:
-                        break
-                elif self.terminate:
-                    break
-
-                iterate()
-
-            # Reset flag for next time.
-            self.terminate_if_found_no_neighbors= False
-            self.terminate = False
-
-        return wrapper
+    def is_plausible(self, model: Model) -> bool:
+        if self.checkcritical(): 
+            return self.currentcandidatespace.is_plausible()
+        return False
 
 # TODO rewrite so BidirectionalCandidateSpace inherits from ForwardAndBackwardCandidateSpace
 #      instead
@@ -804,6 +826,7 @@ candidate_space_classes = [
     LateralCandidateSpace,
     BruteForceCandidateSpace,
     ForwardAndBackwardCandidateSpace,
+    FAMoSCandidateSpace
 ]
 
 

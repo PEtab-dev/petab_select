@@ -18,6 +18,7 @@ def candidates(
     limit_sent: Union[float, int] = np.inf,
     excluded_models: Optional[List[Model]] = None,
     excluded_model_hashes: Optional[List[str]] = None,
+    found_new_best : Optional[bool] = None,
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
@@ -62,6 +63,9 @@ def candidates(
         predecessor_model = problem.get_best()
     if predecessor_model is not None:
         candidate_space.reset(predecessor_model)
+    
+    if found_new_best is not None:
+        candidate_space.found_new_best = found_new_best
 
     # TODO support excluding model IDs? should be faster but may have issues, e.g.:
     #      - duplicate model IDs among multiple model subspaces
