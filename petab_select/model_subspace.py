@@ -309,7 +309,6 @@ class ModelSubspace(PetabMixin):
                 new_must_estimate_all
                 or candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL
             ):
-                # raise NotImplementedError('untested')
                 # Consider minimal models that have all necessary parameters
                 # estimated. As this subspace necessarily has more estimated
                 # parameters than the predecessor model, all parameters that
@@ -324,9 +323,6 @@ class ModelSubspace(PetabMixin):
                     estimated_parameters=estimated_parameters,
                 )
                 for model in models:
-                    # candidate_space.consider(model)
-                    # if not continue_searching():
-                    #    return
                     continue_sending = self.send_model_to_candidate_space(
                         model=model,
                         candidate_space=candidate_space,
@@ -385,7 +381,8 @@ class ModelSubspace(PetabMixin):
             # in this subspace, so there are no valid "backward" moves.
             if new_must_estimate_all:
                 return
-            # Smallest possible "backward" moves involve necessarily fixed parameters.
+            # Smallest possible "backward" moves involve necessarily fixed
+            # parameters.
             if (
                 new_must_fix_all
                 or candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL
@@ -464,6 +461,79 @@ class ModelSubspace(PetabMixin):
                 )
                 if not continue_searching(continue_sending):
                     return
+
+        if candidate_space.method == Method.LATERAL:
+            # There is an equal number of new necessarily estimated and fixed
+            # parameters.
+            if len(new_must_estimate_all) != len(new_must_fix_all):
+                return
+
+            if (
+                # `and` is redundant with the "equal number" check above.
+                (new_must_estimate_all and new_must_fix_all)
+                or candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL
+            ):
+                # Consider all models that have the required estimated and
+                # fixed parameters.
+                estimated_parameters = {
+                    parameter_id: ESTIMATE
+                    for parameter_id in [*old_estimated, *new_must_estimate]
+                    if parameter_id not in new_must_fix_all
+                }
+                models = self.get_models(
+                    estimated_parameters=estimated_parameters,
+                )
+                for model in models:
+                    continue_sending = self.send_model_to_candidate_space(
+                        model=model,
+                        candidate_space=candidate_space,
+                    )
+                    if not continue_searching(continue_sending):
+                        return
+
+                # No need to consider other models, as they will necessarily
+                # be worse than the current set of models in the candidate
+                # space, if suitable candidates models have already been
+                # identified.
+                if candidate_space.models:
+                    return
+
+            # Keep track of the number of lateral moves performed.
+            # Stop considering models once all parameter sets with the smallest
+            # lateral move size are considered.
+            n_lateral_moves = np.inf
+            # The powerset should be in ascending order by size of lateral
+            # move.
+            for parameter_set_estimate, parameter_set_fix in product(
+                powerset(new_can_estimate_optional),
+                powerset(new_can_fix_optional),
+            ):
+                # At least some parameters must change.
+                if not parameter_set_estimate or not parameter_set_fix:
+                    continue
+                # The same number of parameters must be fixed and estimated.
+                if len(parameter_set_estimate) != len(parameter_set_fix):
+                    continue
+                # Only consider models with the minimal lateral move.
+                if len(parameter_set_estimate) > n_lateral_moves:
+                    break
+                n_lateral_moves = len(parameter_set_estimate)
+                estimated_parameters = (
+                    set(old_estimated)
+                    .union(new_must_estimate)
+                    .union(parameter_set_estimate)
+                    .difference(parameter_set_fix)
+                )
+                models = self.get_models(
+                    estimated_parameters=list(estimated_parameters),
+                )
+                for model in models:
+                    continue_sending = self.send_model_to_candidate_space(
+                        model=model,
+                        candidate_space=candidate_space,
+                    )
+                    if not continue_searching(continue_sending):
+                        return
 
         else:
             raise NotImplementedError(
