@@ -108,6 +108,12 @@ def test_models_to_petab(
         expected_output_path / 'models' / 'model_1',
         output_path_models / 'model_1',
     )
+    with open(
+        expected_output_path / 'models' / 'model_1' / 'problem.yaml', 'r'
+    ) as f1, open(output_path_models / 'model_1' / 'problem.yaml', 'r') as f2:
+        _rf1 = f1.read()
+        _rf2 = f2.read()
+    assert not (_rf1, _rf2)
     # The first set of PEtab problem files are as expected.
     assert not comparison.diff_files
     assert sorted(comparison.same_files) == [
