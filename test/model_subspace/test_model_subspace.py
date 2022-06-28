@@ -9,6 +9,7 @@ from petab_select.candidate_space import (
     BackwardCandidateSpace,
     BruteForceCandidateSpace,
     ForwardCandidateSpace,
+    LateralCandidateSpace,
 )
 from petab_select.constants import (
     ESTIMATE,
@@ -91,23 +92,23 @@ def test_get_models(model_subspace):
     models = list(
         model_subspace.get_models(estimated_parameters=estimated_parameters)
     )
-    expected_model_parameterizations = [
+    expected_parameterizations = [
         {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.0},
         {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.1},
     ]
-    model_parameterizations = [model.parameters for model in models]
+    test_parameterizations = [model.parameters for model in models]
     # Getter gets only expected models.
     assert all(
         [
-            parameterization in expected_model_parameterizations
-            for parameterization in model_parameterizations
+            test_parameterization in expected_parameterizations
+            for test_parameterization in expected_parameterizations
         ]
     )
     # Getter gets all expected models.
     assert all(
         [
-            parameterization in model_parameterizations
-            for parameterization in expected_model_parameterizations
+            expected_parameterization in test_parameterizations
+            for expected_parameterization in expected_parameterizations
         ]
     )
 
@@ -120,16 +121,13 @@ def test_search_forward(model_subspace, initial_model):
     # Only one model is possible in the forward direction.
     assert len(candidate_space.models) == 1
     # The one model has the expected parameterization.
-    expected_forward_parameterization = {
+    expected_parameterization = {
         'k1': 0.2,
         'k2': ESTIMATE,
         'k3': ESTIMATE,
         'k4': ESTIMATE,
     }
-    assert (
-        one(candidate_space.models).parameters
-        == expected_forward_parameterization
-    )
+    assert one(candidate_space.models).parameters == expected_parameterization
 
     # Test limit via model subspace
     # FIXME currently only returns 1 model anyway
@@ -140,8 +138,8 @@ def test_search_forward(model_subspace, initial_model):
         candidate_space=candidate_space,
         limit=limit_considered_candidates,
     )
-    # Test limit: the number of candidate models is at the limit (all models in this
-    # case).
+    # Test limit: the number of candidate models is at the limit (all models in
+    # this case).
     assert len(candidate_space.models) == limit_considered_candidates
 
 
@@ -152,25 +150,25 @@ def test_search_backward(model_subspace, initial_model):
     model_subspace.search(candidate_space=candidate_space)
     # Only two models are possible in the backward direction.
     assert len(candidate_space.models) == 2
-    expected_backward_parameterizations = [
+    expected_parameterizations = [
         {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0},
         {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0.1},
     ]
-    model_parameterizations = [
+    test_parameterizations = [
         model.parameters for model in candidate_space.models
     ]
     # Search found only expected models.
     assert all(
         [
-            parameterization in expected_backward_parameterizations
-            for parameterization in model_parameterizations
+            test_parameterization in expected_parameterizations
+            for test_parameterization in test_parameterizations
         ]
     )
     # Search found all expected models.
     assert all(
         [
-            parameterization in model_parameterizations
-            for parameterization in expected_backward_parameterizations
+            expected_parameterization in test_parameterizations
+            for expected_parameterization in expected_parameterizations
         ]
     )
 
@@ -203,19 +201,21 @@ def test_search_brute_force(model_subspace):
         {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.1},
         {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': ESTIMATE},
     ]
-    parameterizations = [model.parameters for model in candidate_space.models]
+    test_parameterizations = [
+        model.parameters for model in candidate_space.models
+    ]
     # Search found only expected models.
     assert all(
         [
-            parameterization in expected_parameterizations
-            for parameterization in parameterizations
+            test_parameterization in expected_parameterizations
+            for test_parameterization in test_parameterizations
         ]
     )
     # Search found all expected models.
     assert all(
         [
-            parameterization in parameterizations
-            for parameterization in parameterizations
+            expected_parameterization in test_parameterizations
+            for expected_parameterization in expected_parameterizations
         ]
     )
 
@@ -250,6 +250,9 @@ def test_search_brute_force(model_subspace):
         match="Model has been previously excluded from the candidate space so is skipped here.",
     ) as warning_record:
         model_subspace.search(candidate_space=candidate_space)
+    test_parameterizations = [
+        model.parameters for model in candidate_space.models
+    ]
     # Three models were excluded from the candidate space in the previous code block.
     assert len(warning_record) == 3
     # Test limit: the number of candidate models is at the limit (all models in this
@@ -258,8 +261,8 @@ def test_search_brute_force(model_subspace):
     # Search found only expected models.
     assert all(
         [
-            parameterization in expected_parameterizations
-            for parameterization in parameterizations
+            test_parameterization in expected_parameterizations
+            for test_parameterization in test_parameterizations
         ]
     )
     # Test exclusions: all models have now been added to the candidate space.
@@ -267,8 +270,8 @@ def test_search_brute_force(model_subspace):
     #      the model_subspace excluded the first three models it had already sent.
     assert all(
         [
-            parameterization in parameterizations
-            for parameterization in expected_parameterizations
+            expected_parameterization in test_parameterizations
+            for expected_parameterization in expected_parameterizations
         ]
     )
 
@@ -276,6 +279,50 @@ def test_search_brute_force(model_subspace):
     limit_considered_candidates = 1
     model_subspace.reset_exclusions()
     candidate_space.reset()
+    model_subspace.search(
+        candidate_space=candidate_space,
+        limit=limit_considered_candidates,
+    )
+    # Test limit: the number of candidate models is at the limit (all models in this
+    # case).
+    assert len(candidate_space.models) == limit_considered_candidates
+
+
+def test_search_swap(model_subspace, initial_model):
+    # TODO exclude history, use limit
+    candidate_space = LateralCandidateSpace(predecessor_model=initial_model)
+
+    model_subspace.search(candidate_space=candidate_space)
+    # Only two models are possible in the swap direction.
+    assert len(candidate_space.models) == 2
+    # The two models have the expected parameterization.
+    expected_parameterizations = [
+        {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0},
+        {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.1},
+    ]
+    test_parameterizations = [
+        model.parameters for model in candidate_space.models
+    ]
+    # Search found only expected models.
+    assert all(
+        [
+            test_parameterization in expected_parameterizations
+            for test_parameterization in test_parameterizations
+        ]
+    )
+    # Search found all expected models.
+    assert all(
+        [
+            expected_parameterization in test_parameterizations
+            for expected_parameterization in expected_parameterizations
+        ]
+    )
+
+    # Test limit via model subspace
+    # FIXME currently only returns 1 model anyway
+    limit_considered_candidates = 1
+    model_subspace.reset_exclusions()
+    candidate_space.reset(predecessor_model=initial_model)
     model_subspace.search(
         candidate_space=candidate_space,
         limit=limit_considered_candidates,
