@@ -538,7 +538,7 @@ class ModelSubspace(PetabMixin):
         else:
             raise NotImplementedError(
                 'The requested method is not yet implemented in the model '
-                f'subspace interface: `{method}`.'
+                f'subspace interface: `{candidate_space.method}`.'
             )
 
     def send_model_to_candidate_space(
