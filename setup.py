@@ -85,8 +85,6 @@ setup(
             'amici >= 0.11.25',
             'fides >= 0.7.5',
             'pypesto >= 0.2.11',
-            # FIXME https://github.com/psf/black/issues/2964
-            'black >= 22.6.0',
         ],
         #'reports': ['Jinja2'],
         #'combine': ['python-libcombine>=0.2.6'],
