@@ -173,22 +173,3 @@ def test_models_to_petab(
         'observables.tsv',
         'problem.yaml',
     ]
-    # FIXME debug why GitHub changes SBML path in YAML to
-    # `../../../../../model.xml`
-    if os.environ.get("GITHUB_ACTIONS", False):
-        assert set(comparison.diff_files) == {'problem.yaml', 'parameters.tsv'}
-        assert sorted(comparison.same_files) == [
-            'conditions.tsv',
-            'measurements.tsv',
-            'model.xml',
-            'observables.tsv',
-        ]
-    else:
-        assert comparison.diff_files == ['parameters.tsv']
-        assert sorted(comparison.same_files) == [
-            'conditions.tsv',
-            'measurements.tsv',
-            'model.xml',
-            'observables.tsv',
-            'problem.yaml',
-        ]
