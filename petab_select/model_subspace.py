@@ -462,7 +462,7 @@ class ModelSubspace(PetabMixin):
                 if not continue_searching(continue_sending):
                     return
 
-        if candidate_space.method == Method.LATERAL:
+        elif candidate_space.method == Method.LATERAL:
             # There is an equal number of new necessarily estimated and fixed
             # parameters.
             if len(new_must_estimate_all) != len(new_must_fix_all):
