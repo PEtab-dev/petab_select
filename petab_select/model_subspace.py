@@ -349,10 +349,10 @@ class ModelSubspace(PetabMixin):
                 if not parameter_set:
                     continue
                 # Stop considering models as candidates once all models with a minimal
-                # increase in the number of extra estimated parameters are considered.
+                # increase in the number of extra estimated parameters are considered
+                # out of which at least one is accepted as a candidate.
                 if len(parameter_set) > n_estimated_extra:
                     break
-                n_estimated_extra = len(parameter_set)
                 estimated_parameters = (
                     set(old_estimated)
                     .union(new_must_estimate)
@@ -368,6 +368,10 @@ class ModelSubspace(PetabMixin):
                     )
                     if not continue_searching(continue_sending):
                         return
+                # If model accepted set the maximal number of extra parameters to
+                # current number of extra parameters
+                if candidate_space.models:
+                    n_estimated_extra = len(parameter_set)
 
         elif candidate_space.method == Method.BACKWARD:
             # There are no parameters that could become fixed in this subspace, so there
@@ -427,10 +431,10 @@ class ModelSubspace(PetabMixin):
                 if not parameter_set:
                     continue
                 # Stop considering models as candidates once all models with a minimal
-                # increase in the number of new fixed parameters are considered.
+                # increase in the number of new fixed parameters are considered
+                # out of which at least one is accepted as a candidate.
                 if len(parameter_set) > n_new_fixed:
                     break
-                n_new_fixed = len(parameter_set)
                 estimated_parameters = (
                     set(old_estimated)
                     .union(new_must_estimate)
@@ -446,6 +450,10 @@ class ModelSubspace(PetabMixin):
                     )
                     if not continue_searching(continue_sending):
                         return
+                # If model accepted set the number of new fixed parameters to
+                # current number of new fixed parameters
+                if candidate_space.models:
+                    n_new_fixed = len(parameter_set)
 
         elif candidate_space.method == Method.BRUTE_FORCE:
             # TODO remove list?
@@ -514,10 +522,10 @@ class ModelSubspace(PetabMixin):
                 # The same number of parameters must be fixed and estimated.
                 if len(parameter_set_estimate) != len(parameter_set_fix):
                     continue
-                # Only consider models with the minimal lateral move.
+                # Only consider models with the minimal lateral move out of 
+                # which at least one is accepted in the candidate space.
                 if len(parameter_set_estimate) > n_lateral_moves:
                     break
-                n_lateral_moves = len(parameter_set_estimate)
                 estimated_parameters = (
                     set(old_estimated)
                     .union(new_must_estimate)
@@ -534,6 +542,10 @@ class ModelSubspace(PetabMixin):
                     )
                     if not continue_searching(continue_sending):
                         return
+                # If model accepted set the number of lateral moves to
+                # current number of lateral moves
+                if candidate_space.models:
+                    n_lateral_moves = len(parameter_set_estimate)
 
         else:
             raise NotImplementedError(

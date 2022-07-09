@@ -2,6 +2,7 @@
 import abc
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Union
+import logging
 
 # from argon2 import Parameters
 
@@ -202,33 +203,21 @@ class CandidateSpace(abc.ABC):
         # skipped.
         distance = self.distance(model)
 
-        if self.predecessor_model == VIRTUAL_INITIAL_MODEL:
-            print("PREDECESSOR:", self.predecessor_model, self.method)
-        else:
-            print(
-                "PREDECESSOR:",
-                self.predecessor_model.get_estimated_parameter_ids_all(),
-                self.method,
-            )
         if model is None:
             # TODO use a different code than `True`?
             return True
         if self.limit.reached():
-            print("LIMIT REACHED")
             return False
         if self.excluded(model):
-            print("EXCLUDED")
             warnings.warn(
                 f'Model has been previously excluded from the candidate space so is skipped here. Model subspace ID: {model.model_subspace_id}. Parameterization: {model.parameters}',
                 RuntimeWarning,
             )
             return True
         if not self.is_plausible(model):
-            print("NOT PLAUSIBLE")
             return True
         if not self._consider_method(model):
             return True
-        print("ACCEPTING", model.get_estimated_parameter_ids_all())
         self.accept(model, distance=self.distance(model))
         return not self.limit.reached()
 
@@ -406,7 +395,7 @@ class CandidateSpace(abc.ABC):
         should change methods by comparing local_history of the last
         search to the best max_nmb best models of the whole search. If
         no new best model is found we change methods using the
-        provided or default method_swapping scheme.
+        provided or default method_switching scheme.
 
         If we change methods, to construct the new candidate space we
         need the whole history of visited models to include them into
@@ -420,9 +409,14 @@ class CandidateSpace(abc.ABC):
                 Whole history of models of the model selection run
             local_history:
                 new models from last step with their scores (AIC/BIX)
+
+        Return:
+            jumped_to_most_distant:
+                Boolean value of whether we have jumped to most distant
+                in this iteration.
         """
 
-        return
+        return False
 
 
 class ForwardCandidateSpace(CandidateSpace):
@@ -431,6 +425,8 @@ class ForwardCandidateSpace(CandidateSpace):
     Attributes:
         direction:
             `1` for the forward method, `-1` for the backward method.
+        max_number_of_steps:
+            Maximal allowed number of steps. If 0 then there is no maximum.
     """
 
     method = Method.FORWARD
@@ -440,11 +436,13 @@ class ForwardCandidateSpace(CandidateSpace):
         self,
         *args,
         predecessor_model: Optional[Union[Model, str]] = None,
+        max_number_of_steps: int = 0,
         **kwargs,
     ):
         # Although `VIRTUAL_INITIAL_MODEL` is `str` and can be used as a default
         # argument, `None` may be passed by other packages, so the default value
         # is handled here instead.
+        self.max_number_of_steps = max_number_of_steps
         if predecessor_model is None:
             predecessor_model = VIRTUAL_INITIAL_MODEL
         super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
@@ -452,6 +450,15 @@ class ForwardCandidateSpace(CandidateSpace):
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
         unsigned_size = self.direction * distances['size']
+
+        # If max_number_of_steps is non-zero and the number of steps made is
+        # larger then move is not plausible.
+        if (
+            self.max_number_of_steps
+            and unsigned_size > self.max_number_of_steps
+        ):
+            return False
+
         # A model is plausible if the number of estimated parameters strictly
         # increases (or decreases, if `self.direction == -1`), and no
         # previously estimated parameters become fixed.
@@ -583,77 +590,139 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
 # TODO:
 # - specifiy initial model (Implement)
 # - make it work, without swap, compare results (similar)
-# - write coming from global
 # later : General constraints (critical, swap, something else...)
 
 
-class FAMoSCandidateSpace(CandidateSpace):
+class FamosCandidateSpace(CandidateSpace):
     """The FAMoS method class.
 
     Attributes:
-        method_history:
-            The history of models that were found at each search.
-            A list of dictionaries, where each dictionary contains keys for the `METHOD`
-            and the list of `MODELS`.
+        critical_parameter_sets:
+            A list of lists which represent the critical parameter sets.
+            The initial predecessor model as well as every next model accepted
+            have to contain at least 1 parameter from each critical parameter set
+            non-fixed ('estimate').
+        swap_parameter_sets:
+            A list of lists which represent the swap parameter sets.
+            The Lateral method for the FAMoS algorithm can make a swap move, where
+            one non-fixed parameter is fixed and another fixed is un-fixed, only if
+            both parameters are contained in the same swap parameter set.
+        method_switching:
+            A dictionary of the method switching scheme used to switch to a different
+            method when the current does not provide a better model. The keys of the
+            dictionary are tuples of the previous methods of arbitrary size and values
+            are the methods to which the method should swap if the current previous
+            methods coincide with the key. FAMoS will iterate through the dictionary
+            find the first key that coincides with the current previous methods. Method
+            of this key will be chosen.
+        number_of_reattempts:
+            Integer. If grater or equal 1 then at the point at which we would usually
+            terminate, FAMoS will find a most_distant model to jump to and start the
+            model selection again, excluding the already considered models. The integer
+            value determines how many times it will reattempt. If 0 then will not reattempt.
+        swap_only_once:
+            Boolean, if True then the LATERAL method will switch to FORWARD method after
+            one successful lateral move. Otherwise, the LATERAL method will continue
+            searching for better models until no such models can be found.
     """
 
     method = Method.FAMOS
-    default_method_swapping = {
+    default_method_switching = {
         (Method.FORWARD, Method.FORWARD): Method.BACKWARD,
-        (Method.SWAP, Method.FORWARD): Method.BACKWARD,
-        (Method.BACKWARD, Method.FORWARD): Method.SWAP,
-        (Method.FORWARD, Method.BACKWARD): Method.SWAP,
+        (Method.LATERAL, Method.FORWARD): Method.BACKWARD,
+        (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
+        (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
         (Method.BACKWARD, Method.BACKWARD): Method.FORWARD,
-        (Method.SWAP,): None,
+        (Method.LATERAL,): None,
+        None: Method.FORWARD,
     }
-    # crit_parms: List = [['mu_AB', 'mu_AC'], ['ro_B']],
+
     def __init__(
         self,
         *args,
-        initial_method: Method = Method.FORWARD,
-        predecessor_model: Optional[Union[Model, str]] = None,
+        predecessor_model: Optional[Union[Model, str, None]] = None,
         critical_parameter_sets: List = [],
         swap_parameter_sets: List = [],
-        reattempt: int = 0,
-        method_swapping: Dict[tuple, str] = default_method_swapping,
+        method_switching: Dict[tuple, str] = default_method_switching,
+        number_of_reattempts: int = 0,
+        swap_only_once: bool = True,
         **kwargs,
     ):
-        self.method = initial_method
-        self.method_history = [initial_method]
+        self.critical_parameter_sets = critical_parameter_sets
+        self.swap_parameter_sets = swap_parameter_sets
+
+        self.initial_method = method_switching[None]
+        self.method = self.initial_method
+        self.method_history = [self.initial_method]
 
         if predecessor_model is None:
             predecessor_model = VIRTUAL_INITIAL_MODEL
 
+        if (
+            predecessor_model == VIRTUAL_INITIAL_MODEL
+            and critical_parameter_sets
+        ) or not self.check_critical(predecessor_model):
+            raise ValueError(
+                f'Provided predecessor model {predecessor_model.parameters} does not contain necessary critical parameters {self.critical_parameter_sets}. Provide a valid predecessor model.'
+            )
+
+        if self.initial_method == Method.LATERAL and (
+            not self.swap_parameter_sets
+            or predecessor_model == VIRTUAL_INITIAL_MODEL
+        ):
+            raise ValueError(
+                f"Initial method {self.initial_method} requires non-empty swap_parameter_sets to function and does not support the VIRTUAL_INITIAL_MODEL as the predecessor_model."
+            )
+
         self.inner_candidate_spaces = {
-            Method.FORWARD: ForwardCandidateSpace(*args, **kwargs),
-            Method.BACKWARD: BackwardCandidateSpace(*args, **kwargs)
-            #            Method.SWAP: SwapCandidateSpace(*args, **kwargs)
+            Method.FORWARD: ForwardCandidateSpace(
+                *args,
+                predecessor_model=predecessor_model,
+                max_number_of_steps=0,
+                **kwargs,
+            ),
+            Method.BACKWARD: BackwardCandidateSpace(
+                *args,
+                predecessor_model=predecessor_model,
+                max_number_of_steps=0,
+                **kwargs,
+            ),
+            Method.LATERAL: LateralCandidateSpace(
+                *args,
+                predecessor_model=(
+                    predecessor_model
+                    if predecessor_model != VIRTUAL_INITIAL_MODEL
+                    else None
+                ),
+                max_number_of_steps=1,
+                **kwargs,
+            ),
         }
         self.inner_candidate_space = self.inner_candidate_spaces[
-            initial_method
+            self.initial_method
         ]
 
         super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
 
         self.history: List[Dict[str, Union[Method, List[Model]]]] = []
 
-        self.critical_parameter_sets = critical_parameter_sets
-        self.swap_parameter_sets = swap_parameter_sets
-        self.reattempt = reattempt
-        self.method_swapping = method_swapping
+        self.number_of_reattempts = number_of_reattempts
+        self.method_switching = method_switching
+        self.swap_only_once = swap_only_once
 
-        if self.reattempt:
+        if self.number_of_reattempts:
             # TODO make so max_number can be specified? It cannot in original FAMoS.
             self.most_distant_max_number = 100
         else:
             self.most_distant_max_number = 1
 
         self.best_models = []
-        self.best_models_before_jumping = []
+        self.best_model_of_current_run = predecessor_model
+
         self.found_new_best = True
-        self.failed_global = False
-        self.do_not_jump = False
-        self.jump_run = 0
+
+        self.jumped_to_most_distant = False
+        self.swap_done_successfully = False
 
     def update_after_calibration(
         self,
@@ -662,18 +731,24 @@ class FAMoSCandidateSpace(CandidateSpace):
         criterion: Criterion,
     ) -> None:
         """See `CandidateSpace.update_after_calibration`."""
+        # In case we jumped to most distant in the last iteration,
+        # here we reset the jumped variable to False
+        self.jumped_to_most_distant = False
 
         self.history = history
 
         if not self.update_from_local_history(
             local_history=local_history, criterion=criterion
         ):
-            print("SWITCHING METHOD")
+            logging.info("Switching method")
             self.switch_method()
             self.switch_inner_candidate_space(history)
-            print("SWAPPED TO ", self.inner_candidate_space.method)
+            logging.info(
+                "Method switched to ", self.inner_candidate_space.method
+            )
 
         self.method_history.append(self.method)
+        return self.jumped_to_most_distant
 
     def update_from_local_history(
         self, local_history: Dict[str, Model], criterion: Criterion
@@ -683,25 +758,23 @@ class FAMoSCandidateSpace(CandidateSpace):
         True. False otherwise."""
 
         found_new_best = False
-        print("UPDATING")
-        # [
-        #     self.history[indexic].get_estimated_parameter_ids_all()
-        #     for indexic in self.history
-        # ],
         for model_id in local_history:
-            if not self.best_models and local_history:
-                found_new_best = True
-            elif default_compare(
-                self.best_models[0], local_history[model_id], criterion
+            if (
+                self.best_model_of_current_run == VIRTUAL_INITIAL_MODEL
+                or default_compare(
+                    self.best_model_of_current_run,
+                    local_history[model_id],
+                    criterion,
+                )
             ):
                 found_new_best = True
+                self.best_model_of_current_run = local_history[model_id]
 
             if len(self.best_models) < self.most_distant_max_number:
                 self.insert_model_into_best_models(
                     model_to_insert=local_history[model_id],
                     criterion=criterion,
                 )
-                print("PUT MODEL INTO BEST MODELS")
             elif default_compare(
                 self.best_models[self.most_distant_max_number - 1],
                 local_history[model_id],
@@ -711,13 +784,20 @@ class FAMoSCandidateSpace(CandidateSpace):
                     model_to_insert=local_history[model_id],
                     criterion=criterion,
                 )
-                print("PUT MODEL INTO BEST MODELS")
 
-        if found_new_best:
-            print("FOUND NEW BEST")
-        else:
-            print("DIDN'T FIND NEW BEST")
         self.best_models = self.best_models[: self.most_distant_max_number]
+
+        # When we switch to LATERAL method, we will do only one iteration with this
+        # method. So if we do it succesfully (i.e. that we found_new_best), we still
+        # want to switch method. This is why we put found_new_best to False, so we go
+        # into the method switching pipeline
+        if (
+            found_new_best
+            and self.method == Method.LATERAL
+            and self.swap_only_once
+        ):
+            self.swap_done_successfully = True
+            found_new_best = False
         return found_new_best
 
     def insert_model_into_best_models(
@@ -739,7 +819,13 @@ class FAMoSCandidateSpace(CandidateSpace):
         if self.limit.reached():
             return False
 
-        if self.check_critical(model):
+        # Check if model contains necessary critical parameters and, if
+        # the current method is swap, check the swap move is contained
+        # in a swap set.
+
+        if self.check_critical(model) and (
+            not self.method == Method.LATERAL or self.check_swap(model)
+        ):
             return_value = self.inner_candidate_space.consider(model)
 
             # update the attributes
@@ -798,80 +884,110 @@ class FAMoSCandidateSpace(CandidateSpace):
             return self.inner_candidate_space.is_plausible(model)
         return False
 
-    def check_critical(self, model: Model) -> bool:
+    def check_swap(self, model: Model) -> bool:
+        """Check if parameters that are swapped are contained in the
+        same swap parameter set."""
+        if self.method != Method.LATERAL:
+            return True
+
+        predecessor_estimated_parameters_ids = set(
+            self.predecessor_model.get_estimated_parameter_ids_all()
+        )
         estimated_parameters_ids = set(model.get_estimated_parameter_ids_all())
-        for critical_parameters in self.critical_parameter_sets:
-            if not estimated_parameters_ids.intersection(
-                set(critical_parameters)
-            ):
+
+        swapped_parameters_ids = estimated_parameters_ids.symmetric_difference(
+            predecessor_estimated_parameters_ids
+        )
+
+        for swap_set in self.swap_parameter_sets:
+            if swapped_parameters_ids.issubset(set(swap_set)):
+                return True
+        return False
+
+    def check_critical(self, model: Model) -> bool:
+        """Check if the model contains all necessary critical parameters"""
+
+        estimated_parameters_ids = set(model.get_estimated_parameter_ids_all())
+        for critical_set in self.critical_parameter_sets:
+            if not estimated_parameters_ids.intersection(set(critical_set)):
                 return False
         return True
 
     def switch_method(self) -> None:
+        """Switch to the next method with respect to the history
+        of methods used and the switching scheme in self.method_switching"""
+
         previous = self.method
         method = previous
-        print("SWITCHING", self.method_history)
-        breakpoint()
-        # iterate through the method_swapping dictionary to see which method to switch to
-        for previous_methods in self.method_swapping:
-            if previous_methods == tuple(
-                self.method_history[-len(previous_methods) :]
-            ):
-                method = self.method_swapping[previous_methods]
-                # if found a switch just break (choosing first good switch)
-                break
+        logging.info("SWITCHING", self.method_history)
+        # breakpoint()
+        # If last method was LATERAL and we have made a succesfull swap
+        # (a better model was found) then go back to FORWARD. Else do the
+        # usual method swapping scheme.
+        if self.swap_done_successfully:
+            method = Method.FORWARD
+        else:
+            # iterate through the method_switching dictionary to see which method to switch to
+            for previous_methods in self.method_switching:
+                if previous_methods == tuple(
+                    self.method_history[-len(previous_methods) :]
+                ):
+                    method = self.method_switching[previous_methods]
+                    # if found a switch just break (choosing first good switch)
+                    break
 
         # raise error if the method didn't change
         if method == previous:
-            print("Method didn't switch when it had to.")
             raise ValueError(
-                "Method didn't switch when it had to. The method_swapping provided is not sufficient. Please provide a correct method_swapping scheme"
+                f"Method didn't switch when it had to. The method_switching provided is not sufficient. Please provide a correct method_switching scheme"
             )
 
         # if the next method is None (in default case if SWAP
         # method didn't find any better models) then terminate
         if not method:
-            if self.reattempt and not self.do_not_jump:
+            if self.number_of_reattempts:
                 self.jump_to_most_distant()
                 return
             else:
-                print(
-                    "The next method provided is None. The search is terminating."
-                )
                 raise StopIteration(
-                    "The next method provided is None. The search is terminating."
+                    f"The next method provided is None. The search is terminating."
                 )
 
         # If we try to switch to SWAP method but it's not available (no crit or swap parameter groups)
         if (
-            method == Method.SWAP
-            and not self.critical_parameter_sets
+            method == Method.LATERAL
+            and not [
+                critical_set
+                for critical_set in self.critical_parameter_sets
+                if len(critical_set) > 1
+            ]
             and not self.swap_parameter_sets
         ):
-            if self.reattempt and not self.do_not_jump:
+            if self.number_of_reattempts:
                 self.jump_to_most_distant()
                 return
             else:
-                print("The next chosen method is Method.SWAP")
                 raise StopIteration(
-                    "The next chosen method is Method.SWAP, but there are no crit or swap parameters provided. Terminating"
+                    f"The next chosen method is Method.LATERAL, but there are no crit or swap parameters provided. Terminating"
                 )
-
+        if method == Method.LATERAL:
+            self.swap_done_successfully = False
         self.update_method(method=method)
 
     def update_method(self, method: Method):
-
-        if method not in [Method.FORWARD, Method.SWAP, Method.BACKWARD]:
+        """Update self.method to the method."""
+        if method not in [Method.FORWARD, Method.LATERAL, Method.BACKWARD]:
             raise NotImplementedError(
-                f'FAMoS direction must be either `Method.FORWARD`, `Method.BACKWARD` or `Method.SWAP`, not {method}. \
-                Check if the method_swapping scheme provided is correct.'
+                f'FAMoS direction must be either `Method.FORWARD`, `Method.BACKWARD` or `Method.LATERAL`, not {method}. \
+                Check if the method_switching scheme provided is correct.'
             )
 
         self.method = method
 
     def switch_inner_candidate_space(self, history):
+        """Switch self.inner_candidate_space to the candidate space of
+        the current self.method."""
 
-        # switch to the next inner candidate space depending on the next method
         self.inner_candidate_space = self.inner_candidate_spaces[self.method]
         # reset the next inner candidate space with the current history of all checked models
         self.inner_candidate_space.reset(
@@ -879,55 +995,44 @@ class FAMoSCandidateSpace(CandidateSpace):
         )
         # FIXME Check that problem.calibrated_models is excluded.
 
-        # if we came to the null model with the backward method
-        # change method to forward
-        # TODO famos implements terminate if visited global,
-        # if previous_search[MODELS].sum()==0:
-        #     self.previous = Method.BACKWARD
-        #     self.method = Method.FORWARD
-        #     # if we have come down from the superset model then terminate
-        #     if self.failed_global:
-        #         self.terminate_if_found_no_neighbors = True
-        #     return
-
     def jump_to_most_distant(self):
-        # if we jumped already, we check if we arrived to the same "best" model again
-        if self.jump_run > 0:
-            if (
-                self.predecessor_model.model_id
-                == self.best_models_before_jumping[-1]
-            ):
-                self.do_not_jump = True
-                print("WE CAME TO THE SAME OPTIMUM")
-                return
-            else:
-                self.best_models_before_jumping.append(
-                    self.predecessor_model.model_id
-                )
+        """Jump to most distant model with respect to the history of all
+        calibrated models."""
+
         new_init_model = self.get_most_distant()
 
-        # check if the new_init_model is [0, 0, ..., 0], no untested model found
-        if new_init_model.sum() == 0:
-            self.do_not_jump = True
-            return
+        logging.info("JUMPING: ", new_init_model.parameters)
+        # breakpoint()
 
-        # if model not appropriate make it so by adding first crit parms
+        # if model not appropriate make it so by adding the first
+        # critical parameter from each critical parameter set
         if not self.check_critical(new_init_model):
-            for i in len(self.critical_parameter_sets):
-                new_init_model[self.critical_parameter_sets[i][0]] = 1
+            for critical_set in self.critical_parameter_sets:
+                new_init_model.parameters[critical_set[0]] = ESTIMATE
 
-        self.update_method(Method.FORWARD)
+        self.update_method(self.initial_method)
 
-        self.jump_run += 1
+        self.number_of_reattempts -= 1
+        self.jumped_to_most_distant = True
 
         self.predecessor_model = new_init_model
+        self.best_model_of_current_run = new_init_model
 
     # TODO Fix for non-famos model subspaces. FAMOS easy beacuse of only 0;ESTIMATE
     def get_most_distant(self) -> Model:
-        # need history of last self.most_distant_max_number runs with their criteria result
-        # get complement of all or last self.most_distant_max_number models
-        # calculate L_\inf distance (abs of difference basically to all tested models and get min)
-        # get the model with biggest L_\inf
+        """
+        Get most distant model to all the checked models. We take models from the
+        sorted list of best models (self.best_models) and construct complements of
+        these models. For all these complements we compute the distance in number of
+        different estimated parameters to all models from history. For each complement
+        we take the minimum of these distances as it's distance to history. Then we
+        choose the complement model with the maximal distance to history.
+        TODO:
+        Next we check if this model is contained in any subspace. If so we choose it.
+        If not we choose the model in a subspace that has least distance to this
+        complement model.
+        """
+
         most_distance = 0
         most_distant_indices = []
 
@@ -940,11 +1045,7 @@ class FAMoSCandidateSpace(CandidateSpace):
             model_estimated_parameters = np.array(
                 [p == ESTIMATE for p in model_parameters]
             ).astype(int)
-            # more complicated don't estimate.
-            # 0 0 1 is a set of models
-            # again get the best one
             complement_parameters = abs(model_estimated_parameters - 1)
-            print(complement_parameters)
             # initialize the least distance to the maximal possible value of it
             complement_least_distance = len(complement_parameters)
             # get the complement least distance
@@ -975,27 +1076,24 @@ class FAMoSCandidateSpace(CandidateSpace):
                 most_distance = complement_least_distance
                 most_distant_indices = complement_parameters
         if len(most_distant_indices) == 0:
-            raise ValueError(
-                "There was no most distant found. Implementation error"
-            )
+            raise StopIteration(f"No most_distant model found. Terminating")
+
+        most_distant_parameter_values = [
+            str(index).replace('1', ESTIMATE) for index in most_distant_indices
+        ]
 
         most_distant_parameters = {
             parameter_id: index
             for parameter_id, index in zip(
-                model.parameters, most_distant_indices
+                model.parameters, most_distant_parameter_values
             )
         }
 
-        # TODO There might be a problem here, what if the most_distant_model
-        # is not in the model_subspace? Which attributes do we provide here?
-        # Is it good to take them from the model we're looking the most distant
-        # of? As here? Do I even have to provide them?
         most_distant_model = Model(
             petab_yaml=model.petab_yaml,
             model_subspace_id=model.model_subspace_id,
             model_subspace_indices=most_distant_indices,
             parameters=most_distant_parameters,
-            # petab_problem=model.petab_problem,
         )
 
         return most_distant_model
@@ -1036,47 +1134,34 @@ class LateralCandidateSpace(ForwardCandidateSpace):
     def __init__(
         self,
         *args,
-        predecessor_model: Union[Model, str],
+        predecessor_model: Union[Model, None],
+        max_number_of_steps: int = 0,
         **kwargs,
     ):
-        super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
+        """
+        Additional args:
+            max_number_of_steps:
+                Maximal allowed number of swap moves. If 0 then there is no maximum.
+        """
+        super().__init__(
+            *args,
+            predecessor_model=predecessor_model,
+            max_number_of_steps=max_number_of_steps,
+            **kwargs,
+        )
+        self.predecessor_model = predecessor_model
 
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
-        # A model is plausible if the number of estimated parameters remains
-        # the same, but some estimated parameters have become fixed and vice
-        # versa.
+
+        # If max_number_of_steps is non-zero and the number of steps made is
+        # larger then move is not plausible.
         if (
-            distances['size'] == 0
-            and
-            # distances['size'] == 0 implies L1 % 2 == 0.
-            # FIXME here and elsewhere, deal with models that are equal
-            #       except for the values of their fixed parameters.
-            distances['l1'] > 0
+            self.max_number_of_steps
+            and distances['l1'] <= 2 * self.max_number_of_swaps
         ):
-            return True
-        return False
+            return False
 
-    def _consider_method(self, model):
-        return True
-
-
-# I added this just so I don't have an error when I define it in FAMoS
-class SwapCandidateSpace(ForwardCandidateSpace):
-    """Find models with the same number of estimated parameters."""
-
-    method = Method.SWAP
-
-    def __init__(
-        self,
-        *args,
-        predecessor_model: Union[Model, str],
-        **kwargs,
-    ):
-        super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
-
-    def is_plausible(self, model: Model) -> bool:
-        distances = self.distances_in_estimated_parameters(model)
         # A model is plausible if the number of estimated parameters remains
         # the same, but some estimated parameters have become fixed and vice
         # versa.
@@ -1121,7 +1206,7 @@ candidate_space_classes = [
     LateralCandidateSpace,
     BruteForceCandidateSpace,
     ForwardAndBackwardCandidateSpace,
-    FAMoSCandidateSpace,
+    FamosCandidateSpace,
 ]
 
 
