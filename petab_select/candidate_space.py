@@ -380,14 +380,6 @@ class CandidateSpace(abc.ABC):
 
         return distances
 
-    def update_before_candidate_search(self, predecessor_model):
-        """Inner candidate space update, only for FAMoSCandidateSpace.
-
-        Necessary updates before candidate search. Specifically update
-        of the predecessor model of the inner_candidate_space
-        """
-        return
-
     def update_after_calibration(self, history, local_history, criterion):
         """Inner candidate space update, only for FAMoSCandidateSpace.
 
