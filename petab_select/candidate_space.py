@@ -1149,7 +1149,7 @@ class LateralCandidateSpace(CandidateSpace):
         # larger then move is not plausible.
         if (
             self.max_number_of_steps
-            and distances['l1'] <= 2 * self.max_number_of_swaps
+            and distances['l1'] <= 2 * self.max_number_of_steps
         ):
             return False
 
