@@ -653,7 +653,14 @@ class FamosCandidateSpace(CandidateSpace):
         if (
             predecessor_model == VIRTUAL_INITIAL_MODEL
             and critical_parameter_sets
-        ) or not self.check_critical(predecessor_model):
+        ) or (
+            # FIXME should virtual initial model raise error if critical sets
+            #       are specified? i.e. should users be expected to supply a valid initial model
+            #       if critical sets are specified? ideally the first iteration with the virtual
+            #       initial model would find compatible models that satisfy the critical sets
+            predecessor_model != VIRTUAL_INITIAL_MODEL
+            and not self.check_critical(predecessor_model)
+        ):
             raise ValueError(
                 f'Provided predecessor model {predecessor_model.parameters} does not contain necessary critical parameters {self.critical_parameter_sets}. Provide a valid predecessor model.'
             )
