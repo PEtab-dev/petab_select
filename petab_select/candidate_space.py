@@ -845,15 +845,8 @@ class FamosCandidateSpace(CandidateSpace):
     ):
         """Setting the predecessor model for the
         inner_candidate_space as well."""
-        self.predecessor_model = predecessor_model
-        self.inner_candidate_space.predecessor_model = predecessor_model
-        if (
-            self.predecessor_model == VIRTUAL_INITIAL_MODEL
-            and self.method not in VIRTUAL_INITIAL_MODEL_METHODS
-        ):
-            raise ValueError(
-                f'A virtual initial model was requested for a method ({self.method}) that does not support them.'
-            )
+        super().set_predecessor_model(predecessor_model=predecessor_model)
+        self.inner_candidate_space.set_predecessor_model(predecessor_model=predecessor_model)
 
     def set_exclusions(self, exclusions: Union[List[str], None]):
         """Setting the exclusions for the
