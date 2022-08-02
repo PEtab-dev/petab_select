@@ -1118,7 +1118,7 @@ class ForwardAndBackwardCandidateSpace(BidirectionalCandidateSpace):
         pass
 
 
-class LateralCandidateSpace(ForwardCandidateSpace):
+class LateralCandidateSpace(CandidateSpace):
     """Find models with the same number of estimated parameters."""
 
     method = Method.LATERAL
@@ -1138,10 +1138,9 @@ class LateralCandidateSpace(ForwardCandidateSpace):
         super().__init__(
             *args,
             predecessor_model=predecessor_model,
-            max_number_of_steps=max_number_of_steps,
             **kwargs,
         )
-        self.predecessor_model = predecessor_model
+        self.max_number_of_steps = max_number_of_steps
 
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
@@ -1167,6 +1166,13 @@ class LateralCandidateSpace(ForwardCandidateSpace):
         ):
             return True
         return False
+
+    # Is this needed? Do I need distance for Latereal? 
+    def distance(self, model: Model) -> int:
+        # TODO calculated here and `is_plausible`. Rewrite to only calculate
+        #      once?
+        distances = self.distances_in_estimated_parameters(model)
+        return distances['l1']
 
     def _consider_method(self, model):
         return True
