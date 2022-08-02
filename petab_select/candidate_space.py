@@ -931,7 +931,8 @@ class FamosCandidateSpace(CandidateSpace):
         # raise error if the method didn't change
         if method == previous:
             raise ValueError(
-                f"Method didn't switch when it had to. The method_switching provided is not sufficient. Please provide a correct method_switching scheme"
+                "Method didn't switch when it had to. The method_switching provided is not sufficient. Please provide a correct method_switching scheme"
+                f"Previous method pattern: `{previous}`. Current method: `{method}`."
             )
 
         # if the next method is None (in default case if SWAP
