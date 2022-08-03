@@ -635,7 +635,7 @@ class FamosCandidateSpace(CandidateSpace):
         predecessor_model: Optional[Union[Model, str, None]] = None,
         critical_parameter_sets: List = [],
         swap_parameter_sets: List = [],
-        method_switching: Dict[tuple, str] = default_method_switching,
+        method_switching: Dict[tuple, str] = None,
         number_of_reattempts: int = 0,
         swap_only_once: bool = True,
         **kwargs,
@@ -643,7 +643,11 @@ class FamosCandidateSpace(CandidateSpace):
         self.critical_parameter_sets = critical_parameter_sets
         self.swap_parameter_sets = swap_parameter_sets
 
-        self.initial_method = method_switching[None]
+        self.method_switching = method_switching
+        if method_switching is None:
+            self.method_switching = self.default_method_switching
+
+        self.initial_method = self.method_switching[None]
         self.method = self.initial_method
         self.method_history = [self.initial_method]
 
@@ -665,12 +669,25 @@ class FamosCandidateSpace(CandidateSpace):
                 f'Provided predecessor model {predecessor_model.parameters} does not contain necessary critical parameters {self.critical_parameter_sets}. Provide a valid predecessor model.'
             )
 
-        if self.initial_method == Method.LATERAL and (
-            not self.swap_parameter_sets
-            or predecessor_model == VIRTUAL_INITIAL_MODEL
+        if (
+            predecessor_model == VIRTUAL_INITIAL_MODEL
+            and self.initial_method not in VIRTUAL_INITIAL_MODEL_METHODS
         ):
             raise ValueError(
-                f"Initial method {self.initial_method} requires non-empty swap_parameter_sets to function and does not support the VIRTUAL_INITIAL_MODEL as the predecessor_model."
+                f"The initial method {self.initial_method} does not support the `VIRTUAL_INITIAL_MODEL` as its predecessor_model."
+            )
+
+        # FIXME remove `None` from the resulting `inner_methods` set?
+        inner_methods = set.union(*[
+            set([
+                *(method_pattern if method_pattern is not None else (None,)),
+                next_method,
+            ])
+            for method_pattern, next_method in self.method_switching.items()
+        ])
+        if Method.LATERAL in inner_methods and not self.swap_parameter_sets:
+            raise ValueError(
+                f"Use of the lateral method with FAMoS requires `swap_parameter_sets`."
             )
 
         self.inner_candidate_spaces = {
@@ -706,7 +723,6 @@ class FamosCandidateSpace(CandidateSpace):
         self.history: List[Dict[str, Union[Method, List[Model]]]] = []
 
         self.number_of_reattempts = number_of_reattempts
-        self.method_switching = method_switching
         self.swap_only_once = swap_only_once
 
         if self.number_of_reattempts:
