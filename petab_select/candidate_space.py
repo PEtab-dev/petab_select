@@ -620,11 +620,10 @@ class FamosCandidateSpace(CandidateSpace):
 
     method = Method.FAMOS
     default_method_switching = {
-        (Method.FORWARD, Method.FORWARD): Method.BACKWARD,
-        (Method.LATERAL, Method.FORWARD): Method.BACKWARD,
         (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
         (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
-        (Method.BACKWARD, Method.BACKWARD): Method.FORWARD,
+        (Method.FORWARD,): Method.BACKWARD,
+        (Method.BACKWARD,): Method.FORWARD,
         (Method.LATERAL,): None,
         None: Method.FORWARD,
     }
@@ -649,7 +648,7 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.initial_method = self.method_switching[None]
         self.method = self.initial_method
-        self.method_history = [self.initial_method, self.initial_method]
+        self.method_history = [self.initial_method]
 
         if predecessor_model is None:
             predecessor_model = VIRTUAL_INITIAL_MODEL
@@ -937,7 +936,7 @@ class FamosCandidateSpace(CandidateSpace):
         else:
             # iterate through the method_switching dictionary to see which method to switch to
             for previous_methods in self.method_switching:
-                if previous_methods and previous_methods == tuple(
+                if previous_methods is not None and previous_methods == tuple(
                     self.method_history[-len(previous_methods) :]
                 ):
                     method = self.method_switching[previous_methods]
