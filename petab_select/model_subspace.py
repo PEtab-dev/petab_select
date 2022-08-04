@@ -343,35 +343,38 @@ class ModelSubspace(PetabMixin):
             n_estimated_extra = np.inf
             # The powerset should be in ascending order by number of elements.
             for parameter_set in powerset(new_can_estimate_optional):
-                # The case of a "minimal" model in the subspace being a valid candidate
-                # in this case should have been handled above already with
-                # `new_must_estimate_all`
-                if not parameter_set:
-                    continue
-                # Stop considering models as candidates once all models with a minimal
-                # increase in the number of extra estimated parameters are considered
-                # out of which at least one is accepted as a candidate.
-                if len(parameter_set) > n_estimated_extra:
-                    break
-                estimated_parameters = (
-                    set(old_estimated)
-                    .union(new_must_estimate)
-                    .union(parameter_set)
-                )
-                models = self.get_models(
-                    estimated_parameters=list(estimated_parameters),
-                )
-                for model in models:
-                    continue_sending = self.send_model_to_candidate_space(
-                        model=model,
-                        candidate_space=candidate_space,
+                try:
+                    # The case of a "minimal" model in the subspace being a valid candidate
+                    # in this case should have been handled above already with
+                    # `new_must_estimate_all`
+                    if not parameter_set:
+                        continue
+                    # Stop considering models as candidates once all models with a minimal
+                    # increase in the number of extra estimated parameters are considered
+                    # out of which at least one is accepted as a candidate.
+                    if len(parameter_set) > n_estimated_extra:
+                        break
+                    estimated_parameters = (
+                        set(old_estimated)
+                        .union(new_must_estimate)
+                        .union(parameter_set)
                     )
-                    if not continue_searching(continue_sending):
-                        return
-                # If model accepted set the maximal number of extra parameters to
-                # current number of extra parameters
-                if candidate_space.models:
-                    n_estimated_extra = len(parameter_set)
+                    models = self.get_models(
+                        estimated_parameters=list(estimated_parameters),
+                    )
+                    for model in models:
+                        continue_sending = self.send_model_to_candidate_space(
+                            model=model,
+                            candidate_space=candidate_space,
+                        )
+                        if not continue_searching(continue_sending):
+                            return
+                    # If model accepted set the maximal number of extra parameters to
+                    # current number of extra parameters
+                    if candidate_space.models:
+                        n_estimated_extra = len(parameter_set)
+                except StopIteration:
+                    break
 
         elif candidate_space.method == Method.BACKWARD:
             # There are no parameters that could become fixed in this subspace, so there
@@ -425,35 +428,38 @@ class ModelSubspace(PetabMixin):
             n_new_fixed = np.inf
             # The powerset should be in ascending order by number of elements.
             for parameter_set in powerset(new_can_fix_optional):
-                # The case of a "minimal" model in the subspace being a valid candidate
-                # in this case should have been handled above already with
-                # `new_must_estimate_all`
-                if not parameter_set:
-                    continue
-                # Stop considering models as candidates once all models with a minimal
-                # increase in the number of new fixed parameters are considered
-                # out of which at least one is accepted as a candidate.
-                if len(parameter_set) > n_new_fixed:
-                    break
-                estimated_parameters = (
-                    set(old_estimated)
-                    .union(new_must_estimate)
-                    .difference(parameter_set)
-                )
-                models = self.get_models(
-                    estimated_parameters=list(estimated_parameters),
-                )
-                for model in models:
-                    continue_sending = self.send_model_to_candidate_space(
-                        model=model,
-                        candidate_space=candidate_space,
+                try:
+                    # The case of a "minimal" model in the subspace being a valid candidate
+                    # in this case should have been handled above already with
+                    # `new_must_estimate_all`
+                    if not parameter_set:
+                        continue
+                    # Stop considering models as candidates once all models with a minimal
+                    # increase in the number of new fixed parameters are considered
+                    # out of which at least one is accepted as a candidate.
+                    if len(parameter_set) > n_new_fixed:
+                        break
+                    estimated_parameters = (
+                        set(old_estimated)
+                        .union(new_must_estimate)
+                        .difference(parameter_set)
                     )
-                    if not continue_searching(continue_sending):
-                        return
-                # If model accepted set the number of new fixed parameters to
-                # current number of new fixed parameters
-                if candidate_space.models:
-                    n_new_fixed = len(parameter_set)
+                    models = self.get_models(
+                        estimated_parameters=list(estimated_parameters),
+                    )
+                    for model in models:
+                        continue_sending = self.send_model_to_candidate_space(
+                            model=model,
+                            candidate_space=candidate_space,
+                        )
+                        if not continue_searching(continue_sending):
+                            return
+                    # If model accepted set the number of new fixed parameters to
+                    # current number of new fixed parameters
+                    if candidate_space.models:
+                        n_new_fixed = len(parameter_set)
+                except StopIteration:
+                    break
 
         elif candidate_space.method == Method.BRUTE_FORCE:
             # TODO remove list?
@@ -516,36 +522,39 @@ class ModelSubspace(PetabMixin):
                 powerset(new_can_estimate_optional),
                 powerset(new_can_fix_optional),
             ):
-                # At least some parameters must change.
-                if not parameter_set_estimate or not parameter_set_fix:
-                    continue
-                # The same number of parameters must be fixed and estimated.
-                if len(parameter_set_estimate) != len(parameter_set_fix):
-                    continue
-                # Only consider models with the minimal lateral move out of 
-                # which at least one is accepted in the candidate space.
-                if len(parameter_set_estimate) > n_lateral_moves:
-                    break
-                estimated_parameters = (
-                    set(old_estimated)
-                    .union(new_must_estimate)
-                    .union(parameter_set_estimate)
-                    .difference(parameter_set_fix)
-                )
-                models = self.get_models(
-                    estimated_parameters=list(estimated_parameters),
-                )
-                for model in models:
-                    continue_sending = self.send_model_to_candidate_space(
-                        model=model,
-                        candidate_space=candidate_space,
+                try:
+                    # At least some parameters must change.
+                    if not parameter_set_estimate or not parameter_set_fix:
+                        continue
+                    # The same number of parameters must be fixed and estimated.
+                    if len(parameter_set_estimate) != len(parameter_set_fix):
+                        continue
+                    # Only consider models with the minimal lateral move out of 
+                    # which at least one is accepted in the candidate space.
+                    if len(parameter_set_estimate) > n_lateral_moves:
+                        break
+                    estimated_parameters = (
+                        set(old_estimated)
+                        .union(new_must_estimate)
+                        .union(parameter_set_estimate)
+                        .difference(parameter_set_fix)
                     )
-                    if not continue_searching(continue_sending):
-                        return
-                # If model accepted set the number of lateral moves to
-                # current number of lateral moves
-                if candidate_space.models:
-                    n_lateral_moves = len(parameter_set_estimate)
+                    models = self.get_models(
+                        estimated_parameters=list(estimated_parameters),
+                    )
+                    for model in models:
+                        continue_sending = self.send_model_to_candidate_space(
+                            model=model,
+                            candidate_space=candidate_space,
+                        )
+                        if not continue_searching(continue_sending):
+                            return
+                    # If model accepted set the number of lateral moves to
+                    # current number of lateral moves
+                    if candidate_space.models:
+                        n_lateral_moves = len(parameter_set_estimate)
+                except StopIteration:
+                    break
 
         else:
             raise NotImplementedError(

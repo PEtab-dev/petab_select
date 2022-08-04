@@ -449,7 +449,7 @@ class ForwardCandidateSpace(CandidateSpace):
             self.max_number_of_steps
             and unsigned_size > self.max_number_of_steps
         ):
-            return False
+            raise StopIteration(f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models.")
 
         # A model is plausible if the number of estimated parameters strictly
         # increases (or decreases, if `self.direction == -1`), and no
@@ -622,9 +622,11 @@ class FamosCandidateSpace(CandidateSpace):
     default_method_switching = {
         (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
         (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
+        (Method.BACKWARD, Method.LATERAL,): None,
+        (Method.FORWARD, Method.LATERAL,): None,
         (Method.FORWARD,): Method.BACKWARD,
         (Method.BACKWARD,): Method.FORWARD,
-        (Method.LATERAL,): None,
+        (Method.LATERAL,): Method.FORWARD,
         None: Method.FORWARD,
     }
 
@@ -980,7 +982,7 @@ class FamosCandidateSpace(CandidateSpace):
                 raise StopIteration(
                     f"The next chosen method is Method.LATERAL, but there are no crit or swap parameters provided. Terminating"
                 )
-        if method == Method.LATERAL:
+        if previous == Method.LATERAL:
             self.swap_done_successfully = False
         self.update_method(method=method)
 
@@ -1169,7 +1171,7 @@ class LateralCandidateSpace(CandidateSpace):
             self.max_number_of_steps
             and distances['l1'] > 2 * self.max_number_of_steps
         ):
-            return False
+            raise StopIteration(f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models.")
 
         # A model is plausible if the number of estimated parameters remains
         # the same, but some estimated parameters have become fixed and vice
