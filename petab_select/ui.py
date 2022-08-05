@@ -62,7 +62,6 @@ def candidates(
         predecessor_model = problem.get_best()
     if predecessor_model is not None:
         candidate_space.reset(predecessor_model)
-    
 
     # TODO support excluding model IDs? should be faster but may have issues, e.g.:
     #      - duplicate model IDs among multiple model subspaces

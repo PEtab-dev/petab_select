@@ -449,7 +449,9 @@ class ForwardCandidateSpace(CandidateSpace):
             self.max_number_of_steps
             and unsigned_size > self.max_number_of_steps
         ):
-            raise StopIteration(f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models.")
+            raise StopIteration(
+                f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models."
+            )
 
         # A model is plausible if the number of estimated parameters strictly
         # increases (or decreases, if `self.direction == -1`), and no
@@ -622,8 +624,8 @@ class FamosCandidateSpace(CandidateSpace):
     default_method_switching = {
         (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
         (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
-        (Method.BACKWARD, Method.LATERAL,): None,
-        (Method.FORWARD, Method.LATERAL,): None,
+        (Method.BACKWARD, Method.LATERAL): None,
+        (Method.FORWARD, Method.LATERAL): None,
         (Method.FORWARD,): Method.BACKWARD,
         (Method.BACKWARD,): Method.FORWARD,
         (Method.LATERAL,): Method.FORWARD,
@@ -679,13 +681,21 @@ class FamosCandidateSpace(CandidateSpace):
             )
 
         # FIXME remove `None` from the resulting `inner_methods` set?
-        inner_methods = set.union(*[
-            set([
-                *(method_pattern if method_pattern is not None else (None,)),
-                next_method,
-            ])
-            for method_pattern, next_method in self.method_switching.items()
-        ])
+        inner_methods = set.union(
+            *[
+                set(
+                    [
+                        *(
+                            method_pattern
+                            if method_pattern is not None
+                            else (None,)
+                        ),
+                        next_method,
+                    ]
+                )
+                for method_pattern, next_method in self.method_switching.items()
+            ]
+        )
         if Method.LATERAL in inner_methods and not self.swap_parameter_sets:
             raise ValueError(
                 f"Use of the lateral method with FAMoS requires `swap_parameter_sets`."
@@ -870,7 +880,9 @@ class FamosCandidateSpace(CandidateSpace):
         """Setting the predecessor model for the
         inner_candidate_space as well."""
         super().set_predecessor_model(predecessor_model=predecessor_model)
-        self.inner_candidate_space.set_predecessor_model(predecessor_model=predecessor_model)
+        self.inner_candidate_space.set_predecessor_model(
+            predecessor_model=predecessor_model
+        )
 
     def set_exclusions(self, exclusions: Union[List[str], None]):
         """Setting the exclusions for the
@@ -1171,7 +1183,9 @@ class LateralCandidateSpace(CandidateSpace):
             self.max_number_of_steps
             and distances['l1'] > 2 * self.max_number_of_steps
         ):
-            raise StopIteration(f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models.")
+            raise StopIteration(
+                f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models."
+            )
 
         # A model is plausible if the number of estimated parameters remains
         # the same, but some estimated parameters have become fixed and vice
@@ -1187,7 +1201,7 @@ class LateralCandidateSpace(CandidateSpace):
             return True
         return False
 
-    # Is this needed? Do I need distance for Latereal? 
+    # TODO does Lateral need this?
     def distance(self, model: Model) -> int:
         # TODO calculated here and `is_plausible`. Rewrite to only calculate
         #      once?

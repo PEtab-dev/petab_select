@@ -83,7 +83,7 @@ def expected_criterion_values(input_path):
     for index, row in calibration_results.iterrows():
         expected_aicc[row["model_id"]] = row["AICc"]
     return expected_aicc
-    
+
 
 @pytest.fixture
 def expected_progress_list():
@@ -135,10 +135,9 @@ def test_famos(
     expected_progress_list,
 ):
     def set_model_id(model):
-        model.model_id = ("M_" + ''.join(
-            '1' if v == ESTIMATE else '0'
-            for v in model.parameters.values()
-        ))
+        model.model_id = "M_" + ''.join(
+            '1' if v == ESTIMATE else '0' for v in model.parameters.values()
+        )
 
     def calibrate(
         model,
@@ -146,7 +145,7 @@ def test_famos(
     ) -> None:
         model.set_criterion(
             criterion=petab_select_problem.criterion,
-            value=expected_criterion_values[model.model_id]
+            value=expected_criterion_values[model.model_id],
         )
 
     history = {}
@@ -195,8 +194,10 @@ def test_famos(
                 for index in range(len(previous_predecessor_model_parameters))
                 if previous_predecessor_model_parameters[index] == "estimate"
             ]
-            predecessor_model_parameters = predecessor_model.get_parameter_values(
-                parameter_ids=predecessor_model.petab_parameters
+            predecessor_model_parameters = (
+                predecessor_model.get_parameter_values(
+                    parameter_ids=predecessor_model.petab_parameters
+                )
             )
             predecessor_model_parameter_indices = [
                 index + 1
@@ -215,7 +216,9 @@ def test_famos(
                     candidate_space.inner_candidate_space.method,
                     set(
                         previous_predecessor_model_parameter_indices
-                    ).symmetric_difference(set(predecessor_model_parameter_indices)),
+                    ).symmetric_difference(
+                        set(predecessor_model_parameter_indices)
+                    ),
                 )
             )
 
@@ -231,7 +234,9 @@ def test_famos(
                 local_history[candidate_model.model_id] = candidate_model
                 # if candidate model has better criteria, add to better models
                 if default_compare(
-                    predecessor_model, candidate_model, petab_select_problem.criterion
+                    model0=predecessor_model,
+                    model1=candidate_model,
+                    criterion=petab_select_problem.criterion,
                 ):
                     better_models.append(candidate_model)
 

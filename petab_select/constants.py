@@ -122,6 +122,7 @@ class Method(str, Enum):
     SWAP = 'swap'
     FAMOS = 'famos'
 
+
 class Criterion(str, Enum):
     """String literals for model selection criteria."""
 
