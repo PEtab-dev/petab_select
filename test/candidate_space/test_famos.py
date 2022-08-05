@@ -79,11 +79,8 @@ def expected_criterion_values(input_path):
     calibration_results = pd.read_csv(
         input_path / "calibration_results.tsv",
         sep="\t",
-    )
-    expected_aicc = {}
-    for index, row in calibration_results.iterrows():
-        expected_aicc[row["model_id"]] = row["AICc"]
-    return expected_aicc
+    ).set_index('model_id')
+    return dict(calibration_results['AICc'])
 
 
 @pytest.fixture
