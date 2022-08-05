@@ -1110,12 +1110,6 @@ class FamosCandidateSpace(CandidateSpace):
 
         return most_distant_model
 
-    def wrap_search_subspaces(self, search_subspaces):
-
-        def wrapper():
-            search_subspaces(send_subspaces_warning=True)
-        
-        return wrapper
 
 # TODO rewrite so BidirectionalCandidateSpace inherits from ForwardAndBackwardCandidateSpace
 #      instead
