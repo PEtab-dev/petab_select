@@ -1,153 +1,162 @@
-import pandas as pd
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 import petab
 import petab_select
+import pytest
 from petab_select import ESTIMATE, Method, Model, FamosCandidateSpace
 from petab_select.model import default_compare
-from pathlib import Path
 from petab_select.constants import Criterion
 
-base_dir = Path(__file__).parent / "input/"
-# read in the calibration results
-calibration_results = pd.read_csv(base_dir / "calibration_results.tsv", sep="\t")
-# select petab problems
-petab_select_yaml = (
-    base_dir / "famos_synthetic_petab_problem/FAMoS_2019_petab_select_problem.yaml"
-)
-petab_yaml = base_dir / "famos_synthetic_petab_problem/FAMoS_2019_problem.yaml"
-predecessor_model = Model(
-    petab_yaml=petab_yaml,
-    model_subspace_id="model_subspace_1",
-    model_id="M_1100110111000111",
-    parameters={
-        "mu_AB": "estimate",
-        "mu_AC": 0,
-        "mu_AD": "estimate",
-        "mu_BA": "estimate",
-        "mu_BC": 0,
-        "mu_BD": 0,
-        "mu_CA": "estimate",
-        "mu_CB": 0,
-        "mu_CD": "estimate",
-        "mu_DA": "estimate",
-        "mu_DB": "estimate",
-        "mu_DC": "estimate",
-        "ro_A": "estimate",
-        "ro_B": "estimate",
-        "ro_C": 0,
-        "ro_D": 0,
-    },
-    estimated_parameters={
-        "mu_AB": 0.09706971737957297,
-        "mu_AD": -0.6055359156893474,
-        "mu_BA": 0.6989700040781575,
-        "mu_CA": -13.545121478780585,
-        "mu_CD": -13.955162965672203,
-        "mu_DA": -13.405909047226377,
-        "mu_DB": -13.402598631022197,
-        "mu_DC": -1.1619119214640863,
-        "ro_A": -1.6431508614147425,
-        "ro_B": 2.9912966824709097,
-    },
-    criteria={
-        Criterion.AIC: 30330.782621349786,
-        Criterion.AICC: 30332.80096997364,
-        Criterion.BIC: 30358.657538777607,
-        Criterion.NLLH: 15155.391310674893,
-    },
-)
-expected_progress_list = [
-    (Method.LATERAL, set()),
-    (Method.LATERAL, {4, 15}),
-    (Method.LATERAL, {9, 13}),
-    (Method.FORWARD, set()),
-    (Method.FORWARD, {3}),
-    (Method.FORWARD, {11}),
-    (Method.BACKWARD, set()),
-    (Method.BACKWARD, {6}),
-    (Method.BACKWARD, {10}),
-    (Method.BACKWARD, {8}),
-    (Method.BACKWARD, {14}),
-    (Method.BACKWARD, {1}),
-    (Method.BACKWARD, {16}),
-    (Method.BACKWARD, {4}),
-    (Method.FORWARD, set()),
-    (Method.LATERAL, set()),
-    "M_0001011010010010",
-    (Method.LATERAL, set()),
-    (Method.LATERAL, {16, 7}),
-    (Method.LATERAL, {5, 12}),
-    (Method.LATERAL, {13, 15}),
-    (Method.LATERAL, {1, 6}),
-    (Method.FORWARD, set()),
-    (Method.FORWARD, {3}),
-    (Method.FORWARD, {7}),
-    (Method.FORWARD, {2}),
-    (Method.FORWARD, {11}),
-    (Method.BACKWARD, set()),
-    (Method.BACKWARD, {7}),
-    (Method.BACKWARD, {16}),
-    (Method.BACKWARD, {4}),
-    (Method.FORWARD, set()),
-    (Method.LATERAL, set()),
-    (Method.LATERAL, {9, 15}),
-    (Method.FORWARD, set()),
-    (Method.BACKWARD, set()),
-    (Method.LATERAL, set()),
-]
 
-exhaustive_calibration = {}
-
-for index, row in calibration_results.iterrows():
-    exhaustive_calibration[row["model_id"]] = row["AICc"]
-
-# setup select problems
-petab_select_problem = petab_select.Problem.from_yaml(petab_select_yaml)
-
-petab_problem = petab.Problem.from_yaml(petab_yaml)
+@pytest.fixture
+def input_path():
+    return Path(__file__).parent / "input"
 
 
-# helper functions
-def set_model_id(model: Model) -> None:
-
-    parameters = model.get_parameter_values(parameter_ids=model.petab_parameters)
-
-    parameter_indices = np.array([p == ESTIMATE for p in parameters]).astype(int)
-
-    model_id = "M_"
-
-    for p in parameter_indices:
-        model_id += str(p)
-
-    model.model_id = model_id
-
-
-def calibrate(model: Model, exhaustive_calibration=exhaustive_calibration) -> None:
-    """Set model criterion values to fake values that could be the output of a calibration tool.
-
-    Each model subspace in this problem contains only one model, so a model-specific criterion can
-    be indexed by the model subspace ID.
-    """
-    model.set_criterion(
-        petab_select_problem.criterion, exhaustive_calibration[model.model_id]
+@pytest.fixture
+def petab_select_problem(input_path):
+    return petab_select.Problem.from_yaml(
+        input_path
+        / "famos_synthetic_petab_problem"
+        / "FAMoS_2019_petab_select_problem.yaml"
     )
 
 
-if __name__ == "__main__":
+@pytest.fixture
+def predecessor_model(input_path):
+    return Model(
+        petab_yaml=(
+            input_path
+            / "famos_synthetic_petab_problem"
+            / "FAMoS_2019_problem.yaml"
+        ),
+        model_subspace_id="model_subspace_1",
+        model_id="M_1100110111000111",
+        parameters={
+            "mu_AB": "estimate",
+            "mu_AC": 0,
+            "mu_AD": "estimate",
+            "mu_BA": "estimate",
+            "mu_BC": 0,
+            "mu_BD": 0,
+            "mu_CA": "estimate",
+            "mu_CB": 0,
+            "mu_CD": "estimate",
+            "mu_DA": "estimate",
+            "mu_DB": "estimate",
+            "mu_DC": "estimate",
+            "ro_A": "estimate",
+            "ro_B": "estimate",
+            "ro_C": 0,
+            "ro_D": 0,
+        },
+        estimated_parameters={
+            "mu_AB": 0.09706971737957297,
+            "mu_AD": -0.6055359156893474,
+            "mu_BA": 0.6989700040781575,
+            "mu_CA": -13.545121478780585,
+            "mu_CD": -13.955162965672203,
+            "mu_DA": -13.405909047226377,
+            "mu_DB": -13.402598631022197,
+            "mu_DC": -1.1619119214640863,
+            "ro_A": -1.6431508614147425,
+            "ro_B": 2.9912966824709097,
+        },
+        criteria={
+            Criterion.AIC: 30330.782621349786,
+            Criterion.AICC: 30332.80096997364,
+            Criterion.BIC: 30358.657538777607,
+            Criterion.NLLH: 15155.391310674893,
+        },
+    )
+
+
+@pytest.fixture
+def expected_criterion_values(input_path):
+    calibration_results = pd.read_csv(
+        input_path / "calibration_results.tsv",
+        sep="\t",
+    )
+    expected_aicc = {}
+    for index, row in calibration_results.iterrows():
+        expected_aicc[row["model_id"]] = row["AICc"]
+    return expected_aicc
+    
+
+@pytest.fixture
+def expected_progress_list():
+    return [
+        (Method.LATERAL, set()),
+        (Method.LATERAL, {4, 15}),
+        (Method.LATERAL, {9, 13}),
+        (Method.FORWARD, set()),
+        (Method.FORWARD, {3}),
+        (Method.FORWARD, {11}),
+        (Method.BACKWARD, set()),
+        (Method.BACKWARD, {6}),
+        (Method.BACKWARD, {10}),
+        (Method.BACKWARD, {8}),
+        (Method.BACKWARD, {14}),
+        (Method.BACKWARD, {1}),
+        (Method.BACKWARD, {16}),
+        (Method.BACKWARD, {4}),
+        (Method.FORWARD, set()),
+        (Method.LATERAL, set()),
+        "M_0001011010010010",
+        (Method.LATERAL, set()),
+        (Method.LATERAL, {16, 7}),
+        (Method.LATERAL, {5, 12}),
+        (Method.LATERAL, {13, 15}),
+        (Method.LATERAL, {1, 6}),
+        (Method.FORWARD, set()),
+        (Method.FORWARD, {3}),
+        (Method.FORWARD, {7}),
+        (Method.FORWARD, {2}),
+        (Method.FORWARD, {11}),
+        (Method.BACKWARD, set()),
+        (Method.BACKWARD, {7}),
+        (Method.BACKWARD, {16}),
+        (Method.BACKWARD, {4}),
+        (Method.FORWARD, set()),
+        (Method.LATERAL, set()),
+        (Method.LATERAL, {9, 15}),
+        (Method.FORWARD, set()),
+        (Method.BACKWARD, set()),
+        (Method.LATERAL, set()),
+    ]
+
+
+def test_famos(
+    petab_select_problem,
+    predecessor_model,
+    expected_criterion_values,
+    expected_progress_list,
+):
+    def set_model_id(model):
+        model.model_id = ("M_" + ''.join(
+            '1' if v == ESTIMATE else '0'
+            for v in model.parameters.values()
+        ))
+
+    def calibrate(
+        model,
+        expected_criterion_values=expected_criterion_values,
+    ) -> None:
+        model.set_criterion(
+            criterion=petab_select_problem.criterion,
+            value=expected_criterion_values[model.model_id]
+        )
 
     history = {}
     progress_list = []
+
     lateral_method_switching = {
         (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
         (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
-        (
-            Method.BACKWARD,
-            Method.LATERAL,
-        ): None,
-        (
-            Method.FORWARD,
-            Method.LATERAL,
-        ): None,
+        (Method.BACKWARD, Method.LATERAL): None,
+        (Method.FORWARD, Method.LATERAL): None,
         (Method.FORWARD,): Method.BACKWARD,
         (Method.BACKWARD,): Method.FORWARD,
         (Method.LATERAL,): Method.FORWARD,
@@ -201,10 +210,6 @@ if __name__ == "__main__":
                 excluded_model_hashes=list(history),
                 predecessor_model=predecessor_model,
             ).models
-            # print(
-            #     (candidate_space.inner_candidate_space.method,
-            #     set(previous_predecessor_model_parameter_indices).symmetric_difference(set(predecessor_model_parameter_indices)))
-            # )
             progress_list.append(
                 (
                     candidate_space.inner_candidate_space.method,
