@@ -1,14 +1,12 @@
 """Classes and methods related to candidate spaces."""
 import abc
+import bisect
+import logging
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Union
-import logging
-
-# from argon2 import Parameters
 
 import numpy as np
 from more_itertools import one
-import bisect
 
 from .constants import (
     ESTIMATE,
@@ -16,13 +14,12 @@ from .constants import (
     MODELS,
     VIRTUAL_INITIAL_MODEL,
     VIRTUAL_INITIAL_MODEL_METHODS,
-    Method,
     Criterion,
+    Method,
 )
 from .handlers import TYPE_LIMIT, LimitHandler
 from .misc import snake_case_to_camel_case
-from .model import Model
-from .model import default_compare
+from .model import Model, default_compare
 
 
 class CandidateSpace(abc.ABC):
@@ -992,7 +989,7 @@ class FamosCandidateSpace(CandidateSpace):
                 return
             else:
                 raise StopIteration(
-                    f"The next chosen method is Method.LATERAL, but there are no crit or swap parameters provided. Terminating"
+                    "The next chosen method is Method.LATERAL, but there are no crit or swap parameters provided. Terminating"
                 )
         if previous == Method.LATERAL:
             self.swap_done_successfully = False
@@ -1100,7 +1097,7 @@ class FamosCandidateSpace(CandidateSpace):
                 most_distance = complement_least_distance
                 most_distant_indices = complement_parameters
         if len(most_distant_indices) == 0:
-            raise StopIteration(f"No most_distant model found. Terminating")
+            raise StopIteration("No most_distant model found. Terminating")
 
         most_distant_parameter_values = [
             str(index).replace('1', ESTIMATE) for index in most_distant_indices

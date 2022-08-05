@@ -3,11 +3,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import petab
-import petab_select
 import pytest
-from petab_select import ESTIMATE, Method, Model, FamosCandidateSpace
-from petab_select.model import default_compare
+
+import petab_select
+from petab_select import ESTIMATE, FamosCandidateSpace, Method, Model
 from petab_select.constants import Criterion
+from petab_select.model import default_compare
 
 
 @pytest.fixture
