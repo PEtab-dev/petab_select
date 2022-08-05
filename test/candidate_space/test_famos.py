@@ -3,8 +3,6 @@ import numpy as np
 import petab
 import petab_select
 from petab_select import ESTIMATE, Method, Model, FamosCandidateSpace
-import pypesto.select as select
-from pypesto.select.model_problem import ModelProblem
 from petab_select.model import default_compare
 from pathlib import Path
 from petab_select.constants import Criterion
@@ -106,9 +104,6 @@ for index, row in calibration_results.iterrows():
 # setup select problems
 petab_select_problem = petab_select.Problem.from_yaml(petab_select_yaml)
 
-pypesto_select_problem = select.Problem(
-    petab_select_problem=petab_select_problem,
-)
 petab_problem = petab.Problem.from_yaml(petab_yaml)
 
 
@@ -125,39 +120,6 @@ def set_model_id(model: Model) -> None:
         model_id += str(p)
 
     model.model_id = model_id
-
-
-def new_model_problem(
-    model: Model,
-    valid: bool = True,
-    autorun: bool = True,
-) -> ModelProblem:
-    """Create a model problem, usually to calibrate a model.
-
-    Parameters
-    ----------
-    model:
-        The model.
-    valid:
-        Whether the model should be considered a valid model. If it is
-        not valid, it will not be calibrated.
-    autorun:
-        Whether the model should be calibrated upon creation.
-
-    Returns
-    -------
-    ModelProblem
-        The model selection problem.
-    """
-    x_guess = None
-
-    return ModelProblem(
-        model=model,
-        criterion=petab_select_problem.criterion,
-        valid=valid,
-        autorun=autorun,
-        x_guess=x_guess,
-    )
 
 
 def calibrate(model: Model, exhaustive_calibration=exhaustive_calibration) -> None:
@@ -290,7 +252,6 @@ if __name__ == "__main__":
                 best_model = candidate_space.predecessor_model
                 set_model_id(best_model)
                 calibrate(best_model)
-                new_model_problem(model=best_model, autorun=False)
                 local_history[best_model.model_id] = best_model
                 progress_list.append(best_model.model_id)
             if best_model:
