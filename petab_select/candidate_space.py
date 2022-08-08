@@ -2,8 +2,11 @@
 import abc
 import bisect
 import copy
+import csv
 import logging
+import os.path
 import warnings
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
@@ -68,7 +71,6 @@ class CandidateSpace(abc.ABC):
 
     method: Method = None
     retry_model_space_search_if_no_models: bool = False
-    famos_to_csv_path = None
 
     def __init__(
         self,
@@ -637,12 +639,12 @@ class FamosCandidateSpace(CandidateSpace):
             Boolean, if True then the LATERAL method will switch to FORWARD method after
             one successful lateral move. Otherwise, the LATERAL method will continue
             searching for better models until no such models can be found.
-        famos_to_csv_path:
-            The path and name of the csv file to which the progress of the famos method will
-            be written to. If no path is provided, the progress will not be written.
-        overwrite_famos_csv:
-            Boolean, if True it will overwrite the existing csv file of famos progress history
-            if it exists. Otherwise a ValueError will be risen to stop from overwriting.
+        summary_tsv:
+            A string or `pathlib.Path`. A summary of the model selection progress
+            will be written to this file.
+        overwrite_summary_tsv:
+            Boolean. If `True` it will overwrite any existing summary file,
+            otherwise an error is raised if the file already exists.
     """
 
     method = Method.FAMOS
@@ -666,33 +668,39 @@ class FamosCandidateSpace(CandidateSpace):
         method_scheme: Dict[tuple, str] = None,
         number_of_reattempts: int = 0,
         swap_only_once: bool = True,
-        famos_to_csv_path: Optional[Union[str, None]] = None,
-        overwrite_famos_csv: bool = False,
+        summary_tsv: Optional[Union[str, Path]] = None,
+        overwrite_summary_tsv: bool = False,
         **kwargs,
     ):
-        self.famos_to_csv_path = famos_to_csv_path
-        # initialize famos csv progress history
-        if famos_to_csv_path is not None:
-            import os.path
-            import csv
-
-            if os.path.exists(famos_to_csv_path) and not overwrite_famos_csv:
-                raise ValueError(
-                    f"There already exists a csv file on path {famos_to_csv_path}. Provide a different name or set overwrite_famos_csv to True to overwrite."
-                )
-            with open(famos_to_csv_path, 'w', encoding='UTF8') as f:
-                writer = csv.writer(f)
-
-                writer.writerow(
-                    [
-                        'current method',
-                        '#candidate models',
-                        'previous change of parameters',
-                        'current model criterion',
-                        'current model',
-                        'candidate models changed pars',
-                    ]
-                )
+        self.summary_tsv = None
+        if summary_tsv is not None:
+            self.summary_tsv = Path(summary_tsv)
+            if self.summary_tsv.exists():
+                if not overwrite_summary_tsv:
+                    raise ValueError(
+                        f"There is already a file at: {summary_tsv}. Please provide a different filename or specify `overwrite_summary_tsv=True`."
+                    )
+                with open(summary_tsv, 'a') as f:
+                    writer = csv.writer(f, delimiter='\t')
+                    writer.writerow(
+                        [
+                            'continuing summary file',
+                            *([''] * 5),
+                        ]
+                    )
+            else:
+                with open(summary_tsv, 'w') as f:
+                    writer = csv.writer(f, delimiter='\t')
+                    writer.writerow(
+                        [
+                            'method',
+                            '# candidates',
+                            'predecessor change',
+                            'current model criterion',
+                            'current model',
+                            'candidate changes',
+                        ]
+                    )
 
         self.critical_parameter_sets = critical_parameter_sets
         self.swap_parameter_sets = swap_parameter_sets
@@ -1114,19 +1122,15 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.predecessor_model = new_init_model
         self.best_model_of_current_run = new_init_model
-        if self.famos_to_csv_path is not None:
-            with open(self.famos_to_csv_path, 'a', encoding='UTF8') as f:
-                import csv
-                writer = csv.writer(f)
-
-                writer.writerow([
-                    "FAMoS jumped", 
-                    "to the most distant model", 
-                    "",
-                    "",
-                    "",
-                    ""
-                ])        
+        if self.summary_tsv is not None:
+            with open(summary_tsv, 'a') as f:
+                writer = csv.writer(f, delimiter='\t')
+                writer.writerow(
+                    [
+                        "Jumped to the most distant model.",
+                        *([''] * 5),
+                    ]
+                )
 
     # TODO Fix for non-famos model subspaces. FAMOS easy beacuse of only 0;ESTIMATE
     def get_most_distant(self) -> Model:
