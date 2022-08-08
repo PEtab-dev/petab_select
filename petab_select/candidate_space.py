@@ -68,6 +68,7 @@ class CandidateSpace(abc.ABC):
 
     method: Method = None
     retry_model_space_search_if_no_models: bool = False
+    famos_to_csv_path = None
 
     def __init__(
         self,
@@ -636,6 +637,9 @@ class FamosCandidateSpace(CandidateSpace):
             Boolean, if True then the LATERAL method will switch to FORWARD method after
             one successful lateral move. Otherwise, the LATERAL method will continue
             searching for better models until no such models can be found.
+        famos_to_csv_path:
+            The path and name of the csv file to which the progress of the famos method will
+            be written to. If no path is provided, the progress will not be written.
     """
 
     method = Method.FAMOS
@@ -659,6 +663,7 @@ class FamosCandidateSpace(CandidateSpace):
         method_scheme: Dict[tuple, str] = None,
         number_of_reattempts: int = 0,
         swap_only_once: bool = True,
+        famos_to_csv_path: Optional[Union[str, None]] = None,
         **kwargs,
     ):
         self.critical_parameter_sets = critical_parameter_sets
@@ -1162,6 +1167,12 @@ class FamosCandidateSpace(CandidateSpace):
 
         return most_distant_model
 
+    def wrap_search_subspaces(self, search_subspaces):
+        def wrapper():
+            search_subspaces(only_one_subspace=True)
+
+        return wrapper
+
 
 # TODO rewrite so BidirectionalCandidateSpace inherits from ForwardAndBackwardCandidateSpace
 #      instead
@@ -1215,6 +1226,11 @@ class LateralCandidateSpace(CandidateSpace):
         self.max_number_of_steps = max_number_of_steps
 
     def is_plausible(self, model: Model) -> bool:
+        if self.predecessor_model is None:
+            raise ValueError(
+                f"The predecessor_model is still None. Provide an appropriate predecessor_model"
+            )
+
         distances = self.distances_in_estimated_parameters(model)
 
         # If max_number_of_steps is non-zero and the number of steps made is

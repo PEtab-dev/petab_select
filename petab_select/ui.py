@@ -53,6 +53,10 @@ def candidates(
         excluded_models = []
     if excluded_model_hashes is None:
         excluded_model_hashes = []
+    if candidate_space.famos_to_csv_path:
+        previous_predecessor_model = (
+            candidate_space.inner_candidate_space.predecessor_model
+        )
 
     if (
         predecessor_model is None
@@ -72,6 +76,14 @@ def candidates(
         model_hashes=excluded_model_hashes
     )
     problem.model_space.search(candidate_space, limit=limit_sent)
+
+    if candidate_space.famos_to_csv_path:
+        write_famos_progress_to_csv(
+            problem=problem,
+            candidate_space=candidate_space,
+            previous_predecessor_model=previous_predecessor_model,
+            predecessor_model=predecessor_model,
+        )
 
     return candidate_space
 
@@ -141,3 +153,80 @@ def best(
     """
     # TODO return list, when multiple models are equally "best"
     return problem.get_best(models=models, criterion=criterion)
+
+
+def write_famos_progress_to_csv(
+    problem: Problem,
+    candidate_space: Optional[CandidateSpace] = None,
+    previous_predecessor_model: Optional[Model] = None,
+    predecessor_model: Optional[Model] = None,
+) -> None:
+    import os.path
+    import csv
+
+    previous_parameters = previous_predecessor_model.get_parameter_values(
+        parameter_ids=previous_predecessor_model.petab_parameters
+    )
+    previous_parameter_indices = [
+        index + 1
+        for index in range(len(previous_parameters))
+        if previous_parameters[index] == 'estimate'
+    ]
+    current_parameters = predecessor_model.get_parameter_values(
+        parameter_ids=predecessor_model.petab_parameters
+    )
+    current_parameter_indices = [
+        index + 1
+        for index in range(len(current_parameters))
+        if current_parameters[index] == 'estimate'
+    ]
+    changed_parameters = set(previous_parameter_indices).symmetric_difference(
+        set(current_parameter_indices)
+    )
+
+    candidate_model_changed_pars = []
+    for candidate_model in candidate_space.models:
+        candidate_model_pars = candidate_model.get_parameter_values(
+            parameter_ids=predecessor_model.petab_parameters
+        )
+        candidate_model_indices = [
+            index + 1
+            for index in range(len(candidate_model_pars))
+            if candidate_model_pars[index] == 'estimate'
+        ]
+        candidate_model_changed_pars.append(
+            set(candidate_model_indices).symmetric_difference(
+                current_parameter_indices
+            )
+        )
+
+    if not os.path.exists(candidate_space.famos_to_csv_path):
+        with open(
+            candidate_space.famos_to_csv_path, 'w', encoding='UTF8'
+        ) as f:
+            writer = csv.writer(f)
+
+            writer.writerow(
+                [
+                    'current method',
+                    '#candidate models',
+                    'previous change of parameters',
+                    'current model criterion',
+                    'current model',
+                    'candidate models changed pars',
+                ]
+            )
+
+    with open(candidate_space.famos_to_csv_path, 'a', encoding='UTF8') as f:
+        writer = csv.writer(f)
+
+        writer.writerow(
+            [
+                len(candidate_space.models),
+                candidate_space.inner_candidate_space.method,
+                changed_parameters,
+                predecessor_model.get_criterion(problem.criterion),
+                current_parameter_indices,
+                candidate_model_changed_pars,
+            ]
+        )
