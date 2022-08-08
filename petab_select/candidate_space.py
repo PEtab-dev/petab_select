@@ -793,7 +793,12 @@ class FamosCandidateSpace(CandidateSpace):
         self.history: List[Dict[str, Union[Method, List[Model]]]] = []
 
         self.number_of_reattempts = number_of_reattempts
+
         self.swap_only_once = swap_only_once
+        if self.swap_only_once and (Method.LATERAL,) not in self.method_scheme:
+            raise ValueError(
+                "Please provide a method to switch to after a lateral search, if enabling the `swap_only_once` option."
+            )
 
         if self.number_of_reattempts:
             # TODO make so max_number can be specified? It cannot in original FAMoS.
@@ -1027,10 +1032,6 @@ class FamosCandidateSpace(CandidateSpace):
         # (a better model was found) then go back to FORWARD. Else do the
         # usual method swapping scheme.
         if self.swap_done_successfully:
-            if (Method.LATERAL,) not in self.method_scheme:
-                raise ValueError(
-                    "Please provide a method to switch to after a lateral search, if enabling the `swap_only_once` option."
-                )
             next_method = self.method_scheme[(Method.LATERAL,)]
         else:
             # iterate through the method_scheme dictionary to see which method to switch to
