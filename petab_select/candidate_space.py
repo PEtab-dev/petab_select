@@ -640,6 +640,9 @@ class FamosCandidateSpace(CandidateSpace):
         famos_to_csv_path:
             The path and name of the csv file to which the progress of the famos method will
             be written to. If no path is provided, the progress will not be written.
+        overwrite_famos_csv:
+            Boolean, if True it will overwrite the existing csv file of famos progress history
+            if it exists. Otherwise a ValueError will be risen to stop from overwriting.
     """
 
     method = Method.FAMOS
@@ -664,8 +667,33 @@ class FamosCandidateSpace(CandidateSpace):
         number_of_reattempts: int = 0,
         swap_only_once: bool = True,
         famos_to_csv_path: Optional[Union[str, None]] = None,
+        overwrite_famos_csv: bool = False,
         **kwargs,
     ):
+        self.famos_to_csv_path = famos_to_csv_path
+        # initialize famos csv progress history
+        if famos_to_csv_path is not None:
+            import os.path
+            import csv
+
+            if os.path.exists(famos_to_csv_path) and not overwrite_famos_csv:
+                raise ValueError(
+                    f"There already exists a csv file on path {famos_to_csv_path}. Provide a different name or set overwrite_famos_csv to True to overwrite."
+                )
+            with open(famos_to_csv_path, 'w', encoding='UTF8') as f:
+                writer = csv.writer(f)
+
+                writer.writerow(
+                    [
+                        'current method',
+                        '#candidate models',
+                        'previous change of parameters',
+                        'current model criterion',
+                        'current model',
+                        'candidate models changed pars',
+                    ]
+                )
+
         self.critical_parameter_sets = critical_parameter_sets
         self.swap_parameter_sets = swap_parameter_sets
 

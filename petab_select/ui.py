@@ -53,7 +53,7 @@ def candidates(
         excluded_models = []
     if excluded_model_hashes is None:
         excluded_model_hashes = []
-    if candidate_space.famos_to_csv_path:
+    if candidate_space.famos_to_csv_path is not None:
         previous_predecessor_model = (
             candidate_space.inner_candidate_space.predecessor_model
         )
@@ -77,7 +77,7 @@ def candidates(
     )
     problem.model_space.search(candidate_space, limit=limit_sent)
 
-    if candidate_space.famos_to_csv_path:
+    if candidate_space.famos_to_csv_path is not None:
         write_famos_progress_to_csv(
             problem=problem,
             candidate_space=candidate_space,
@@ -200,30 +200,13 @@ def write_famos_progress_to_csv(
             )
         )
 
-    if not os.path.exists(candidate_space.famos_to_csv_path):
-        with open(
-            candidate_space.famos_to_csv_path, 'w', encoding='UTF8'
-        ) as f:
-            writer = csv.writer(f)
-
-            writer.writerow(
-                [
-                    'current method',
-                    '#candidate models',
-                    'previous change of parameters',
-                    'current model criterion',
-                    'current model',
-                    'candidate models changed pars',
-                ]
-            )
-
     with open(candidate_space.famos_to_csv_path, 'a', encoding='UTF8') as f:
         writer = csv.writer(f)
 
         writer.writerow(
             [
-                len(candidate_space.models),
                 candidate_space.inner_candidate_space.method,
+                len(candidate_space.models),
                 changed_parameters,
                 predecessor_model.get_criterion(problem.criterion),
                 current_parameter_indices,
