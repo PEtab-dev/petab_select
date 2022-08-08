@@ -183,7 +183,7 @@ class Problem(abc.ABC):
         if criterion is not None:
             criterion = Criterion(criterion)
 
-        candidate_space_arguments=problem_specification.get(
+        candidate_space_arguments = problem_specification.get(
             CANDIDATE_SPACE_ARGUMENTS,
             None,
         )
@@ -272,8 +272,9 @@ class Problem(abc.ABC):
             method = self.method
         candidate_space_class = method_to_candidate_space_class(method)
         candidate_space_arguments = (
-            candidate_space_class
-            .read_arguments_from_yaml_dict(self.candidate_space_arguments)
+            candidate_space_class.read_arguments_from_yaml_dict(
+                self.candidate_space_arguments
+            )
         )
         candidate_space_kwargs = {
             **candidate_space_arguments,

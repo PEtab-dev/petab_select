@@ -19,9 +19,7 @@ def input_path():
 @pytest.fixture
 def petab_select_problem(input_path):
     return petab_select.Problem.from_yaml(
-        input_path
-        / "select"
-        / "FAMoS_2019_petab_select_problem.yaml"
+        input_path / "select" / "FAMoS_2019_petab_select_problem.yaml"
     )
 
 

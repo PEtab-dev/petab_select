@@ -89,7 +89,9 @@ class CandidateSpace(abc.ABC):
         kwargs = copy.deepcopy(yaml_dict)
 
         predecessor_model = None
-        if (predecessor_model_yaml := kwargs.pop(PREDECESSOR_MODEL, None)) is not None:
+        if (
+            predecessor_model_yaml := kwargs.pop(PREDECESSOR_MODEL, None)
+        ) is not None:
 
             predecessor_model = Model.from_yaml(predecessor_model_yaml)
 
@@ -773,10 +775,12 @@ class FamosCandidateSpace(CandidateSpace):
         if (method_scheme_raw := kwargs.pop(METHOD_SCHEME, None)) is not None:
             method_scheme = {
                 (
-                    tuple([
-                        Method(method_str)
-                        for method_str in definition[PREVIOUS_METHODS]
-                    ])
+                    tuple(
+                        [
+                            Method(method_str)
+                            for method_str in definition[PREVIOUS_METHODS]
+                        ]
+                    )
                     if definition[PREVIOUS_METHODS] is not None
                     else None
                 ): definition[NEXT_METHOD]
