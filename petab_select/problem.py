@@ -66,11 +66,14 @@ class Problem(abc.ABC):
         yaml_path: str = None,
     ):
         self.model_space = model_space
-        self.candidate_space_arguments = candidate_space_arguments
         self.criterion = criterion
         self.method = method
         self.version = version
         self.yaml_path = yaml_path
+
+        self.candidate_space_arguments = candidate_space_arguments
+        if self.candidate_space_arguments is None:
+            self.candidate_space_arguments = {}
 
         self.compare = compare
         if self.compare is None:
