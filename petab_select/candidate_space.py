@@ -1114,6 +1114,19 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.predecessor_model = new_init_model
         self.best_model_of_current_run = new_init_model
+        if self.famos_to_csv_path is not None:
+            with open(self.famos_to_csv_path, 'a', encoding='UTF8') as f:
+                import csv
+                writer = csv.writer(f)
+
+                writer.writerow([
+                    "FAMoS jumped", 
+                    "to the most distant model", 
+                    "",
+                    "",
+                    "",
+                    ""
+                ])        
 
     # TODO Fix for non-famos model subspaces. FAMOS easy beacuse of only 0;ESTIMATE
     def get_most_distant(self) -> Model:
