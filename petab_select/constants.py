@@ -94,6 +94,12 @@ METHOD = 'method'
 VERSION = 'version'
 MODEL_SPACE_FILES = 'model_space_files'
 
+CANDIDATE_SPACE_ARGUMENTS = 'candidate_space_arguments'
+METHOD_SCHEME = 'method_scheme'
+PREVIOUS_METHODS = 'previous_methods'
+NEXT_METHOD = 'next_method'
+PREDECESSOR_MODEL = 'predecessor_model'
+
 MODEL = 'model'
 MODELS = 'models'
 

@@ -13,71 +13,22 @@ from petab_select.model import default_compare
 
 @pytest.fixture
 def input_path():
-    return Path(__file__).parent / "input"
+    return Path(__file__).parent / "input" / "famos_synthetic"
 
 
 @pytest.fixture
 def petab_select_problem(input_path):
     return petab_select.Problem.from_yaml(
         input_path
-        / "famos_synthetic_petab_problem"
+        / "select"
         / "FAMoS_2019_petab_select_problem.yaml"
-    )
-
-
-@pytest.fixture
-def predecessor_model(input_path):
-    return Model(
-        petab_yaml=(
-            input_path
-            / "famos_synthetic_petab_problem"
-            / "FAMoS_2019_problem.yaml"
-        ),
-        model_subspace_id="model_subspace_1",
-        model_id="M_1100110111000111",
-        parameters={
-            "mu_AB": "estimate",
-            "mu_AC": 0,
-            "mu_AD": "estimate",
-            "mu_BA": "estimate",
-            "mu_BC": 0,
-            "mu_BD": 0,
-            "mu_CA": "estimate",
-            "mu_CB": 0,
-            "mu_CD": "estimate",
-            "mu_DA": "estimate",
-            "mu_DB": "estimate",
-            "mu_DC": "estimate",
-            "ro_A": "estimate",
-            "ro_B": "estimate",
-            "ro_C": 0,
-            "ro_D": 0,
-        },
-        estimated_parameters={
-            "mu_AB": 0.09706971737957297,
-            "mu_AD": -0.6055359156893474,
-            "mu_BA": 0.6989700040781575,
-            "mu_CA": -13.545121478780585,
-            "mu_CD": -13.955162965672203,
-            "mu_DA": -13.405909047226377,
-            "mu_DB": -13.402598631022197,
-            "mu_DC": -1.1619119214640863,
-            "ro_A": -1.6431508614147425,
-            "ro_B": 2.9912966824709097,
-        },
-        criteria={
-            Criterion.AIC: 30330.782621349786,
-            Criterion.AICC: 30332.80096997364,
-            Criterion.BIC: 30358.657538777607,
-            Criterion.NLLH: 15155.391310674893,
-        },
     )
 
 
 @pytest.fixture
 def expected_criterion_values(input_path):
     calibration_results = pd.read_csv(
-        input_path / "calibration_results.tsv",
+        input_path / "test_files" / "calibration_results.tsv",
         sep="\t",
     ).set_index('model_id')
     return dict(calibration_results['AICc'])
@@ -128,7 +79,6 @@ def expected_progress_list():
 
 def test_famos(
     petab_select_problem,
-    predecessor_model,
     expected_criterion_values,
     expected_progress_list,
 ):
@@ -160,21 +110,10 @@ def test_famos(
         None: Method.LATERAL,
     }
 
-    candidate_space = FamosCandidateSpace(
-        method_switching=lateral_method_switching,
-        predecessor_model=predecessor_model,
-        critical_parameter_sets=[],
-        swap_parameter_sets=[
-            ["ro_A", "mu_BA", "mu_CA", "mu_DA"],
-            ["ro_B", "mu_AB", "mu_CB", "mu_DB"],
-            ["ro_C", "mu_AC", "mu_BC", "mu_DC"],
-            ["ro_D", "mu_AD", "mu_BD", "mu_CD"],
-        ],
-        number_of_reattempts=1,
-        swap_only_once=False,
-    )
+    candidate_space = petab_select_problem.new_candidate_space()
 
     try:
+        predecessor_model = candidate_space.predecessor_model
         while True:
             # Calibrated models in this iteration that improve on the predecessor
             # model.
@@ -262,7 +201,7 @@ def test_famos(
                 calibrate(best_model)
                 local_history[best_model.model_id] = best_model
                 progress_list.append(best_model.model_id)
-            if best_model:
+            if best_model is not None:
                 predecessor_model = best_model
 
     except StopIteration:

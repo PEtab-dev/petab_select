@@ -3,15 +3,17 @@ import abc
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Iterable, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Union
 
 import yaml
 
 from .candidate_space import CandidateSpace, method_to_candidate_space_class
 from .constants import (
+    CANDIDATE_SPACE_ARGUMENTS,
     CRITERION,
     METHOD,
     MODEL_SPACE_FILES,
+    PREDECESSOR_MODEL,
     VERSION,
     Criterion,
     Method,
@@ -29,6 +31,8 @@ class Problem(abc.ABC):
         calibrated_models:
             Calibrated models. Will be used to augment the model selection problem (e.g.
             by excluding them from the model space).
+        candidate_space_arguments:
+            Custom options that are used to construct the candidate space.
         compare:
             A method that compares models by selection criterion.
         criterion:
@@ -54,6 +58,7 @@ class Problem(abc.ABC):
     def __init__(
         self,
         model_space: ModelSpace,
+        candidate_space_arguments: Dict[str, Any] = None,
         compare: Callable[[Model, Model], bool] = None,
         criterion: Criterion = None,
         method: str = None,
@@ -61,6 +66,7 @@ class Problem(abc.ABC):
         yaml_path: str = None,
     ):
         self.model_space = model_space
+        self.candidate_space_arguments = candidate_space_arguments
         self.criterion = criterion
         self.method = method
         self.version = version
@@ -174,8 +180,20 @@ class Problem(abc.ABC):
         if criterion is not None:
             criterion = Criterion(criterion)
 
+        candidate_space_arguments=problem_specification.get(
+            CANDIDATE_SPACE_ARGUMENTS,
+            None,
+        )
+        if candidate_space_arguments is not None:
+            if PREDECESSOR_MODEL in candidate_space_arguments:
+                candidate_space_arguments[PREDECESSOR_MODEL] = (
+                    yaml_path.parent
+                    / candidate_space_arguments[PREDECESSOR_MODEL]
+                )
+
         return Problem(
             model_space=model_space,
+            candidate_space_arguments=candidate_space_arguments,
             criterion=criterion,
             # TODO refactor method to use enum
             method=problem_specification.get(METHOD, None),
@@ -250,5 +268,16 @@ class Problem(abc.ABC):
         if method is None:
             method = self.method
         candidate_space_class = method_to_candidate_space_class(method)
-        candidate_space = candidate_space_class(*args, **kwargs)
+        candidate_space_arguments = (
+            candidate_space_class
+            .read_arguments_from_yaml_dict(self.candidate_space_arguments)
+        )
+        candidate_space_kwargs = {
+            **candidate_space_arguments,
+            **kwargs,
+        }
+        candidate_space = candidate_space_class(
+            *args,
+            **candidate_space_kwargs,
+        )
         return candidate_space

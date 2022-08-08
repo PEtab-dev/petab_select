@@ -1,6 +1,7 @@
 """Classes and methods related to candidate spaces."""
 import abc
 import bisect
+import copy
 import logging
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -11,7 +12,11 @@ from more_itertools import one
 from .constants import (
     ESTIMATE,
     METHOD,
+    METHOD_SCHEME,
     MODELS,
+    NEXT_METHOD,
+    PREDECESSOR_MODEL,
+    PREVIOUS_METHODS,
     VIRTUAL_INITIAL_MODEL,
     VIRTUAL_INITIAL_MODEL_METHODS,
     Criterion,
@@ -78,6 +83,20 @@ class CandidateSpace(abc.ABC):
         # Each candidate class specifies this as a class attribute.
         self.governing_method = self.method
         self.reset(predecessor_model=predecessor_model, exclusions=exclusions)
+
+    @classmethod
+    def read_arguments_from_yaml_dict(cls, yaml_dict):
+        kwargs = copy.deepcopy(yaml_dict)
+
+        predecessor_model = None
+        if (predecessor_model_yaml := kwargs.pop(PREDECESSOR_MODEL, None)) is not None:
+
+            predecessor_model = Model.from_yaml(predecessor_model_yaml)
+
+        return {
+            **kwargs,
+            PREDECESSOR_MODEL: predecessor_model,
+        }
 
     def is_plausible(self, model: Model) -> bool:
         """Determine whether a candidate model is plausible.
@@ -384,7 +403,7 @@ class CandidateSpace(abc.ABC):
         should change methods by comparing local_history of the last
         search to the best max_nmb best models of the whole search. If
         no new best model is found we change methods using the
-        provided or default method_switching scheme.
+        provided or default method scheme.
 
         If we change methods, to construct the new candidate space we
         need the whole history of visited models to include them into
@@ -598,14 +617,14 @@ class FamosCandidateSpace(CandidateSpace):
             The Lateral method for the FAMoS algorithm can make a swap move, where
             one non-fixed parameter is fixed and another fixed is un-fixed, only if
             both parameters are contained in the same swap parameter set.
-        method_switching:
-            A dictionary of the method switching scheme used to switch to a different
+        method_scheme:
+            A dictionary of the method scheme used to switch to a different
             method when the current does not provide a better model. The keys of the
             dictionary are tuples of the previous methods of arbitrary size and values
             are the methods to which the method should swap if the current previous
-            methods coincide with the key. FAMoS will iterate through the dictionary
-            find the first key that coincides with the current previous methods. Method
-            of this key will be chosen.
+            methods coincide with the key. FAMoS will iterate through the dictionary to
+            find the first key that coincides with the current previous methods. The
+            method of this key will be chosen, and other keys will be ignored.
         number_of_reattempts:
             Integer. If grater or equal 1 then at the point at which we would usually
             terminate, FAMoS will find a most_distant model to jump to and start the
@@ -618,7 +637,7 @@ class FamosCandidateSpace(CandidateSpace):
     """
 
     method = Method.FAMOS
-    default_method_switching = {
+    default_method_scheme = {
         (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
         (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
         (Method.BACKWARD, Method.LATERAL): None,
@@ -635,7 +654,7 @@ class FamosCandidateSpace(CandidateSpace):
         predecessor_model: Optional[Union[Model, str, None]] = None,
         critical_parameter_sets: List = [],
         swap_parameter_sets: List = [],
-        method_switching: Dict[tuple, str] = None,
+        method_scheme: Dict[tuple, str] = None,
         number_of_reattempts: int = 0,
         swap_only_once: bool = True,
         **kwargs,
@@ -643,11 +662,11 @@ class FamosCandidateSpace(CandidateSpace):
         self.critical_parameter_sets = critical_parameter_sets
         self.swap_parameter_sets = swap_parameter_sets
 
-        self.method_switching = method_switching
-        if method_switching is None:
-            self.method_switching = self.default_method_switching
+        self.method_scheme = method_scheme
+        if method_scheme is None:
+            self.method_scheme = self.default_method_scheme
 
-        self.initial_method = self.method_switching[None]
+        self.initial_method = self.method_scheme[None]
         self.method = self.initial_method
         self.method_history = [self.initial_method]
 
@@ -690,7 +709,7 @@ class FamosCandidateSpace(CandidateSpace):
                         next_method,
                     ]
                 )
-                for method_pattern, next_method in self.method_switching.items()
+                for method_pattern, next_method in self.method_scheme.items()
             ]
         )
         if Method.LATERAL in inner_methods and not self.swap_parameter_sets:
@@ -746,6 +765,26 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.jumped_to_most_distant = False
         self.swap_done_successfully = False
+
+    @classmethod
+    def read_arguments_from_yaml_dict(cls, yaml_dict) -> dict:
+        kwargs = copy.deepcopy(yaml_dict)
+
+        if (method_scheme_raw := kwargs.pop(METHOD_SCHEME, None)) is not None:
+            method_scheme = {
+                (
+                    tuple([
+                        Method(method_str)
+                        for method_str in definition[PREVIOUS_METHODS]
+                    ])
+                    if definition[PREVIOUS_METHODS] is not None
+                    else None
+                ): definition[NEXT_METHOD]
+                for definition in method_scheme_raw
+            }
+            kwargs[METHOD_SCHEME] = method_scheme
+
+        return super().read_arguments_from_yaml_dict(yaml_dict=kwargs)
 
     def update_after_calibration(
         self,
@@ -933,7 +972,7 @@ class FamosCandidateSpace(CandidateSpace):
 
     def switch_method(self) -> None:
         """Switch to the next method with respect to the history
-        of methods used and the switching scheme in self.method_switching"""
+        of methods used and the switching scheme in self.method_scheme"""
 
         previous = self.method
         method = previous
@@ -945,12 +984,12 @@ class FamosCandidateSpace(CandidateSpace):
         if self.swap_done_successfully:
             method = Method.FORWARD
         else:
-            # iterate through the method_switching dictionary to see which method to switch to
-            for previous_methods in self.method_switching:
+            # iterate through the method_scheme dictionary to see which method to switch to
+            for previous_methods in self.method_scheme:
                 if previous_methods is not None and previous_methods == tuple(
                     self.method_history[-len(previous_methods) :]
                 ):
-                    method = self.method_switching[previous_methods]
+                    method = self.method_scheme[previous_methods]
                     # if found a switch just break (choosing first good switch)
                     break
 
@@ -958,8 +997,8 @@ class FamosCandidateSpace(CandidateSpace):
         if method == previous:
             raise ValueError(
                 "Method didn't switch when it had to. "
-                "The `method_switching` provided is not sufficient. "
-                "Please provide a correct method_switching scheme. "
+                "The `method_scheme` provided is not sufficient. "
+                "Please provide a correct method_scheme scheme. "
                 f"Method history: `{self.method_history}`. "
             )
 
@@ -1000,7 +1039,7 @@ class FamosCandidateSpace(CandidateSpace):
         if method not in [Method.FORWARD, Method.LATERAL, Method.BACKWARD]:
             raise NotImplementedError(
                 f'FAMoS direction must be either `Method.FORWARD`, `Method.BACKWARD` or `Method.LATERAL`, not {method}. \
-                Check if the method_switching scheme provided is correct.'
+                Check if the method_scheme scheme provided is correct.'
             )
 
         self.method = method
