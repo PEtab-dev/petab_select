@@ -1127,7 +1127,7 @@ class FamosCandidateSpace(CandidateSpace):
         self.predecessor_model = new_init_model
         self.best_model_of_current_run = new_init_model
         if self.summary_tsv is not None:
-            with open(summary_tsv, 'a') as f:
+            with open(self.summary_tsv, 'a') as f:
                 writer = csv.writer(f, delimiter='\t')
                 writer.writerow(
                     [
