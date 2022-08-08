@@ -1031,7 +1031,7 @@ class FamosCandidateSpace(CandidateSpace):
                 raise ValueError(
                     "Please provide a method to switch to after a lateral search, if enabling the `swap_only_once` option."
                 )
-                next_method = self.method_scheme[(Method.LATERAL,)]
+            next_method = self.method_scheme[(Method.LATERAL,)]
         else:
             # iterate through the method_scheme dictionary to see which method to switch to
             for previous_methods in self.method_scheme:
