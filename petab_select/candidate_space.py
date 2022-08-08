@@ -1019,27 +1019,31 @@ class FamosCandidateSpace(CandidateSpace):
         """Switch to the next method with respect to the history
         of methods used and the switching scheme in self.method_scheme"""
 
-        previous = self.method
-        method = previous
+        previous_method = self.method
+        next_method = previous_method
         logging.info("SWITCHING", self.method_history)
         # breakpoint()
         # If last method was LATERAL and we have made a succesfull swap
         # (a better model was found) then go back to FORWARD. Else do the
         # usual method swapping scheme.
         if self.swap_done_successfully:
-            method = Method.FORWARD
+            if (Method.LATERAL,) not in self.method_scheme:
+                raise ValueError(
+                    "Please provide a method to switch to after a lateral search, if enabling the `swap_only_once` option."
+                )
+                next_method = self.method_scheme[(Method.LATERAL,)]
         else:
             # iterate through the method_scheme dictionary to see which method to switch to
             for previous_methods in self.method_scheme:
                 if previous_methods is not None and previous_methods == tuple(
                     self.method_history[-len(previous_methods) :]
                 ):
-                    method = self.method_scheme[previous_methods]
+                    next_method = self.method_scheme[previous_methods]
                     # if found a switch just break (choosing first good switch)
                     break
 
         # raise error if the method didn't change
-        if method == previous:
+        if next_method == previous_method:
             raise ValueError(
                 "Method didn't switch when it had to. "
                 "The `method_scheme` provided is not sufficient. "
@@ -1049,7 +1053,7 @@ class FamosCandidateSpace(CandidateSpace):
 
         # if the next method is None (in default case if SWAP
         # method didn't find any better models) then terminate
-        if not method:
+        if not next_method:
             if self.number_of_reattempts:
                 self.jump_to_most_distant()
                 return
@@ -1060,7 +1064,7 @@ class FamosCandidateSpace(CandidateSpace):
 
         # If we try to switch to SWAP method but it's not available (no crit or swap parameter groups)
         if (
-            method == Method.LATERAL
+            next_method == Method.LATERAL
             and not [
                 critical_set
                 for critical_set in self.critical_parameter_sets
@@ -1075,9 +1079,9 @@ class FamosCandidateSpace(CandidateSpace):
                 raise StopIteration(
                     "The next chosen method is Method.LATERAL, but there are no crit or swap parameters provided. Terminating"
                 )
-        if previous == Method.LATERAL:
+        if previous_method == Method.LATERAL:
             self.swap_done_successfully = False
-        self.update_method(method=method)
+        self.update_method(method=next_method)
 
     def update_method(self, method: Method):
         """Update self.method to the method."""
