@@ -529,8 +529,9 @@ class ModelSubspace(PetabMixin):
                     # The same number of parameters must be fixed and estimated.
                     if len(parameter_set_estimate) != len(parameter_set_fix):
                         continue
-                    # Only consider models with the minimal lateral move out of
-                    # which at least one is accepted in the candidate space.
+                    # If a model has been accepted by the candidate space, only
+                    # consider models of the same step size (same minimal
+                    # number of steps in the lateral move), then stop.
                     if len(parameter_set_estimate) > n_lateral_moves:
                         break
                     estimated_parameters = (
