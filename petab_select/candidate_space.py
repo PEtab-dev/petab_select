@@ -116,16 +116,20 @@ class CandidateSpace(abc.ABC):
         self.summary_tsv.resolve().parent.mkdir(parents=True, exist_ok=True)
 
         if self.summary_tsv.exists():
-            self.write_summary_tsv('Continuing summary file with new candidate space.')
+            self.write_summary_tsv(
+                'Continuing summary file with new candidate space.'
+            )
         else:
-            self.write_summary_tsv([
-                'method',
-                '# candidates',
-                'predecessor change',
-                'current model criterion',
-                'current model',
-                'candidate changes',
-            ])
+            self.write_summary_tsv(
+                [
+                    'method',
+                    '# candidates',
+                    'predecessor change',
+                    'current model criterion',
+                    'current model',
+                    'candidate changes',
+                ]
+            )
 
     @classmethod
     def read_arguments_from_yaml_dict(cls, yaml_dict):

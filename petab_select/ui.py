@@ -185,7 +185,11 @@ def write_summary_tsv(
             problem.criterion
         )
 
-    diff_parameter_ids = previous_predecessor_parameter_ids.symmetric_difference(predecessor_parameter_ids)
+    diff_parameter_ids = (
+        previous_predecessor_parameter_ids.symmetric_difference(
+            predecessor_parameter_ids
+        )
+    )
 
     diff_candidates_parameter_ids = []
     for candidate_model in candidate_space.models:
@@ -193,14 +197,18 @@ def write_summary_tsv(
             candidate_model.get_estimated_parameter_ids_all()
         )
         diff_candidates_parameter_ids.append(
-            candidate_parameter_ids.symmetric_difference(predecessor_parameter_ids)
+            candidate_parameter_ids.symmetric_difference(
+                predecessor_parameter_ids
+            )
         )
 
-    candidate_space.write_summary_tsv([
-        candidate_space.method,
-        len(candidate_space.models),
-        diff_parameter_ids,
-        predecessor_criterion,
-        predecessor_parameter_ids,
-        diff_candidates_parameter_ids,
-    ])
+    candidate_space.write_summary_tsv(
+        [
+            candidate_space.method,
+            len(candidate_space.models),
+            diff_parameter_ids,
+            predecessor_criterion,
+            predecessor_parameter_ids,
+            diff_candidates_parameter_ids,
+        ]
+    )

@@ -222,12 +222,15 @@ class ModelSpace:
         """
 
         @candidate_space.wrap_search_subspaces
-        def search_subspaces(only_one_subspace: bool=False):
+        def search_subspaces(only_one_subspace: bool = False):
             # TODO change dict to list of subspaces. Each subspace should manage its own
             #      ID
-            if only_one_subspace and len(self.model_subspaces)>1 :
+            if only_one_subspace and len(self.model_subspaces) > 1:
                 import logging
-                logging.warning(f'There is more than one model subspace. This can lead to problems for candidate space {candidate_space}. Especially if they have different petab yaml files.')
+
+                logging.warning(
+                    f'There is more than one model subspace. This can lead to problems for candidate space {candidate_space}. Especially if they have different petab yaml files.'
+                )
             for model_subspace in self.model_subspaces.values():
                 model_subspace.search(
                     candidate_space=candidate_space, limit=limit
