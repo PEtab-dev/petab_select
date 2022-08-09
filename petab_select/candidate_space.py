@@ -222,8 +222,6 @@ class CandidateSpace(abc.ABC):
         """
         # Model was excluded by the `ModelSubspace` that called this method, so can be
         # skipped.
-        distance = self.distance(model)
-
         if model is None:
             # TODO use a different code than `True`?
             return True
