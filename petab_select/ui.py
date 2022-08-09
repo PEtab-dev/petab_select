@@ -55,6 +55,8 @@ def candidates(
         excluded_models = []
     if excluded_model_hashes is None:
         excluded_model_hashes = []
+
+    previous_predecessor_model = None
     if candidate_space.summary_tsv is not None:
         previous_predecessor_model = (
             candidate_space.inner_candidate_space.predecessor_model
@@ -79,13 +81,12 @@ def candidates(
     )
     problem.model_space.search(candidate_space, limit=limit_sent)
 
-    if candidate_space.summary_tsv is not None:
-        write_summary_tsv(
-            problem=problem,
-            candidate_space=candidate_space,
-            previous_predecessor_model=previous_predecessor_model,
-            predecessor_model=predecessor_model,
-        )
+    write_summary_tsv(
+        problem=problem,
+        candidate_space=candidate_space,
+        previous_predecessor_model=previous_predecessor_model,
+        predecessor_model=predecessor_model,
+    )
 
     return candidate_space
 
@@ -163,48 +164,43 @@ def write_summary_tsv(
     previous_predecessor_model: Optional[Union[str, Model]] = None,
     predecessor_model: Optional[Model] = None,
 ) -> None:
-    previous_predecessor_parameter_ids = []
+    if candidate_space.summary_tsv is None:
+        return
+
+    previous_predecessor_parameter_ids = set()
     if isinstance(previous_predecessor_model, Model):
-        previous_predecessor_parameter_ids = (
+        previous_predecessor_parameter_ids = set(
             previous_predecessor_model.get_estimated_parameter_ids_all()
         )
 
     if predecessor_model is None:
         predecessor_model = candidate_space.predecessor_model
-    predecessor_parameter_ids = []
+    predecessor_parameter_ids = set()
     predecessor_criterion = None
     if isinstance(predecessor_model, Model):
-        predecessor_parameter_ids = (
+        predecessor_parameter_ids = set(
             predecessor_model.get_estimated_parameter_ids_all()
         )
         predecessor_criterion = predecessor_model.get_criterion(
             problem.criterion
         )
 
-    diff_parameter_ids = set(
-        previous_predecessor_parameter_ids
-    ).symmetric_difference(set(predecessor_parameter_ids))
+    diff_parameter_ids = previous_predecessor_parameter_ids.symmetric_difference(predecessor_parameter_ids)
 
     diff_candidates_parameter_ids = []
     for candidate_model in candidate_space.models:
-        candidate_parameter_ids = (
+        candidate_parameter_ids = set(
             candidate_model.get_estimated_parameter_ids_all()
         )
         diff_candidates_parameter_ids.append(
-            set(candidate_parameter_ids).symmetric_difference(
-                predecessor_parameter_ids
-            )
+            candidate_parameter_ids.symmetric_difference(predecessor_parameter_ids)
         )
 
-    with open(candidate_space.summary_tsv, 'a') as f:
-        writer = csv.writer(f, delimiter='\t')
-        writer.writerow(
-            [
-                candidate_space.method,
-                len(candidate_space.models),
-                diff_parameter_ids,
-                predecessor_criterion,
-                predecessor_parameter_ids,
-                diff_candidates_parameter_ids,
-            ]
-        )
+    candidate_space.write_summary_tsv([
+        candidate_space.method,
+        len(candidate_space.models),
+        diff_parameter_ids,
+        predecessor_criterion,
+        predecessor_parameter_ids,
+        diff_candidates_parameter_ids,
+    ])

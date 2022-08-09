@@ -20,6 +20,7 @@ from .constants import (
     NEXT_METHOD,
     PREDECESSOR_MODEL,
     PREVIOUS_METHODS,
+    TYPE_PATH,
     VIRTUAL_INITIAL_MODEL,
     VIRTUAL_INITIAL_MODEL_METHODS,
     Criterion,
@@ -63,6 +64,9 @@ class CandidateSpace(abc.ABC):
             Whether a search with a candidate space should be repeated upon failure.
             Useful for the `BidirectionalCandidateSpace`, which switches directions
             upon failure.
+        summary_tsv:
+            A string or `pathlib.Path`. A summary of the model selection progress
+            will be written to this file.
         #limited:
         #    A descriptor that handles the limit on the number of accepted models.
         #limit:
@@ -78,6 +82,7 @@ class CandidateSpace(abc.ABC):
         predecessor_model: Optional[Model] = None,
         exclusions: Optional[List[Any]] = None,
         limit: TYPE_LIMIT = np.inf,
+        summary_tsv: TYPE_PATH = None,
     ):
         self.limit = LimitHandler(
             current=self.n_accepted,
@@ -86,6 +91,41 @@ class CandidateSpace(abc.ABC):
         # Each candidate class specifies this as a class attribute.
         self.governing_method = self.method
         self.reset(predecessor_model=predecessor_model, exclusions=exclusions)
+
+        self.summary_tsv = summary_tsv
+        if self.summary_tsv is not None:
+            self.summary_tsv = Path(self.summary_tsv)
+            self._setup_summary_tsv()
+
+    def write_summary_tsv(self, row):
+        if self.summary_tsv is None:
+            return
+
+        # Format single values to be valid rows
+        if not isinstance(row, list):
+            row = [
+                row,
+                *([''] * 5),
+            ]
+
+        with open(self.summary_tsv, 'a', encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter='\t')
+            writer.writerow(row)
+
+    def _setup_summary_tsv(self):
+        self.summary_tsv.resolve().parent.mkdir(parents=True, exist_ok=True)
+
+        if self.summary_tsv.exists():
+            self.write_summary_tsv('Continuing summary file with new candidate space.')
+        else:
+            self.write_summary_tsv([
+                'method',
+                '# candidates',
+                'predecessor change',
+                'current model criterion',
+                'current model',
+                'candidate changes',
+            ])
 
     @classmethod
     def read_arguments_from_yaml_dict(cls, yaml_dict):
@@ -637,12 +677,6 @@ class FamosCandidateSpace(CandidateSpace):
             Boolean, if True then the LATERAL method will switch to FORWARD method after
             one successful lateral move. Otherwise, the LATERAL method will continue
             searching for better models until no such models can be found.
-        summary_tsv:
-            A string or `pathlib.Path`. A summary of the model selection progress
-            will be written to this file.
-        overwrite_summary_tsv:
-            Boolean. If `True` it will overwrite any existing summary file,
-            otherwise an error is raised if the file already exists.
     """
 
     method = Method.FAMOS
@@ -666,40 +700,8 @@ class FamosCandidateSpace(CandidateSpace):
         method_scheme: Dict[tuple, str] = None,
         number_of_reattempts: int = 0,
         swap_only_once: bool = True,
-        summary_tsv: Optional[Union[str, Path]] = None,
-        overwrite_summary_tsv: bool = False,
         **kwargs,
     ):
-        self.summary_tsv = None
-        if summary_tsv is not None:
-            self.summary_tsv = Path(summary_tsv)
-            if self.summary_tsv.exists():
-                if not overwrite_summary_tsv:
-                    raise ValueError(
-                        f"There is already a file at: {summary_tsv}. Please provide a different filename or specify `overwrite_summary_tsv=True`."
-                    )
-                with open(summary_tsv, 'a') as f:
-                    writer = csv.writer(f, delimiter='\t')
-                    writer.writerow(
-                        [
-                            'continuing summary file',
-                            *([''] * 5),
-                        ]
-                    )
-            else:
-                with open(summary_tsv, 'w') as f:
-                    writer = csv.writer(f, delimiter='\t')
-                    writer.writerow(
-                        [
-                            'method',
-                            '# candidates',
-                            'predecessor change',
-                            'current model criterion',
-                            'current model',
-                            'candidate changes',
-                        ]
-                    )
-
         self.critical_parameter_sets = critical_parameter_sets
         self.swap_parameter_sets = swap_parameter_sets
 
@@ -1125,15 +1127,7 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.predecessor_model = new_init_model
         self.best_model_of_current_run = new_init_model
-        if self.summary_tsv is not None:
-            with open(self.summary_tsv, 'a') as f:
-                writer = csv.writer(f, delimiter='\t')
-                writer.writerow(
-                    [
-                        "Jumped to the most distant model.",
-                        *([''] * 5),
-                    ]
-                )
+        self.write_summary_tsv("Jumped to the most distant model.")
 
     # TODO Fix for non-famos model subspaces. FAMOS easy beacuse of only 0;ESTIMATE
     def get_most_distant(self) -> Model:
