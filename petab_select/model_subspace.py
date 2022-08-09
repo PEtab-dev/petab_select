@@ -349,9 +349,9 @@ class ModelSubspace(PetabMixin):
                     # `new_must_estimate_all`
                     if not parameter_set:
                         continue
-                    # Stop considering models as candidates once all models with a minimal
-                    # increase in the number of extra estimated parameters are considered
-                    # out of which at least one is accepted as a candidate.
+                    # If a model has been accepted by the candidate space, only
+                    # consider models of the same size (same minimal increase in the number
+                    # of extra estimated parameters), then stop.
                     if len(parameter_set) > n_estimated_extra:
                         break
                     estimated_parameters = (
