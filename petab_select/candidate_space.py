@@ -480,8 +480,9 @@ class ForwardCandidateSpace(CandidateSpace):
     Attributes:
         direction:
             `1` for the forward method, `-1` for the backward method.
-        max_number_of_steps:
-            Maximal allowed number of steps. If 0 then there is no maximum.
+        max_steps:
+            Maximum number of steps forward in a single iteration of forward selection.
+            Defaults to no maximum (`None`).
     """
 
     method = Method.FORWARD
@@ -491,7 +492,7 @@ class ForwardCandidateSpace(CandidateSpace):
         self,
         *args,
         predecessor_model: Optional[Union[Model, str]] = None,
-        max_number_of_steps: int = 0,
+        max_steps: int = None,
         **kwargs,
     ):
         # Although `VIRTUAL_INITIAL_MODEL` is `str` and can be used as a default
@@ -504,12 +505,10 @@ class ForwardCandidateSpace(CandidateSpace):
 
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
-        unsigned_size = self.direction * distances['size']
+        n_steps = self.direction * distances['size']
 
-        # If max_number_of_steps is non-zero and the number of steps made is
-        # larger then move is not plausible.
         if (
-            self.max_number_of_steps
+            self.max_steps is not None
             and unsigned_size > self.max_number_of_steps
         ):
             raise StopIteration(
