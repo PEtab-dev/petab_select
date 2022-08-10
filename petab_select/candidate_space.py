@@ -656,13 +656,15 @@ class FamosCandidateSpace(CandidateSpace):
             The lateral moves in FAMoS are constrained to be between parameters that
             exist in the same swap parameter set.
         method_scheme:
-            A dictionary of the method scheme used to switch to a different
-            method when the current does not provide a better model. The keys of the
-            dictionary are tuples of the previous methods of arbitrary size and values
-            are the methods to which the method should swap if the current previous
-            methods coincide with the key. FAMoS will iterate through the dictionary to
-            find the first key that coincides with the current previous methods. The
-            method of this key will be chosen, and other keys will be ignored.
+            A dictionary that specifies how to switch between methods when
+            the current method doesn't produce a better model.
+            Keys are `n`-tuples that described a pattern of length `n`
+            methods. Values are methods. If the previous methods match the
+            pattern in the key, then the method in the value will be used next.
+            The order of the dictionary is important: only the first matched
+            pattern will be used.
+            Defaults to the method scheme described in the original FAMoS
+            publication.
         number_of_reattempts:
             Integer. If grater or equal 1 then at the point at which we would usually
             terminate, FAMoS will find a most_distant model to jump to and start the
