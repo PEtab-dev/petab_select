@@ -505,7 +505,7 @@ class ForwardCandidateSpace(CandidateSpace):
 
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
-        unsigned_size = self.direction * distances['size']
+        n_steps = self.direction * distances['size']
 
         # If max_number_of_steps is non-zero and the number of steps made is
         # larger then move is not plausible.
