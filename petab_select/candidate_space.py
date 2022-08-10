@@ -510,7 +510,7 @@ class ForwardCandidateSpace(CandidateSpace):
         # If max_number_of_steps is non-zero and the number of steps made is
         # larger then move is not plausible.
         if (
-            self.max_number_of_steps
+            self.max_steps is not None
             and unsigned_size > self.max_number_of_steps
         ):
             raise StopIteration(
