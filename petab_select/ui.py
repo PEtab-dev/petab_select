@@ -8,16 +8,17 @@ import petab
 
 from .candidate_space import CandidateSpace
 from .constants import ESTIMATE, TYPE_PATH, VIRTUAL_INITIAL_MODEL_METHODS
-from .model import Model
+from .model import Model, default_compare
 from .problem import Problem
 
 
 def candidates(
     problem: Problem,
     candidate_space: Optional[CandidateSpace] = None,
-    predecessor_model: Optional[Model] = None,
+    previous_predecessor_model: Optional[Model] = None,
     limit: Union[float, int] = np.inf,
     limit_sent: Union[float, int] = np.inf,
+    history: Optional[Dict[str, Model]] = None,
     excluded_models: Optional[List[Model]] = None,
     excluded_model_hashes: Optional[List[str]] = None,
 ) -> CandidateSpace:
@@ -37,6 +38,8 @@ def candidates(
         limit_sent:
             The maximum number of models sent to the candidate space (which are possibly
             rejected and excluded).
+        history:
+            History of all calibrated models in the model selection.
         excluded_models:
             Models that will be excluded from model subspaces during the search for
             candidates.
@@ -47,6 +50,8 @@ def candidates(
     Returns:
         The candidate space, which contains the candidate models.
     """
+    previous_local_history = {}
+
     if candidate_space is None:
         candidate_space = problem.new_candidate_space(limit=limit)
         if problem.calibrated_models:
@@ -55,12 +60,38 @@ def candidates(
         excluded_models = []
     if excluded_model_hashes is None:
         excluded_model_hashes = []
+    if history is None:
+        history = {}
+    # Set the new predecessor_model from the initial model or
+    # by calling ui.best to find the best model to jump to if 
+    # this is not the first step of the search.
+    if candidate_space.models:
+        previous_candidate_models = candidate_space.models
 
-    previous_predecessor_model = None
-    if candidate_space.summary_tsv is not None:
-        previous_predecessor_model = (
-            candidate_space.inner_candidate_space.predecessor_model
+        # Update local and global history.
+        for candidate_model in previous_candidate_models:
+            previous_local_history[candidate_model.model_id] = candidate_model
+        history.update(previous_local_history)
+
+        predecessor_model = problem.get_best(previous_candidate_models)
+        # Check if the last predecessor_model is better than the new one. 
+        # If not, set predecessor_model to be the previous one.
+        # If famos jumped this will not be true, since both models are the same.
+        if default_compare(predecessor_model, previous_predecessor_model, problem.criterion):
+            predecessor_model=previous_predecessor_model
+
+        jumped_to_most_distant = candidate_space.update_after_calibration(
+            history=history,
+            local_history=previous_local_history,
+            criterion=problem.criterion,
         )
+        # If candidate space not Famos then ignored.
+        # Else, in case we jumped to most distant in this iteration, go into
+        # calibration with only the model we've jumped to.
+        if jumped_to_most_distant:
+            return candidate_space.models, history, previous_local_history
+    else:
+        predecessor_model=previous_predecessor_model
 
     if (
         predecessor_model is None
@@ -88,7 +119,7 @@ def candidates(
         predecessor_model=predecessor_model,
     )
 
-    return candidate_space
+    return candidate_space.models, history, previous_local_history
 
 
 def model_to_petab(

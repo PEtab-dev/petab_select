@@ -848,8 +848,11 @@ class FamosCandidateSpace(CandidateSpace):
     ) -> None:
         """See `CandidateSpace.update_after_calibration`."""
         # In case we jumped to most distant in the last iteration,
-        # here we reset the jumped variable to False
-        self.jumped_to_most_distant = False
+        # there's no need for an update, so we reset the jumped variable 
+        # to False and continue to candidate generation
+        if self.jumped_to_most_distant:
+            self.jumped_to_most_distant = False
+            return False
 
         self.history = history
 
@@ -1131,6 +1134,7 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.predecessor_model = new_init_model
         self.best_model_of_current_run = new_init_model
+        self.models = [new_init_model]
         self.write_summary_tsv("Jumped to the most distant model.")
 
     # TODO Fix for non-famos model subspaces. FAMOS easy beacuse of only 0;ESTIMATE
