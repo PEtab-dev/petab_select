@@ -652,10 +652,9 @@ class FamosCandidateSpace(CandidateSpace):
             All models must estimate at least 1 parameter from each critical
             parameter set.
         swap_parameter_sets:
-            A list of lists which represent the swap parameter sets.
-            The Lateral method for the FAMoS algorithm can make a swap move, where
-            one non-fixed parameter is fixed and another fixed is un-fixed, only if
-            both parameters are contained in the same swap parameter set.
+            A list of lists, where each inner list contains parameter IDs.
+            The lateral moves in FAMoS are constrained to be between parameters that
+            exist in the same swap parameter set.
         method_scheme:
             A dictionary of the method scheme used to switch to a different
             method when the current does not provide a better model. The keys of the
