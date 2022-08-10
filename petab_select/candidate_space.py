@@ -492,7 +492,7 @@ class ForwardCandidateSpace(CandidateSpace):
         self,
         *args,
         predecessor_model: Optional[Union[Model, str]] = None,
-        max_number_of_steps: int = 0,
+        max_steps: int = None,
         **kwargs,
     ):
         # Although `VIRTUAL_INITIAL_MODEL` is `str` and can be used as a default
