@@ -1039,16 +1039,14 @@ class FamosCandidateSpace(CandidateSpace):
                 f"Method history: `{self.method_history}`. "
             )
 
-        # if the next method is None (in default case if SWAP
-        # method didn't find any better models) then terminate
-        if not next_method:
+        # Terminate if next method is `None`
+        if next_method is None:
             if self.number_of_reattempts:
                 self.jump_to_most_distant()
                 return
-            else:
-                raise StopIteration(
-                    f"The next method provided is None. The search is terminating."
-                )
+            raise StopIteration(
+                f"The next method is {next_method}. The search is terminating."
+            )
 
         # If we try to switch to SWAP method but it's not available (no crit or swap parameter groups)
         if (
