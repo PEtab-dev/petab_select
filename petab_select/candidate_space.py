@@ -766,13 +766,11 @@ class FamosCandidateSpace(CandidateSpace):
             Method.FORWARD: ForwardCandidateSpace(
                 *args,
                 predecessor_model=predecessor_model,
-                max_number_of_steps=0,
                 **kwargs,
             ),
             Method.BACKWARD: BackwardCandidateSpace(
                 *args,
                 predecessor_model=predecessor_model,
-                max_number_of_steps=0,
                 **kwargs,
             ),
             Method.LATERAL: LateralCandidateSpace(
@@ -782,7 +780,7 @@ class FamosCandidateSpace(CandidateSpace):
                     if predecessor_model != VIRTUAL_INITIAL_MODEL
                     else None
                 ),
-                max_number_of_steps=1,
+                max_steps=1,
                 **kwargs,
             ),
         }
@@ -850,7 +848,7 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.history = history
 
-        if not self.update_from_local_history(
+        if self.update_from_local_history(
             local_history=local_history, criterion=criterion
         ):
             logging.info("Switching method")
@@ -1235,7 +1233,7 @@ class LateralCandidateSpace(CandidateSpace):
         self,
         *args,
         predecessor_model: Union[Model, None],
-        max_steps: int = 0,
+        max_steps: int = None,
         **kwargs,
     ):
         """
@@ -1261,7 +1259,7 @@ class LateralCandidateSpace(CandidateSpace):
         # If max_number_of_steps is non-zero and the number of steps made is
         # larger then move is not plausible.
         if (
-            self.max_steps
+            self.max_steps is not None
             and distances['l1'] > 2 * self.max_steps
         ):
             raise StopIteration(
