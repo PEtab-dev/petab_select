@@ -7,7 +7,12 @@ import numpy as np
 import petab
 
 from .candidate_space import CandidateSpace
-from .constants import ESTIMATE, TYPE_PATH, VIRTUAL_INITIAL_MODEL_METHODS, Method
+from .constants import (
+    ESTIMATE,
+    TYPE_PATH,
+    VIRTUAL_INITIAL_MODEL_METHODS,
+    Method,
+)
 from .model import Model, default_compare
 from .problem import Problem
 
@@ -63,7 +68,7 @@ def candidates(
     if history is None:
         history = {}
     # Set the new predecessor_model from the initial model or
-    # by calling ui.best to find the best model to jump to if 
+    # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
     if candidate_space.models:
         previous_candidate_models = candidate_space.models
@@ -74,11 +79,13 @@ def candidates(
         history.update(previous_local_history)
 
         predecessor_model = problem.get_best(previous_candidate_models)
-        # Check if the last predecessor_model is better than the new one. 
+        # Check if the last predecessor_model is better than the new one.
         # If not, set predecessor_model to be the previous one.
         # If famos jumped this will not be true, since both models are the same.
-        if default_compare(predecessor_model, previous_predecessor_model, problem.criterion):
-            predecessor_model=previous_predecessor_model
+        if default_compare(
+            predecessor_model, previous_predecessor_model, problem.criterion
+        ):
+            predecessor_model = previous_predecessor_model
 
         candidate_space.update_after_calibration(
             history=history,
@@ -88,10 +95,13 @@ def candidates(
         # If candidate space not Famos then ignored.
         # Else, in case we jumped to most distant in this iteration, go into
         # calibration with only the model we've jumped to.
-        if candidate_space.governing_method == Method.FAMOS and candidate_space.jumped_to_most_distant:
+        if (
+            candidate_space.governing_method == Method.FAMOS
+            and candidate_space.jumped_to_most_distant
+        ):
             return candidate_space.models, history, previous_local_history
     else:
-        predecessor_model=previous_predecessor_model
+        predecessor_model = previous_predecessor_model
 
     if (
         predecessor_model is None

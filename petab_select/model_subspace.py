@@ -373,7 +373,10 @@ class ModelSubspace(PetabMixin):
                             return
                     # If model accepted set the maximal number of extra parameters to
                     # current number of extra parameters
-                    if len(candidate_space.models) > previous_number_of_candidates:
+                    if (
+                        len(candidate_space.models)
+                        > previous_number_of_candidates
+                    ):
                         n_estimated_extra = len(parameter_set)
                 except StopIteration:
                     break
@@ -460,7 +463,10 @@ class ModelSubspace(PetabMixin):
                             return
                     # If model accepted set the number of new fixed parameters to
                     # current number of new fixed parameters
-                    if len(candidate_space.models) > previous_number_of_candidates:
+                    if (
+                        len(candidate_space.models)
+                        > previous_number_of_candidates
+                    ):
                         n_new_fixed = len(parameter_set)
                 except StopIteration:
                     break
@@ -558,7 +564,10 @@ class ModelSubspace(PetabMixin):
                             return
                     # If model accepted set the number of lateral moves to
                     # current number of lateral moves
-                    if len(candidate_space.models) > previous_number_of_candidates:
+                    if (
+                        len(candidate_space.models)
+                        > previous_number_of_candidates
+                    ):
                         n_lateral_moves = len(parameter_set_estimate)
                 except StopIteration:
                     break
