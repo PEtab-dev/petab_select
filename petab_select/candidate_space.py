@@ -1061,10 +1061,9 @@ class FamosCandidateSpace(CandidateSpace):
             if self.number_of_reattempts:
                 self.jump_to_most_distant()
                 return
-            else:
-                raise StopIteration(
-                    "The next chosen method is Method.LATERAL, but there are no crit or swap parameters provided. Terminating"
-                )
+            raise StopIteration(
+                f"The next method is {next_method}, but there are no critical or swap parameters sets. Terminating."
+            )
         if previous_method == Method.LATERAL:
             self.swap_done_successfully = False
         self.update_method(method=next_method)
