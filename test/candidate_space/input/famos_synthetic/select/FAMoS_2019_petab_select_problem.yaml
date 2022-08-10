@@ -33,9 +33,9 @@ candidate_space_arguments:
     next_method: forward
   - previous_methods: null
     next_method: lateral
-  number_of_reattempts: 1
+  n_reattempts: 1
   predecessor_model: ../test_files/predecessor_model.yaml
-  swap_only_once: false
+  consecutive_laterals: true
   swap_parameter_sets:
   - - ro_A
     - mu_BA
