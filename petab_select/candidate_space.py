@@ -1015,7 +1015,6 @@ class FamosCandidateSpace(CandidateSpace):
         previous_method = self.method
         next_method = previous_method
         logging.info("SWITCHING", self.method_history)
-        # breakpoint()
         # If last method was LATERAL and we have made a succesfull swap
         # (a better model was found) then go back to FORWARD. Else do the
         # usual method swapping scheme.
