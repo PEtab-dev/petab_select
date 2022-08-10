@@ -1098,7 +1098,6 @@ class FamosCandidateSpace(CandidateSpace):
         new_init_model = self.get_most_distant()
 
         logging.info("JUMPING: ", new_init_model.parameters)
-        # breakpoint()
 
         # if model not appropriate make it so by adding the first
         # critical parameter from each critical parameter set
