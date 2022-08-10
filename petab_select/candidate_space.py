@@ -480,8 +480,9 @@ class ForwardCandidateSpace(CandidateSpace):
     Attributes:
         direction:
             `1` for the forward method, `-1` for the backward method.
-        max_number_of_steps:
-            Maximal allowed number of steps. If 0 then there is no maximum.
+        max_steps:
+            Maximum number of steps forward in a single iteration of forward selection.
+            Defaults to no maximum (`None`).
     """
 
     method = Method.FORWARD
