@@ -507,10 +507,7 @@ class ForwardCandidateSpace(CandidateSpace):
         distances = self.distances_in_estimated_parameters(model)
         n_steps = self.direction * distances['size']
 
-        if (
-            self.max_steps is not None
-            and n_steps > self.max_steps
-        ):
+        if self.max_steps is not None and n_steps > self.max_steps:
             raise StopIteration(
                 f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models."
             )
@@ -645,7 +642,7 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
 
 class FamosCandidateSpace(CandidateSpace):
     """The FAMoS method class.
-    
+
     This candidate space implements and extends the original FAMoS
     algorithm (doi: 10.1371/journal.pcbi.1007230).
 
@@ -756,7 +753,11 @@ class FamosCandidateSpace(CandidateSpace):
             )
 
         for method in inner_methods:
-            if method is not None and method not in [Method.FORWARD, Method.LATERAL, Method.BACKWARD]:
+            if method is not None and method not in [
+                Method.FORWARD,
+                Method.LATERAL,
+                Method.BACKWARD,
+            ]:
                 raise NotImplementedError(
                     f'Methods FAMoS can swap to are `Method.FORWARD`, `Method.BACKWARD` and `Method.LATERAL`, not {method}. \
                     Check if the method_scheme scheme provided is correct.'
@@ -795,7 +796,10 @@ class FamosCandidateSpace(CandidateSpace):
         self.n_reattempts = n_reattempts
 
         self.consecutive_laterals = consecutive_laterals
-        if not self.consecutive_laterals and (Method.LATERAL,) not in self.method_scheme:
+        if (
+            not self.consecutive_laterals
+            and (Method.LATERAL,) not in self.method_scheme
+        ):
             raise ValueError(
                 "Please provide a method to switch to after a lateral search, if not enabling the `consecutive_laterals` option."
             )
@@ -808,7 +812,6 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.best_models = []
         self.best_model_of_current_run = predecessor_model
-
 
         self.jumped_to_most_distant = False
         self.swap_done_successfully = False
@@ -881,7 +884,9 @@ class FamosCandidateSpace(CandidateSpace):
                 go_into_switch_method = False
                 self.best_model_of_current_run = local_history[model_id]
 
-            if len(self.best_models) < self.most_distant_max_number or default_compare(
+            if len(
+                self.best_models
+            ) < self.most_distant_max_number or default_compare(
                 self.best_models[self.most_distant_max_number - 1],
                 local_history[model_id],
                 criterion,
@@ -1258,10 +1263,7 @@ class LateralCandidateSpace(CandidateSpace):
 
         # If max_number_of_steps is non-zero and the number of steps made is
         # larger then move is not plausible.
-        if (
-            self.max_steps is not None
-            and distances['l1'] > 2 * self.max_steps
-        ):
+        if self.max_steps is not None and distances['l1'] > 2 * self.max_steps:
             raise StopIteration(
                 f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models."
             )
