@@ -1235,7 +1235,7 @@ class LateralCandidateSpace(CandidateSpace):
         self,
         *args,
         predecessor_model: Union[Model, None],
-        max_number_of_steps: int = 0,
+        max_steps: int = 0,
         **kwargs,
     ):
         """
