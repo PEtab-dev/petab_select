@@ -498,7 +498,7 @@ class ForwardCandidateSpace(CandidateSpace):
         # Although `VIRTUAL_INITIAL_MODEL` is `str` and can be used as a default
         # argument, `None` may be passed by other packages, so the default value
         # is handled here instead.
-        self.max_number_of_steps = max_number_of_steps
+        self.max_steps = max_steps
         if predecessor_model is None:
             predecessor_model = VIRTUAL_INITIAL_MODEL
         super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
@@ -509,7 +509,7 @@ class ForwardCandidateSpace(CandidateSpace):
 
         if (
             self.max_steps is not None
-            and unsigned_size > self.max_number_of_steps
+            and n_steps > self.max_steps
         ):
             raise StopIteration(
                 f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models."
@@ -519,7 +519,7 @@ class ForwardCandidateSpace(CandidateSpace):
         # increases (or decreases, if `self.direction == -1`), and no
         # previously estimated parameters become fixed.
         if self.predecessor_model == VIRTUAL_INITIAL_MODEL or (
-            unsigned_size > 0 and distances['l1'] == unsigned_size
+            n_steps > 0 and distances['l1'] == n_steps
         ):
             return True
         return False
@@ -794,15 +794,15 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.history: List[Dict[str, Union[Method, List[Model]]]] = []
 
-        self.number_of_reattempts = number_of_reattempts
+        self.n_reattempts = n_reattempts
 
-        self.swap_only_once = swap_only_once
-        if self.swap_only_once and (Method.LATERAL,) not in self.method_scheme:
+        self.consecutive_laterals = consecutive_laterals
+        if not self.consecutive_laterals and (Method.LATERAL,) not in self.method_scheme:
             raise ValueError(
-                "Please provide a method to switch to after a lateral search, if enabling the `swap_only_once` option."
+                "Please provide a method to switch to after a lateral search, if not enabling the `consecutive_laterals` option."
             )
 
-        if self.number_of_reattempts:
+        if self.n_reattempts:
             # TODO make so max_number can be specified? It cannot in original FAMoS.
             self.most_distant_max_number = 100
         else:
@@ -902,7 +902,7 @@ class FamosCandidateSpace(CandidateSpace):
         if (
             go_into_switch_method
             and self.method == Method.LATERAL
-            and self.swap_only_once
+            and not self.consecutive_laterals
         ):
             self.swap_done_successfully = True
             go_into_switch_method = True
@@ -1048,7 +1048,7 @@ class FamosCandidateSpace(CandidateSpace):
 
         # Terminate if next method is `None`
         if next_method is None:
-            if self.number_of_reattempts:
+            if self.n_reattempts:
                 self.jump_to_most_distant()
                 return
             raise StopIteration(
@@ -1065,7 +1065,7 @@ class FamosCandidateSpace(CandidateSpace):
             ]
             and not self.swap_parameter_sets
         ):
-            if self.number_of_reattempts:
+            if self.n_reattempts:
                 self.jump_to_most_distant()
                 return
             raise StopIteration(
@@ -1107,7 +1107,7 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.update_method(self.initial_method)
 
-        self.number_of_reattempts -= 1
+        self.n_reattempts -= 1
         self.jumped_to_most_distant = True
 
         self.predecessor_model = predecessor_model
@@ -1248,7 +1248,7 @@ class LateralCandidateSpace(CandidateSpace):
             predecessor_model=predecessor_model,
             **kwargs,
         )
-        self.max_number_of_steps = max_number_of_steps
+        self.max_steps = max_steps
 
     def is_plausible(self, model: Model) -> bool:
         if self.predecessor_model is None:
@@ -1261,8 +1261,8 @@ class LateralCandidateSpace(CandidateSpace):
         # If max_number_of_steps is non-zero and the number of steps made is
         # larger then move is not plausible.
         if (
-            self.max_number_of_steps
-            and distances['l1'] > 2 * self.max_number_of_steps
+            self.max_steps
+            and distances['l1'] > 2 * self.max_steps
         ):
             raise StopIteration(
                 f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models."
