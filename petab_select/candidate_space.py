@@ -119,7 +119,10 @@ class CandidateSpace(abc.ABC):
             with open(self.summary_tsv, "r", encoding="utf-8") as f:
                 last_row = f.readlines()[-1]
 
-            if 'Continuing summary file with new candidate space.' not in last_row:
+            if (
+                'Continuing summary file with new candidate space.'
+                not in last_row
+            ):
                 self.write_summary_tsv(
                     'Continuing summary file with new candidate space.'
                 )
