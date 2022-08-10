@@ -1095,23 +1095,23 @@ class FamosCandidateSpace(CandidateSpace):
         """Jump to most distant model with respect to the history of all
         calibrated models."""
 
-        new_init_model = self.get_most_distant()
+        predecessor_model = self.get_most_distant()
 
-        logging.info("JUMPING: ", new_init_model.parameters)
+        logging.info("JUMPING: ", predecessor_model.parameters)
 
         # if model not appropriate make it so by adding the first
         # critical parameter from each critical parameter set
-        if not self.check_critical(new_init_model):
+        if not self.check_critical(predecessor_model):
             for critical_set in self.critical_parameter_sets:
-                new_init_model.parameters[critical_set[0]] = ESTIMATE
+                predecessor_model.parameters[critical_set[0]] = ESTIMATE
 
         self.update_method(self.initial_method)
 
         self.number_of_reattempts -= 1
         self.jumped_to_most_distant = True
 
-        self.predecessor_model = new_init_model
-        self.best_model_of_current_run = new_init_model
+        self.predecessor_model = predecessor_model
+        self.best_model_of_current_run = predecessor_model
         self.write_summary_tsv("Jumped to the most distant model.")
 
     # TODO Fix for non-famos model subspaces. FAMOS easy beacuse of only 0;ESTIMATE
