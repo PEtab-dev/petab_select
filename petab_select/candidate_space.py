@@ -758,7 +758,7 @@ class FamosCandidateSpace(CandidateSpace):
         for method in inner_methods:
             if method is not None and method not in [Method.FORWARD, Method.LATERAL, Method.BACKWARD]:
                 raise NotImplementedError(
-                    f'FAMoS direction must be either `Method.FORWARD`, `Method.BACKWARD` or `Method.LATERAL`, not {method}. \
+                    f'Methods FAMoS can swap to are `Method.FORWARD`, `Method.BACKWARD` and `Method.LATERAL`, not {method}. \
                     Check if the method_scheme scheme provided is correct.'
                 )
 
