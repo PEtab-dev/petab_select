@@ -645,6 +645,9 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
 
 class FamosCandidateSpace(CandidateSpace):
     """The FAMoS method class.
+    
+    This candidate space implements and extends the original FAMoS
+    algorithm (doi: 10.1371/journal.pcbi.1007230).
 
     Attributes:
         critical_parameter_sets:
