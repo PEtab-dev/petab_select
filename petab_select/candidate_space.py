@@ -645,35 +645,37 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
 
 class FamosCandidateSpace(CandidateSpace):
     """The FAMoS method class.
+    
+    This candidate space implements and extends the original FAMoS
+    algorithm (doi: 10.1371/journal.pcbi.1007230).
 
     Attributes:
         critical_parameter_sets:
-            A list of lists which represent the critical parameter sets.
-            The initial predecessor model as well as every next model accepted
-            have to contain at least 1 parameter from each critical parameter set
-            non-fixed ('estimate').
+            A list of lists, where each inner list contains parameter IDs.
+            All models must estimate at least 1 parameter from each critical
+            parameter set.
         swap_parameter_sets:
-            A list of lists which represent the swap parameter sets.
-            The Lateral method for the FAMoS algorithm can make a swap move, where
-            one non-fixed parameter is fixed and another fixed is un-fixed, only if
-            both parameters are contained in the same swap parameter set.
+            A list of lists, where each inner list contains parameter IDs.
+            The lateral moves in FAMoS are constrained to be between parameters that
+            exist in the same swap parameter set.
         method_scheme:
-            A dictionary of the method scheme used to switch to a different
-            method when the current does not provide a better model. The keys of the
-            dictionary are tuples of the previous methods of arbitrary size and values
-            are the methods to which the method should swap if the current previous
-            methods coincide with the key. FAMoS will iterate through the dictionary to
-            find the first key that coincides with the current previous methods. The
-            method of this key will be chosen, and other keys will be ignored.
-        number_of_reattempts:
-            Integer. If grater or equal 1 then at the point at which we would usually
-            terminate, FAMoS will find a most_distant model to jump to and start the
-            model selection again, excluding the already considered models. The integer
-            value determines how many times it will reattempt. If 0 then will not reattempt.
-        swap_only_once:
-            Boolean, if True then the LATERAL method will switch to FORWARD method after
-            one successful lateral move. Otherwise, the LATERAL method will continue
-            searching for better models until no such models can be found.
+            A dictionary that specifies how to switch between methods when
+            the current method doesn't produce a better model.
+            Keys are `n`-tuples that described a pattern of length `n`
+            methods. Values are methods. If the previous methods match the
+            pattern in the key, then the method in the value will be used next.
+            The order of the dictionary is important: only the first matched
+            pattern will be used.
+            Defaults to the method scheme described in the original FAMoS
+            publication.
+        n_reattempts:
+            Integer. The total number of times that a jump-to-most-distance action
+            will be performed, triggered whenever the model selection would
+            normally terminate. Defaults to no reattempts (`0`).
+        consecutive_laterals:
+            Boolean. If `True`, the method will continue performing lateral moves
+            while they produce better models. Otherwise, the method scheme will
+            be applied after one lateral move.
     """
 
     method = Method.FAMOS
@@ -695,8 +697,8 @@ class FamosCandidateSpace(CandidateSpace):
         critical_parameter_sets: List = [],
         swap_parameter_sets: List = [],
         method_scheme: Dict[tuple, str] = None,
-        number_of_reattempts: int = 0,
-        swap_only_once: bool = True,
+        n_reattempts: int = 0,
+        consecutive_laterals: bool = False,
         **kwargs,
     ):
         self.critical_parameter_sets = critical_parameter_sets
