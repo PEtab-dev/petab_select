@@ -945,8 +945,7 @@ class FamosCandidateSpace(CandidateSpace):
     def reset_accepted(self) -> None:
         """Changing the reset_accepted to reset the
         inner_candidate_space as well."""
-        self.models = []
-        self.distances = []
+        super().reset_accepted()
         self.inner_candidate_space.reset_accepted()
 
     def set_predecessor_model(
