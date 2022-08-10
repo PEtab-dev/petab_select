@@ -808,7 +808,6 @@ class FamosCandidateSpace(CandidateSpace):
         self.best_models = []
         self.best_model_of_current_run = predecessor_model
 
-        self.found_new_best = True
 
         self.jumped_to_most_distant = False
         self.swap_done_successfully = False
@@ -868,7 +867,7 @@ class FamosCandidateSpace(CandidateSpace):
         and determine if there was a new best model. If so, return
         True. False otherwise."""
 
-        found_new_best = False
+        go_into_switch_method = True
         for model_id in local_history:
             if (
                 self.best_model_of_current_run == VIRTUAL_INITIAL_MODEL
@@ -878,7 +877,7 @@ class FamosCandidateSpace(CandidateSpace):
                     criterion,
                 )
             ):
-                found_new_best = True
+                go_into_switch_method = False
                 self.best_model_of_current_run = local_history[model_id]
 
             if len(self.best_models) < self.most_distant_max_number or default_compare(
@@ -894,17 +893,17 @@ class FamosCandidateSpace(CandidateSpace):
         self.best_models = self.best_models[: self.most_distant_max_number]
 
         # When we switch to LATERAL method, we will do only one iteration with this
-        # method. So if we do it succesfully (i.e. that we found_new_best), we still
-        # want to switch method. This is why we put found_new_best to False, so we go
-        # into the method switching pipeline
+        # method. So if we do it succesfully (i.e. that we found a new best model), we
+        # want to switch method. This is why we put go_into_switch_method to True, so
+        # we go into the method switching pipeline
         if (
-            found_new_best
+            go_into_switch_method
             and self.method == Method.LATERAL
             and self.swap_only_once
         ):
             self.swap_done_successfully = True
-            found_new_best = False
-        return found_new_best
+            go_into_switch_method = True
+        return go_into_switch_method
 
     def insert_model_into_best_models(
         self, model_to_insert: Model, criterion: Criterion
