@@ -480,8 +480,9 @@ class ForwardCandidateSpace(CandidateSpace):
     Attributes:
         direction:
             `1` for the forward method, `-1` for the backward method.
-        max_number_of_steps:
-            Maximal allowed number of steps. If 0 then there is no maximum.
+        max_steps:
+            Maximum number of steps forward in a single iteration of forward selection.
+            Defaults to no maximum (`None`).
     """
 
     method = Method.FORWARD
@@ -491,7 +492,7 @@ class ForwardCandidateSpace(CandidateSpace):
         self,
         *args,
         predecessor_model: Optional[Union[Model, str]] = None,
-        max_number_of_steps: int = 0,
+        max_steps: int = None,
         **kwargs,
     ):
         # Although `VIRTUAL_INITIAL_MODEL` is `str` and can be used as a default
@@ -504,12 +505,10 @@ class ForwardCandidateSpace(CandidateSpace):
 
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
-        unsigned_size = self.direction * distances['size']
+        n_steps = self.direction * distances['size']
 
-        # If max_number_of_steps is non-zero and the number of steps made is
-        # larger then move is not plausible.
         if (
-            self.max_number_of_steps
+            self.max_steps is not None
             and unsigned_size > self.max_number_of_steps
         ):
             raise StopIteration(
@@ -644,43 +643,39 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
         return wrapper
 
 
-# TODO:
-# - specifiy initial model (Implement)
-# - make it work, without swap, compare results (similar)
-# later : General constraints (critical, swap, something else...)
-
-
 class FamosCandidateSpace(CandidateSpace):
     """The FAMoS method class.
+    
+    This candidate space implements and extends the original FAMoS
+    algorithm (doi: 10.1371/journal.pcbi.1007230).
 
     Attributes:
         critical_parameter_sets:
-            A list of lists which represent the critical parameter sets.
-            The initial predecessor model as well as every next model accepted
-            have to contain at least 1 parameter from each critical parameter set
-            non-fixed ('estimate').
+            A list of lists, where each inner list contains parameter IDs.
+            All models must estimate at least 1 parameter from each critical
+            parameter set.
         swap_parameter_sets:
-            A list of lists which represent the swap parameter sets.
-            The Lateral method for the FAMoS algorithm can make a swap move, where
-            one non-fixed parameter is fixed and another fixed is un-fixed, only if
-            both parameters are contained in the same swap parameter set.
+            A list of lists, where each inner list contains parameter IDs.
+            The lateral moves in FAMoS are constrained to be between parameters that
+            exist in the same swap parameter set.
         method_scheme:
-            A dictionary of the method scheme used to switch to a different
-            method when the current does not provide a better model. The keys of the
-            dictionary are tuples of the previous methods of arbitrary size and values
-            are the methods to which the method should swap if the current previous
-            methods coincide with the key. FAMoS will iterate through the dictionary to
-            find the first key that coincides with the current previous methods. The
-            method of this key will be chosen, and other keys will be ignored.
-        number_of_reattempts:
-            Integer. If grater or equal 1 then at the point at which we would usually
-            terminate, FAMoS will find a most_distant model to jump to and start the
-            model selection again, excluding the already considered models. The integer
-            value determines how many times it will reattempt. If 0 then will not reattempt.
-        swap_only_once:
-            Boolean, if True then the LATERAL method will switch to FORWARD method after
-            one successful lateral move. Otherwise, the LATERAL method will continue
-            searching for better models until no such models can be found.
+            A dictionary that specifies how to switch between methods when
+            the current method doesn't produce a better model.
+            Keys are `n`-tuples that described a pattern of length `n`
+            methods. Values are methods. If the previous methods match the
+            pattern in the key, then the method in the value will be used next.
+            The order of the dictionary is important: only the first matched
+            pattern will be used.
+            Defaults to the method scheme described in the original FAMoS
+            publication.
+        n_reattempts:
+            Integer. The total number of times that a jump-to-most-distance action
+            will be performed, triggered whenever the model selection would
+            normally terminate. Defaults to no reattempts (`0`).
+        consecutive_laterals:
+            Boolean. If `True`, the method will continue performing lateral moves
+            while they produce better models. Otherwise, the method scheme will
+            be applied after one lateral move.
     """
 
     method = Method.FAMOS
@@ -702,8 +697,8 @@ class FamosCandidateSpace(CandidateSpace):
         critical_parameter_sets: List = [],
         swap_parameter_sets: List = [],
         method_scheme: Dict[tuple, str] = None,
-        number_of_reattempts: int = 0,
-        swap_only_once: bool = True,
+        n_reattempts: int = 0,
+        consecutive_laterals: bool = False,
         **kwargs,
     ):
         self.critical_parameter_sets = critical_parameter_sets
@@ -724,10 +719,6 @@ class FamosCandidateSpace(CandidateSpace):
             predecessor_model == VIRTUAL_INITIAL_MODEL
             and critical_parameter_sets
         ) or (
-            # FIXME should virtual initial model raise error if critical sets
-            #       are specified? i.e. should users be expected to supply a valid initial model
-            #       if critical sets are specified? ideally the first iteration with the virtual
-            #       initial model would find compatible models that satisfy the critical sets
             predecessor_model != VIRTUAL_INITIAL_MODEL
             and not self.check_critical(predecessor_model)
         ):
@@ -763,6 +754,13 @@ class FamosCandidateSpace(CandidateSpace):
             raise ValueError(
                 f"Use of the lateral method with FAMoS requires `swap_parameter_sets`."
             )
+
+        for method in inner_methods:
+            if method is not None and method not in [Method.FORWARD, Method.LATERAL, Method.BACKWARD]:
+                raise NotImplementedError(
+                    f'FAMoS direction must be either `Method.FORWARD`, `Method.BACKWARD` or `Method.LATERAL`, not {method}. \
+                    Check if the method_scheme scheme provided is correct.'
+                )
 
         self.inner_candidate_spaces = {
             Method.FORWARD: ForwardCandidateSpace(
@@ -813,7 +811,6 @@ class FamosCandidateSpace(CandidateSpace):
         self.best_models = []
         self.best_model_of_current_run = predecessor_model
 
-        self.found_new_best = True
 
         self.jumped_to_most_distant = False
         self.swap_done_successfully = False
@@ -876,7 +873,7 @@ class FamosCandidateSpace(CandidateSpace):
         and determine if there was a new best model. If so, return
         True. False otherwise."""
 
-        found_new_best = False
+        go_into_switch_method = True
         for model_id in local_history:
             if (
                 self.best_model_of_current_run == VIRTUAL_INITIAL_MODEL
@@ -886,15 +883,10 @@ class FamosCandidateSpace(CandidateSpace):
                     criterion,
                 )
             ):
-                found_new_best = True
+                go_into_switch_method = False
                 self.best_model_of_current_run = local_history[model_id]
 
-            if len(self.best_models) < self.most_distant_max_number:
-                self.insert_model_into_best_models(
-                    model_to_insert=local_history[model_id],
-                    criterion=criterion,
-                )
-            elif default_compare(
+            if len(self.best_models) < self.most_distant_max_number or default_compare(
                 self.best_models[self.most_distant_max_number - 1],
                 local_history[model_id],
                 criterion,
@@ -907,17 +899,17 @@ class FamosCandidateSpace(CandidateSpace):
         self.best_models = self.best_models[: self.most_distant_max_number]
 
         # When we switch to LATERAL method, we will do only one iteration with this
-        # method. So if we do it succesfully (i.e. that we found_new_best), we still
-        # want to switch method. This is why we put found_new_best to False, so we go
-        # into the method switching pipeline
+        # method. So if we do it succesfully (i.e. that we found a new best model), we
+        # want to switch method. This is why we put go_into_switch_method to True, so
+        # we go into the method switching pipeline
         if (
-            found_new_best
+            go_into_switch_method
             and self.method == Method.LATERAL
             and self.swap_only_once
         ):
             self.swap_done_successfully = True
-            found_new_best = False
-        return found_new_best
+            go_into_switch_method = True
+        return go_into_switch_method
 
     def insert_model_into_best_models(
         self, model_to_insert: Model, criterion: Criterion
@@ -963,8 +955,7 @@ class FamosCandidateSpace(CandidateSpace):
     def reset_accepted(self) -> None:
         """Changing the reset_accepted to reset the
         inner_candidate_space as well."""
-        self.models = []
-        self.distances = []
+        super().reset_accepted()
         self.inner_candidate_space.reset_accepted()
 
     def set_predecessor_model(
@@ -1034,7 +1025,6 @@ class FamosCandidateSpace(CandidateSpace):
         previous_method = self.method
         next_method = previous_method
         logging.info("SWITCHING", self.method_history)
-        # breakpoint()
         # If last method was LATERAL and we have made a succesfull swap
         # (a better model was found) then go back to FORWARD. Else do the
         # usual method swapping scheme.
@@ -1059,16 +1049,14 @@ class FamosCandidateSpace(CandidateSpace):
                 f"Method history: `{self.method_history}`. "
             )
 
-        # if the next method is None (in default case if SWAP
-        # method didn't find any better models) then terminate
-        if not next_method:
+        # Terminate if next method is `None`
+        if next_method is None:
             if self.number_of_reattempts:
                 self.jump_to_most_distant()
                 return
-            else:
-                raise StopIteration(
-                    f"The next method provided is None. The search is terminating."
-                )
+            raise StopIteration(
+                f"The next method is {next_method}. The search is terminating."
+            )
 
         # If we try to switch to SWAP method but it's not available (no crit or swap parameter groups)
         if (
@@ -1083,21 +1071,15 @@ class FamosCandidateSpace(CandidateSpace):
             if self.number_of_reattempts:
                 self.jump_to_most_distant()
                 return
-            else:
-                raise StopIteration(
-                    "The next chosen method is Method.LATERAL, but there are no crit or swap parameters provided. Terminating"
-                )
+            raise StopIteration(
+                f"The next method is {next_method}, but there are no critical or swap parameters sets. Terminating."
+            )
         if previous_method == Method.LATERAL:
             self.swap_done_successfully = False
         self.update_method(method=next_method)
 
     def update_method(self, method: Method):
         """Update self.method to the method."""
-        if method not in [Method.FORWARD, Method.LATERAL, Method.BACKWARD]:
-            raise NotImplementedError(
-                f'FAMoS direction must be either `Method.FORWARD`, `Method.BACKWARD` or `Method.LATERAL`, not {method}. \
-                Check if the method_scheme scheme provided is correct.'
-            )
 
         self.method = method
 
@@ -1116,25 +1098,25 @@ class FamosCandidateSpace(CandidateSpace):
         """Jump to most distant model with respect to the history of all
         calibrated models."""
 
-        new_init_model = self.get_most_distant()
+        predecessor_model = self.get_most_distant()
 
-        logging.info("JUMPING: ", new_init_model.parameters)
-        # breakpoint()
+        logging.info("JUMPING: ", predecessor_model.parameters)
 
         # if model not appropriate make it so by adding the first
         # critical parameter from each critical parameter set
-        if not self.check_critical(new_init_model):
+        if not self.check_critical(predecessor_model):
             for critical_set in self.critical_parameter_sets:
-                new_init_model.parameters[critical_set[0]] = ESTIMATE
+                predecessor_model.parameters[critical_set[0]] = ESTIMATE
 
         self.update_method(self.initial_method)
 
         self.number_of_reattempts -= 1
         self.jumped_to_most_distant = True
 
-        self.predecessor_model = new_init_model
-        self.best_model_of_current_run = new_init_model
-        self.models = [new_init_model]
+        self.predecessor_model = predecessor_model
+        self.best_model_of_current_run = predecessor_model
+        self.models = [predecessor_model]
+
         self.write_summary_tsv("Jumped to the most distant model.")
 
     # TODO Fix for non-famos model subspaces. FAMOS easy beacuse of only 0;ESTIMATE
@@ -1155,26 +1137,24 @@ class FamosCandidateSpace(CandidateSpace):
         most_distance = 0
         most_distant_indices = []
 
+        petab_parameters = self.best_models[0].petab_parameters
+
         for model in self.best_models:
-            model_parameter_ids = list(model.petab_parameters)
             model_parameters = model.get_parameter_values(
-                parameter_ids=model_parameter_ids
+                parameter_ids=petab_parameters
             )
 
             model_estimated_parameters = np.array(
                 [p == ESTIMATE for p in model_parameters]
             ).astype(int)
-            complement_parameters = abs(model_estimated_parameters - 1)
+            complement_parameters = 1 - model_estimated_parameters
             # initialize the least distance to the maximal possible value of it
             complement_least_distance = len(complement_parameters)
             # get the complement least distance
             for history_model_id in self.history:
                 history_model = self.history[history_model_id]
-                history_model_parameter_ids = list(
-                    history_model.petab_parameters
-                )
                 history_model_parameters = history_model.get_parameter_values(
-                    parameter_ids=history_model_parameter_ids
+                    parameter_ids=petab_parameters
                 )
 
                 history_model_estimated_parameters = np.array(
@@ -1204,7 +1184,7 @@ class FamosCandidateSpace(CandidateSpace):
         most_distant_parameters = {
             parameter_id: index
             for parameter_id, index in zip(
-                model.parameters, most_distant_parameter_values
+                petab_parameters, most_distant_parameter_values
             )
         }
 
@@ -1260,7 +1240,7 @@ class LateralCandidateSpace(CandidateSpace):
         self,
         *args,
         predecessor_model: Union[Model, None],
-        max_number_of_steps: int = 0,
+        max_steps: int = 0,
         **kwargs,
     ):
         """

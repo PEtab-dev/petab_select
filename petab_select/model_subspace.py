@@ -322,6 +322,7 @@ class ModelSubspace(PetabMixin):
                 models = self.get_models(
                     estimated_parameters=estimated_parameters,
                 )
+                previous_number_of_candidates = len(candidate_space.models)
                 for model in models:
                     continue_sending = self.send_model_to_candidate_space(
                         model=model,
@@ -334,13 +335,14 @@ class ModelSubspace(PetabMixin):
                 # be worse than the current set of models in the candidate
                 # space, if suitable candidates models have already been
                 # identified.
-                if candidate_space.models:
+                if len(candidate_space.models) > previous_number_of_candidates:
                     return
 
             # Keep track of the number of additional parameters estimated.
             # Stop considering models once all parameter sets with the minimal number of
             # extra estimated parameters are considered.
             n_estimated_extra = np.inf
+            previous_number_of_candidates = len(candidate_space.models)
             # The powerset should be in ascending order by number of elements.
             for parameter_set in powerset(new_can_estimate_optional):
                 try:
@@ -371,7 +373,7 @@ class ModelSubspace(PetabMixin):
                             return
                     # If model accepted set the maximal number of extra parameters to
                     # current number of extra parameters
-                    if candidate_space.models:
+                    if len(candidate_space.models) > previous_number_of_candidates:
                         n_estimated_extra = len(parameter_set)
                 except StopIteration:
                     break
@@ -407,6 +409,7 @@ class ModelSubspace(PetabMixin):
                 models = self.get_models(
                     estimated_parameters=estimated_parameters,
                 )
+                previous_number_of_candidates = len(candidate_space.models)
                 for model in models:
                     continue_sending = self.send_model_to_candidate_space(
                         model=model,
@@ -419,13 +422,14 @@ class ModelSubspace(PetabMixin):
                 # be worse than the current set of models in the candidate
                 # space, if suitable candidates models have already been
                 # identified.
-                if candidate_space.models:
+                if len(candidate_space.models) > previous_number_of_candidates:
                     return
 
             # Keep track of the number of new fixed parameters.
             # Stop considering models once all parameter sets with the minimal number of
             # new fixed parameters are considered.
             n_new_fixed = np.inf
+            previous_number_of_candidates = len(candidate_space.models)
             # The powerset should be in ascending order by number of elements.
             for parameter_set in powerset(new_can_fix_optional):
                 try:
@@ -456,7 +460,7 @@ class ModelSubspace(PetabMixin):
                             return
                     # If model accepted set the number of new fixed parameters to
                     # current number of new fixed parameters
-                    if candidate_space.models:
+                    if len(candidate_space.models) > previous_number_of_candidates:
                         n_new_fixed = len(parameter_set)
                 except StopIteration:
                     break
@@ -497,6 +501,7 @@ class ModelSubspace(PetabMixin):
                 models = self.get_models(
                     estimated_parameters=estimated_parameters,
                 )
+                previous_number_of_candidates = len(candidate_space.models)
                 for model in models:
                     continue_sending = self.send_model_to_candidate_space(
                         model=model,
@@ -509,13 +514,14 @@ class ModelSubspace(PetabMixin):
                 # be worse than the current set of models in the candidate
                 # space, if suitable candidates models have already been
                 # identified.
-                if candidate_space.models:
+                if len(candidate_space.models) > previous_number_of_candidates:
                     return
 
             # Keep track of the number of lateral moves performed.
             # Stop considering models once all parameter sets with the smallest
             # lateral move size are considered.
             n_lateral_moves = np.inf
+            previous_number_of_candidates = len(candidate_space.models)
             # The powerset should be in ascending order by size of lateral
             # move.
             for parameter_set_estimate, parameter_set_fix in product(
@@ -552,7 +558,7 @@ class ModelSubspace(PetabMixin):
                             return
                     # If model accepted set the number of lateral moves to
                     # current number of lateral moves
-                    if candidate_space.models:
+                    if len(candidate_space.models) > previous_number_of_candidates:
                         n_lateral_moves = len(parameter_set_estimate)
                 except StopIteration:
                     break
