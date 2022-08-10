@@ -7,7 +7,7 @@ import numpy as np
 import petab
 
 from .candidate_space import CandidateSpace
-from .constants import ESTIMATE, TYPE_PATH, VIRTUAL_INITIAL_MODEL_METHODS
+from .constants import ESTIMATE, TYPE_PATH, VIRTUAL_INITIAL_MODEL_METHODS, Method
 from .model import Model, default_compare
 from .problem import Problem
 
@@ -80,7 +80,7 @@ def candidates(
         if default_compare(predecessor_model, previous_predecessor_model, problem.criterion):
             predecessor_model=previous_predecessor_model
 
-        jumped_to_most_distant = candidate_space.update_after_calibration(
+        candidate_space.update_after_calibration(
             history=history,
             local_history=previous_local_history,
             criterion=problem.criterion,
@@ -88,7 +88,7 @@ def candidates(
         # If candidate space not Famos then ignored.
         # Else, in case we jumped to most distant in this iteration, go into
         # calibration with only the model we've jumped to.
-        if jumped_to_most_distant:
+        if candidate_space.governing_method == Method.FAMOS and candidate_space.jumped_to_most_distant:
             return candidate_space.models, history, previous_local_history
     else:
         predecessor_model=previous_predecessor_model

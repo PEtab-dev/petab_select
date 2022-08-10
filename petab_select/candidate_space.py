@@ -464,14 +464,8 @@ class CandidateSpace(abc.ABC):
                 Whole history of models of the model selection run
             local_history:
                 new models from last step with their scores (AIC/BIX)
-
-        Return:
-            jumped_to_most_distant:
-                Boolean value of whether we have jumped to most distant
-                in this iteration.
         """
-
-        return False
+        pass
 
 
 class ForwardCandidateSpace(CandidateSpace):
@@ -790,6 +784,8 @@ class FamosCandidateSpace(CandidateSpace):
 
         super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
 
+        self.governing_method=Method.FAMOS
+
         self.history: List[Dict[str, Union[Method, List[Model]]]] = []
 
         self.n_reattempts = n_reattempts
@@ -862,7 +858,6 @@ class FamosCandidateSpace(CandidateSpace):
             )
 
         self.method_history.append(self.method)
-        return self.jumped_to_most_distant
 
     def update_from_local_history(
         self, local_history: Dict[str, Model], criterion: Criterion
