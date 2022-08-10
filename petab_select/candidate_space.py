@@ -879,12 +879,7 @@ class FamosCandidateSpace(CandidateSpace):
                 found_new_best = True
                 self.best_model_of_current_run = local_history[model_id]
 
-            if len(self.best_models) < self.most_distant_max_number:
-                self.insert_model_into_best_models(
-                    model_to_insert=local_history[model_id],
-                    criterion=criterion,
-                )
-            elif default_compare(
+            if len(self.best_models) < self.most_distant_max_number or default_compare(
                 self.best_models[self.most_distant_max_number - 1],
                 local_history[model_id],
                 criterion,
