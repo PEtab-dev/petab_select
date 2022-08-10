@@ -697,7 +697,7 @@ class FamosCandidateSpace(CandidateSpace):
         critical_parameter_sets: List = [],
         swap_parameter_sets: List = [],
         method_scheme: Dict[tuple, str] = None,
-        number_of_reattempts: int = 0,
+        n_reattempts: int = 0,
         swap_only_once: bool = True,
         **kwargs,
     ):
