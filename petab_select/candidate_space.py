@@ -1132,10 +1132,11 @@ class FamosCandidateSpace(CandidateSpace):
         most_distance = 0
         most_distant_indices = []
 
+        petab_parameters = self.best_models[0].petab_parameters
+
         for model in self.best_models:
-            model_parameter_ids = list(model.petab_parameters)
             model_parameters = model.get_parameter_values(
-                parameter_ids=model_parameter_ids
+                parameter_ids=petab_parameters
             )
 
             model_estimated_parameters = np.array(
@@ -1147,11 +1148,8 @@ class FamosCandidateSpace(CandidateSpace):
             # get the complement least distance
             for history_model_id in self.history:
                 history_model = self.history[history_model_id]
-                history_model_parameter_ids = list(
-                    history_model.petab_parameters
-                )
                 history_model_parameters = history_model.get_parameter_values(
-                    parameter_ids=history_model_parameter_ids
+                    parameter_ids=petab_parameters
                 )
 
                 history_model_estimated_parameters = np.array(
@@ -1181,7 +1179,7 @@ class FamosCandidateSpace(CandidateSpace):
         most_distant_parameters = {
             parameter_id: index
             for parameter_id, index in zip(
-                model.parameters, most_distant_parameter_values
+                petab_parameters, most_distant_parameter_values
             )
         }
 
