@@ -1077,11 +1077,6 @@ class FamosCandidateSpace(CandidateSpace):
 
     def update_method(self, method: Method):
         """Update self.method to the method."""
-        if method not in [Method.FORWARD, Method.LATERAL, Method.BACKWARD]:
-            raise NotImplementedError(
-                f'FAMoS direction must be either `Method.FORWARD`, `Method.BACKWARD` or `Method.LATERAL`, not {method}. \
-                Check if the method_scheme scheme provided is correct.'
-            )
 
         self.method = method
 
