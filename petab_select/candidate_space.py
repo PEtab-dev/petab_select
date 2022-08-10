@@ -644,12 +644,6 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
         return wrapper
 
 
-# TODO:
-# - specifiy initial model (Implement)
-# - make it work, without swap, compare results (similar)
-# later : General constraints (critical, swap, something else...)
-
-
 class FamosCandidateSpace(CandidateSpace):
     """The FAMoS method class.
 
