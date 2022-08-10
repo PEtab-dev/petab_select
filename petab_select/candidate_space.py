@@ -648,10 +648,9 @@ class FamosCandidateSpace(CandidateSpace):
 
     Attributes:
         critical_parameter_sets:
-            A list of lists which represent the critical parameter sets.
-            The initial predecessor model as well as every next model accepted
-            have to contain at least 1 parameter from each critical parameter set
-            non-fixed ('estimate').
+            A list of lists, where each inner list contains parameter IDs.
+            All models must estimate at least 1 parameter from each critical
+            parameter set.
         swap_parameter_sets:
             A list of lists which represent the swap parameter sets.
             The Lateral method for the FAMoS algorithm can make a swap move, where
