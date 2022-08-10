@@ -669,10 +669,10 @@ class FamosCandidateSpace(CandidateSpace):
             Integer. The total number of times that a jump-to-most-distance action
             will be performed, triggered whenever the model selection would
             normally terminate. Defaults to no reattempts (`0`).
-        swap_only_once:
-            Boolean, if True then the LATERAL method will switch to FORWARD method after
-            one successful lateral move. Otherwise, the LATERAL method will continue
-            searching for better models until no such models can be found.
+        consecutive_laterals:
+            Boolean. If `True`, the method will continue performing lateral moves
+            while they produce better models. Otherwise, the method scheme will
+            be applied after one lateral move.
     """
 
     method = Method.FAMOS
