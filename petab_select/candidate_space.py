@@ -665,11 +665,10 @@ class FamosCandidateSpace(CandidateSpace):
             pattern will be used.
             Defaults to the method scheme described in the original FAMoS
             publication.
-        number_of_reattempts:
-            Integer. If grater or equal 1 then at the point at which we would usually
-            terminate, FAMoS will find a most_distant model to jump to and start the
-            model selection again, excluding the already considered models. The integer
-            value determines how many times it will reattempt. If 0 then will not reattempt.
+        n_reattempts:
+            Integer. The total number of times that a jump-to-most-distance action
+            will be performed, triggered whenever the model selection would
+            normally terminate. Defaults to no reattempts (`0`).
         swap_only_once:
             Boolean, if True then the LATERAL method will switch to FORWARD method after
             one successful lateral move. Otherwise, the LATERAL method will continue
