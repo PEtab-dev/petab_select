@@ -1141,7 +1141,7 @@ class FamosCandidateSpace(CandidateSpace):
             model_estimated_parameters = np.array(
                 [p == ESTIMATE for p in model_parameters]
             ).astype(int)
-            complement_parameters = abs(model_estimated_parameters - 1)
+            complement_parameters = 1 - model_estimated_parameters
             # initialize the least distance to the maximal possible value of it
             complement_least_distance = len(complement_parameters)
             # get the complement least distance
