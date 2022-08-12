@@ -26,6 +26,7 @@ from .constants import (
     TYPE_CRITERION,
     TYPE_PARAMETER,
     TYPE_PATH,
+    VIRTUAL_INITIAL_MODEL,
     Criterion,
 )
 from .criteria import CriterionComputer
@@ -587,7 +588,7 @@ def default_compare(
     """Compare two calibrated models by their criterion values.
 
     It is assumed that the model `model0` provides a value for the criterion
-    `criterion`.
+    `criterion`, or is the `VIRTUAL_INITIAL_MODEL`.
 
     Args:
         model0:
@@ -609,6 +610,8 @@ def default_compare(
             f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".'
         )
         return False
+    if model0 == VIRTUAL_INITIAL_MODEL:
+        return True
     if criterion_threshold < 0:
         warnings.warn(
             'The provided criterion threshold is negative. The absolute value will be used instead.'
