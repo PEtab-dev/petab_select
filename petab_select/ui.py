@@ -11,6 +11,7 @@ from .constants import (
     ESTIMATE,
     TYPE_PATH,
     VIRTUAL_INITIAL_MODEL_METHODS,
+    Criterion,
     Method,
 )
 from .model import Model, default_compare
@@ -26,6 +27,7 @@ def candidates(
     history: Optional[Dict[str, Model]] = None,
     excluded_models: Optional[List[Model]] = None,
     excluded_model_hashes: Optional[List[str]] = None,
+    criterion: Optional[Criterion] = None 
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
@@ -35,9 +37,10 @@ def candidates(
         candidate_space:
             The candidate space. Defaults to a new candidate space based on the method
             defined in the problem.
-        predecessor_model:
-            The predecessor model for a compatible method. Defaults to the best model in
-            `Problem.calibrated_models`, if available.
+        previous_predecessor_model:
+            The previous predecessor model for a compatible method. This is
+            used as the predecessor model for the current iteration, if a
+            better model doesn't exist in the candidate space models.
         limit:
             The maximum number of models to add to the candidate space.
         limit_sent:
@@ -51,10 +54,19 @@ def candidates(
         excluded_model_hashes:
             Hashes of models that will be excluded from model subspaces during the
             search for candidates.
+        criterion:
+            The criterion by which models will be compared. Defaults to the criterion
+            defined in the PEtab Select problem.
 
     Returns:
-        The candidate space, which contains the candidate models.
+        A tuple, with: (1) the candidate space, (2) the global history of models,
+        (3) the local history of models from the current iteration, and (4) the best
+        model from the previous iteration.
     """
+    # FIXME might be difficult for a CLI tool to specify a specific predecessor
+    #       model if their candidate space has models. Need a way to empty
+    #       the candidate space of models... might be difficult with pickled
+    #       candidate space objects/arguments?
     previous_local_history = {}
 
     if candidate_space is None:
@@ -67,9 +79,13 @@ def candidates(
         excluded_model_hashes = []
     if history is None:
         history = {}
+    if criterion is None:
+        criterion = problem.criterion
+
     # Set the new predecessor_model from the initial model or
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
+    predecessor_model = previous_predecessor_model
     if candidate_space.models:
         previous_candidate_models = candidate_space.models
 
@@ -78,19 +94,25 @@ def candidates(
             previous_local_history[candidate_model.model_id] = candidate_model
         history.update(previous_local_history)
 
-        predecessor_model = problem.get_best(previous_candidate_models)
-        # Check if the last predecessor_model is better than the new one.
-        # If not, set predecessor_model to be the previous one.
-        # If famos jumped this will not be true, since both models are the same.
-        if default_compare(
-            predecessor_model, previous_predecessor_model, problem.criterion
+        predecessor_model = problem.get_best(
+            previous_candidate_models,
+            criterion=criterion,
+        )
+        # If the new predecessor model isn't better than the previous one,
+        # keep the previous one.
+        # If FAMoS jumped this will not be useful, since the jumped-to model
+        # can be expected to be worse than the jumped-from model, in general.
+        if not default_compare(
+            model0=previous_predecessor_model,
+            model1=predecessor_model,
+            criterion=criterion,
         ):
             predecessor_model = previous_predecessor_model
 
         candidate_space.update_after_calibration(
             history=history,
             local_history=previous_local_history,
-            criterion=problem.criterion,
+            criterion=criterion,
         )
         # If candidate space not Famos then ignored.
         # Else, in case we jumped to most distant in this iteration, go into
@@ -99,13 +121,11 @@ def candidates(
             candidate_space.governing_method == Method.FAMOS
             and candidate_space.jumped_to_most_distant
         ):
-            return candidate_space.models, history, previous_local_history
-    else:
-        predecessor_model = previous_predecessor_model
+            return candidate_space.models, history, previous_local_history#, predecessor_model
 
     if (
         predecessor_model is None
-        and candidate_space.method in VIRTUAL_INITIAL_MODEL_METHODS
+        and candidate_space.method in INITIAL_MODEL_METHODS
         and problem.calibrated_models
     ):
         predecessor_model = problem.get_best()
@@ -129,7 +149,7 @@ def candidates(
         predecessor_model=predecessor_model,
     )
 
-    return candidate_space.models, history, previous_local_history
+    return candidate_space.models, history, previous_local_history#, predecessor_model
 
 
 def model_to_petab(
