@@ -34,7 +34,8 @@ class Problem(abc.ABC):
         candidate_space_arguments:
             Custom options that are used to construct the candidate space.
         compare:
-            A method that compares models by selection criterion.
+            A method that compares models by selection criterion. See
+            `petab_select.model.default_compare` for an example.
         criterion:
             The criterion used to compare models.
         method:
@@ -208,6 +209,7 @@ class Problem(abc.ABC):
         self,
         models: Optional[Iterable[Model]] = None,
         criterion: Optional[Union[str, None]] = None,
+        compute_criterion: bool = False,
     ) -> Model:
         """Get the best model from a collection of models.
 
@@ -221,6 +223,10 @@ class Problem(abc.ABC):
                 The criterion by which models will be compared. Defaults to
                 `self.criterion` (e.g. as defined in the PEtab Select problem YAML
                 file).
+            compute_criterion:
+                Whether to try computing criterion values, if sufficient
+                information is available (e.g., likelihood and number of
+                parameters, to compute AIC).
 
         Returns:
             The best model.
@@ -241,12 +247,14 @@ class Problem(abc.ABC):
 
         best_model = None
         for model in models:
+            if compute_criterion and not model.has_criterion(criterion):
+                model.get_criterion(criterion)
             if best_model is None:
                 if model.has_criterion(criterion):
                     best_model = model
                 # TODO warn if criterion is not available?
                 continue
-            if self.compare(best_model, model):
+            if self.compare(best_model, model, criterion=criterion):
                 best_model = model
         if best_model is None:
             raise KeyError(
