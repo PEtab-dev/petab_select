@@ -910,8 +910,7 @@ class FamosCandidateSpace(CandidateSpace):
         # want to switch method. This is why we put go_into_switch_method to True, so
         # we go into the method switching pipeline
         if (
-            go_into_switch_method
-            and self.method == Method.LATERAL
+            self.method == Method.LATERAL
             and not self.consecutive_laterals
         ):
             self.swap_done_successfully = True
