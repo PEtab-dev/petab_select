@@ -1284,13 +1284,6 @@ class LateralCandidateSpace(CandidateSpace):
             return True
         return False
 
-    # TODO does Lateral need this?
-    def distance(self, model: Model) -> int:
-        # TODO calculated here and `is_plausible`. Rewrite to only calculate
-        #      once?
-        distances = self.distances_in_estimated_parameters(model)
-        return distances['l1']
-
     def _consider_method(self, model):
         return True
 
