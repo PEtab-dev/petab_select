@@ -98,7 +98,6 @@ def test_famos(
     history = {}
     progress_list = []
 
-
     candidate_space = petab_select_problem.new_candidate_space()
 
     with pytest.raises(StopIteration, match="No valid models found."):
