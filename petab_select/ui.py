@@ -9,8 +9,8 @@ import petab
 from .candidate_space import CandidateSpace
 from .constants import (
     ESTIMATE,
+    INITIAL_MODEL_METHODS,
     TYPE_PATH,
-    VIRTUAL_INITIAL_MODEL_METHODS,
     Criterion,
     Method,
 )
@@ -60,8 +60,7 @@ def candidates(
 
     Returns:
         A tuple, with: (1) the candidate space, (2) the global history of models,
-        (3) the local history of models from the current iteration, and (4) the best
-        model from the previous iteration.
+        and (3) the local history of models from the current iteration.
     """
     # FIXME might be difficult for a CLI tool to specify a specific predecessor
     #       model if their candidate space has models. Need a way to empty
@@ -121,7 +120,7 @@ def candidates(
             candidate_space.governing_method == Method.FAMOS
             and candidate_space.jumped_to_most_distant
         ):
-            return candidate_space.models, history, previous_local_history#, predecessor_model
+            return candidate_space.models, history, previous_local_history
 
     if (
         predecessor_model is None
@@ -149,7 +148,7 @@ def candidates(
         predecessor_model=predecessor_model,
     )
 
-    return candidate_space.models, history, previous_local_history#, predecessor_model
+    return candidate_space.models, history, previous_local_history
 
 
 def model_to_petab(
