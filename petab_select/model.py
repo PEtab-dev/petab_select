@@ -610,7 +610,7 @@ def default_compare(
             f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".'
         )
         return False
-    if model0 == VIRTUAL_INITIAL_MODEL:
+    if model0 == VIRTUAL_INITIAL_MODEL or model0 is None:
         return True
     if criterion_threshold < 0:
         warnings.warn(
