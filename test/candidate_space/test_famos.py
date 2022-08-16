@@ -88,6 +88,7 @@ def test_famos(
     def calibrate(
         model,
         expected_criterion_values=expected_criterion_values,
+        history=None,
     ) -> None:
         model.set_criterion(
             criterion=petab_select_problem.criterion,
@@ -140,12 +141,13 @@ def test_famos(
                 if predecessor_model_parameters[index] == "estimate"
             ]
 
-            candidate_models = petab_select.ui.candidates(
+            candidate_models, _, _ = petab_select.ui.candidates(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
                 excluded_model_hashes=list(history),
-                predecessor_model=predecessor_model,
-            ).models
+                previous_predecessor_model=predecessor_model,
+                history=history,
+            )
             progress_list.append(
                 (
                     candidate_space.inner_candidate_space.method,
@@ -164,7 +166,7 @@ def test_famos(
                 # set model_id to M_010101010101010 form
                 set_model_id(candidate_model)
                 # run calibration
-                calibrate(candidate_model)
+                calibrate(candidate_model, history=history)
 
                 local_history[candidate_model.model_id] = candidate_model
                 # if candidate model has better criteria, add to better models
@@ -196,7 +198,7 @@ def test_famos(
             if jumped_to_most_distant:
                 best_model = candidate_space.predecessor_model
                 set_model_id(best_model)
-                calibrate(best_model)
+                calibrate(best_model, history=history)
                 local_history[best_model.model_id] = best_model
                 progress_list.append(best_model.model_id)
             if best_model is not None:
