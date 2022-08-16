@@ -101,7 +101,7 @@ def test_famos(
 
     candidate_space = petab_select_problem.new_candidate_space()
 
-    try:
+    with pytest.raises(StopIteration, match="No valid models found."):
         predecessor_model = candidate_space.predecessor_model
         while True:
             # Save predecessor_models and find new candidates
@@ -161,5 +161,4 @@ def test_famos(
             if not candidate_models:
                 raise StopIteration("No valid models found.")
 
-    except StopIteration:
-        assert progress_list == expected_progress_list
+    assert progress_list == expected_progress_list
