@@ -110,7 +110,7 @@ def test_famos(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
                 excluded_model_hashes=history,
-                previous_predecessor_model=predecessor_model,
+                previous_predecessor_model=previous_predecessor_model,
                 history=history,
             )
             predecessor_model = candidate_space.predecessor_model
