@@ -90,18 +90,10 @@ def test_famos(
         expected_criterion_values=expected_criterion_values,
         history=None,
     ) -> None:
-        try:
-            model.set_criterion(
-                criterion=petab_select_problem.criterion,
-                value=expected_criterion_values[model.model_id],
-            )
-        except:
-            for historical_model_id, historical_model in history.items():
-                if historical_model.get_hash() == model.predecessor_model_hash:
-                    print(historical_model_id)
-                    break
-            print(model.model_id)
-            breakpoint()
+        model.set_criterion(
+            criterion=petab_select_problem.criterion,
+            value=expected_criterion_values[model.model_id],
+        )
 
     history = {}
     progress_list = []
