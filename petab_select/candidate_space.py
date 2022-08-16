@@ -907,10 +907,7 @@ class FamosCandidateSpace(CandidateSpace):
         # method. So if we do it succesfully (i.e. that we found a new best model), we
         # want to switch method. This is why we put go_into_switch_method to True, so
         # we go into the method switching pipeline
-        if (
-            self.method == Method.LATERAL
-            and not self.consecutive_laterals
-        ):
+        if self.method == Method.LATERAL and not self.consecutive_laterals:
             self.swap_done_successfully = True
             go_into_switch_method = True
         return go_into_switch_method

@@ -27,7 +27,7 @@ def candidates(
     history: Optional[Dict[str, Model]] = None,
     excluded_models: Optional[List[Model]] = None,
     excluded_model_hashes: Optional[List[str]] = None,
-    criterion: Optional[Criterion] = None 
+    criterion: Optional[Criterion] = None,
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
