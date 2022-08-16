@@ -117,7 +117,7 @@ def test_famos(
             candidate_models, history, _ = petab_select.ui.candidates(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
-                excluded_model_hashes=list(history),
+                excluded_model_hashes=history,
                 previous_predecessor_model=predecessor_model,
                 history=history,
             )
