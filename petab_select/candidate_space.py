@@ -1096,7 +1096,6 @@ class FamosCandidateSpace(CandidateSpace):
         self.inner_candidate_space.reset(
             predecessor_model=self.predecessor_model, exclusions=history.keys
         )
-        # FIXME Check that problem.calibrated_models is excluded.
 
     def jump_to_most_distant(self):
         """Jump to most distant model with respect to the history of all
