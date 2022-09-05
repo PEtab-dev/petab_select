@@ -469,6 +469,7 @@ class CandidateSpace(abc.ABC):
         self,
         calibrated_models: Dict[str, Model],
         newly_calibrated_models: Dict[str, Model],
+        criterion: Optional[Criterion] = None,
     ):
         """Inner candidate space update, only for FAMoSCandidateSpace.
 
@@ -494,6 +495,7 @@ class CandidateSpace(abc.ABC):
         """
         self.calibrated_models.update(calibrated_models)
         self.newly_calibrated_models = newly_calibrated_models
+        # criterion is for FAMoS
 
 
 class ForwardCandidateSpace(CandidateSpace):
