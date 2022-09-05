@@ -24,7 +24,7 @@ def candidates(
     previous_predecessor_model: Optional[Model] = None,
     limit: Union[float, int] = np.inf,
     limit_sent: Union[float, int] = np.inf,
-    history: Optional[Dict[str, Model]] = None,
+    calibrated_models: Optional[Dict[str, Model]] = None,
     excluded_models: Optional[List[Model]] = None,
     excluded_model_hashes: Optional[List[str]] = None,
     criterion: Optional[Criterion] = None,
@@ -46,8 +46,8 @@ def candidates(
         limit_sent:
             The maximum number of models sent to the candidate space (which are possibly
             rejected and excluded).
-        history:
-            History of all calibrated models in the model selection.
+        calibrated_models:
+            All calibrated models in the model selection.
         excluded_models:
             Models that will be excluded from model subspaces during the search for
             candidates.
@@ -59,14 +59,13 @@ def candidates(
             defined in the PEtab Select problem.
 
     Returns:
-        A tuple, with: (1) the candidate space, (2) the global history of models,
-        and (3) the local history of models from the current iteration.
+        The candidate space, which contains the candidate models.
     """
     # FIXME might be difficult for a CLI tool to specify a specific predecessor
     #       model if their candidate space has models. Need a way to empty
     #       the candidate space of models... might be difficult with pickled
     #       candidate space objects/arguments?
-    previous_local_history = {}
+    newly_calibrated_models = None
 
     if candidate_space is None:
         candidate_space = problem.new_candidate_space(limit=limit)
@@ -76,8 +75,8 @@ def candidates(
         excluded_models = []
     if excluded_model_hashes is None:
         excluded_model_hashes = []
-    if history is None:
-        history = {}
+    if calibrated_models is None:
+        calibrated_models = {}
     if criterion is None:
         criterion = problem.criterion
 
@@ -86,17 +85,15 @@ def candidates(
     # this is not the first step of the search.
     predecessor_model = previous_predecessor_model
     if candidate_space.models:
-        previous_candidate_models = candidate_space.models
-
-        # Update local and global history.
-        for candidate_model in previous_candidate_models:
-            previous_local_history[
-                candidate_model.get_hash()
-            ] = candidate_model
-        history.update(previous_local_history)
+        # Update history.
+        newly_calibrated_models = {
+            candidate_model.get_hash(): candidate_model
+            for candidate_model in candidate_space.models
+        }
+        calibrated_models.update(newly_calibrated_models)
 
         predecessor_model = problem.get_best(
-            previous_candidate_models,
+            candidate_space.models,
             criterion=criterion,
         )
         # If the new predecessor model isn't better than the previous one,
@@ -111,8 +108,8 @@ def candidates(
             predecessor_model = previous_predecessor_model
 
         candidate_space.update_after_calibration(
-            calibration_history=history,
-            local_calibration_history=previous_local_history,
+            calibrated_models=calibrated_models,
+            newly_calibrated_models=newly_calibrated_models,
             criterion=criterion,
         )
         # If candidate space not Famos then ignored.
@@ -122,7 +119,6 @@ def candidates(
             candidate_space.governing_method == Method.FAMOS
             and candidate_space.jumped_to_most_distant
         ):
-            print(1)
             return candidate_space
 
     if (
@@ -151,7 +147,6 @@ def candidates(
         predecessor_model=predecessor_model,
     )
 
-    print(0)
     return candidate_space
 
 

@@ -104,14 +104,11 @@ def test_famos(
         while True:
             # Save predecessor_models and find new candidates
             previous_predecessor_model = candidate_space.predecessor_model
-            # candidate_models, history, _ = petab_select.ui.candidates(
-            # candidate_models = petab_select.ui.candidates(
             candidate_space = petab_select.ui.candidates(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
-                excluded_model_hashes=candidate_space.history,
+                excluded_model_hashes=candidate_space.calibrated_models,
                 previous_predecessor_model=previous_predecessor_model,
-                # history=history,
             )
             candidate_models = candidate_space.models
             predecessor_model = candidate_space.predecessor_model

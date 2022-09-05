@@ -50,12 +50,12 @@ class CandidateSpace(abc.ABC):
             A list of model hashes. Models that match a hash in `exclusions` will not
             be accepted into the candidate space. The hashes of models that are accepted
             are added to `exclusions`.
-        calibration_history:
+        calibrated_models:
             All previously calibrated models, as a dictionary where keys are
             model hashes, and values are models.
-        local_calibration_history:
+        newly_calibrated_models:
             All models calibrated in the previous iteration of the candidate
-            space algorithm. Same type as `calibration_history`.
+            space algorithm. Same type as `calibrated_models`.
         limit:
             A handler to limit the number of accepted models.
         method:
@@ -89,8 +89,8 @@ class CandidateSpace(abc.ABC):
         exclusions: Optional[List[Any]] = None,
         limit: TYPE_LIMIT = np.inf,
         summary_tsv: TYPE_PATH = None,
-        calibration_history: Dict[str, Model] = None,
-        local_calibration_history: Dict[str, Model] = None,
+        calibrated_models: Dict[str, Model] = None,
+        newly_calibrated_models: Dict[str, Model] = None,
     ):
         self.limit = LimitHandler(
             current=self.n_accepted,
@@ -105,12 +105,12 @@ class CandidateSpace(abc.ABC):
             self.summary_tsv = Path(self.summary_tsv)
             self._setup_summary_tsv()
 
-        self.calibration_history = calibration_history
-        if self.calibration_history is None:
-            self.calibration_history = {}
-        self.local_calibration_history = local_calibration_history
-        if self.local_calibration_history is None:
-            self.local_calibration_history = {}
+        self.calibrated_models = calibrated_models
+        if self.calibrated_models is None:
+            self.calibrated_models = {}
+        self.newly_calibrated_models = newly_calibrated_models
+        if self.newly_calibrated_models is None:
+            self.newly_calibrated_models = {}
 
     def write_summary_tsv(self, row):
         if self.summary_tsv is None:
@@ -467,13 +467,13 @@ class CandidateSpace(abc.ABC):
 
     def update_after_calibration(
         self,
-        calibration_history: Dict[str, Model],
-        local_calibration_history: Dict[str, Model],
+        calibrated_models: Dict[str, Model],
+        newly_calibrated_models: Dict[str, Model],
     ):
         """Inner candidate space update, only for FAMoSCandidateSpace.
 
         In each call of the Method_caller check wheter the FAMoS method
-        should change methods by comparing `local_calibration_history`
+        should change methods by comparing `newly_calibrated_models`
         of the last
         search to the best max_nmb best models of the whole search. If
         no new best model is found we change methods using the
@@ -487,13 +487,13 @@ class CandidateSpace(abc.ABC):
         with the current method that's being used.
 
         Args:
-            calibration_history:
-                Whole calibration_history of models of the model selection run
-            local_calibration_history:
-                new models from last step with their scores (AIC/BIX)
+            calibrated_models:
+                All calibrated models of the model selection run
+            newly_calibrated_models:
+                new models from last step with their scores (AIC/BIC)
         """
-        self.calibration_history = calibration_history
-        self.local_calibration_history = local_calibration_history
+        self.calibrated_models.update(calibrated_models)
+        self.newly_calibrated_models = newly_calibrated_models
 
 
 class ForwardCandidateSpace(CandidateSpace):
@@ -600,7 +600,7 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
         # FIXME cannot access from CLI
         self.initial_method = initial_method
 
-        self.history: List[Dict[str, Union[Method, List[Model]]]] = []
+        self.method_history: List[Dict[str, Union[Method, List[Model]]]] = []
 
     def update_method(self, method: Method):
         if method == Method.FORWARD:
@@ -624,7 +624,9 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
 
     def setup_before_model_subspaces_search(self):
         # If previous search found no models, then switch method.
-        previous_search = None if not self.history else self.history[-1]
+        previous_search = (
+            None if not self.method_history else self.method_history[-1]
+        )
         if previous_search is None:
             self.update_method(self.initial_method)
             return
@@ -639,7 +641,7 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
             METHOD: self.method,
             MODELS: self.models,
         }
-        self.history.append(current_search)
+        self.method_history.append(current_search)
         self.method = self.governing_method
 
     def wrap_search_subspaces(self, search_subspaces):
@@ -815,8 +817,6 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.governing_method = Method.FAMOS
 
-        self.history: List[Dict[str, Union[Method, List[Model]]]] = []
-
         self.n_reattempts = n_reattempts
 
         self.consecutive_laterals = consecutive_laterals
@@ -879,45 +879,46 @@ class FamosCandidateSpace(CandidateSpace):
             self.jumped_to_most_distant = False
             return False
 
-        if self.update_from_local_history(criterion=criterion):
+        if self.update_from_newly_calibrated_models(criterion=criterion):
             logging.info("Switching method")
             self.switch_method()
-            self.switch_inner_candidate_space(self.calibration_history)
+            self.switch_inner_candidate_space()
             logging.info(
                 "Method switched to ", self.inner_candidate_space.method
             )
 
         self.method_history.append(self.method)
 
-    def update_from_local_history(self, criterion: Criterion) -> bool:
-        """Update the self.best_models with the latest local_history
+    def update_from_newly_calibrated_models(
+        self, criterion: Criterion
+    ) -> bool:
+        """Update the self.best_models with the latest
+        `newly_calibrated_models`
         and determine if there was a new best model. If so, return
         True. False otherwise."""
 
         go_into_switch_method = True
-        for model_hash in self.local_calibration_history:
+        for newly_calibrated_model in self.newly_calibrated_models.values():
             if (
                 self.best_model_of_current_run == VIRTUAL_INITIAL_MODEL
                 or default_compare(
                     self.best_model_of_current_run,
-                    self.local_calibration_history[model_hash],
+                    newly_calibrated_model,
                     criterion,
                 )
             ):
                 go_into_switch_method = False
-                self.best_model_of_current_run = (
-                    self.local_calibration_history[model_hash]
-                )
+                self.best_model_of_current_run = newly_calibrated_model
 
             if len(
                 self.best_models
             ) < self.most_distant_max_number or default_compare(
                 self.best_models[self.most_distant_max_number - 1],
-                self.local_calibration_history[model_hash],
+                newly_calibrated_model,
                 criterion,
             ):
                 self.insert_model_into_best_models(
-                    model_to_insert=self.local_calibration_history[model_hash],
+                    model_to_insert=newly_calibrated_model,
                     criterion=criterion,
                 )
 
@@ -1104,14 +1105,16 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.method = method
 
-    def switch_inner_candidate_space(self, history):
+    def switch_inner_candidate_space(self):
         """Switch self.inner_candidate_space to the candidate space of
         the current self.method."""
 
         self.inner_candidate_space = self.inner_candidate_spaces[self.method]
-        # reset the next inner candidate space with the current history of all checked models
+        # reset the next inner candidate space with the current history of all
+        # calibrated models
         self.inner_candidate_space.reset(
-            predecessor_model=self.predecessor_model, exclusions=history.keys
+            predecessor_model=self.predecessor_model,
+            exclusions=self.calibrated_models,
         )
 
     def jump_to_most_distant(self):
@@ -1139,7 +1142,7 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.write_summary_tsv("Jumped to the most distant model.")
 
-    # TODO Fix for non-famos model subspaces. FAMOS easy beacuse of only 0;ESTIMATE
+    # TODO Fix for non-famos model subspaces. FAMOS easy because of only 0;ESTIMATE
     def get_most_distant(self) -> Model:
         """
         Get most distant model to all the checked models. We take models from the
@@ -1157,35 +1160,34 @@ class FamosCandidateSpace(CandidateSpace):
         most_distance = 0
         most_distant_indices = []
 
-        petab_parameters = self.best_models[0].petab_parameters
+        parameter_ids = self.best_models[0].petab_parameters
 
-        print([m.model_id for m in self.best_models])
-        print([m.model_id for m in self.history])
-        print([m.model_id for m in self.calibration_history.values()])
         for model in self.best_models:
-            model_parameters = model.get_parameter_values(
-                parameter_ids=petab_parameters
-            )
-
             model_estimated_parameters = np.array(
-                [p == ESTIMATE for p in model_parameters]
+                [
+                    p == ESTIMATE
+                    for p in model.get_parameter_values(
+                        parameter_ids=parameter_ids
+                    )
+                ]
             ).astype(int)
             complement_parameters = 1 - model_estimated_parameters
             # initialize the least distance to the maximal possible value of it
             complement_least_distance = len(complement_parameters)
             # get the complement least distance
-            for history_model in self.history.values():
-                # history_model = self.history[history_model_hash]
-                history_model_parameters = history_model.get_parameter_values(
-                    parameter_ids=petab_parameters
-                )
-
-                history_model_estimated_parameters = np.array(
-                    [p == ESTIMATE for p in history_model_parameters]
+            for calibrated_model in self.calibrated_models.values():
+                calibrated_model_estimated_parameters = np.array(
+                    [
+                        p == ESTIMATE
+                        for p in calibrated_model.get_parameter_values(
+                            parameter_ids=parameter_ids
+                        )
+                    ]
                 ).astype(int)
 
                 difference = (
-                    history_model_estimated_parameters - complement_parameters
+                    calibrated_model_estimated_parameters
+                    - complement_parameters
                 )
                 l1_distance = np.abs(difference).sum()
 
@@ -1207,7 +1209,7 @@ class FamosCandidateSpace(CandidateSpace):
         most_distant_parameters = {
             parameter_id: index
             for parameter_id, index in zip(
-                petab_parameters, most_distant_parameter_values
+                parameter_ids, most_distant_parameter_values
             )
         }
 
