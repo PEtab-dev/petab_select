@@ -90,7 +90,9 @@ def candidates(
 
         # Update local and global history.
         for candidate_model in previous_candidate_models:
-            previous_local_history[candidate_model.model_id] = candidate_model
+            previous_local_history[
+                candidate_model.get_hash()
+            ] = candidate_model
         history.update(previous_local_history)
 
         predecessor_model = problem.get_best(
@@ -109,8 +111,8 @@ def candidates(
             predecessor_model = previous_predecessor_model
 
         candidate_space.update_after_calibration(
-            history=history,
-            local_history=previous_local_history,
+            calibration_history=history,
+            local_calibration_history=previous_local_history,
             criterion=criterion,
         )
         # If candidate space not Famos then ignored.
@@ -120,7 +122,8 @@ def candidates(
             candidate_space.governing_method == Method.FAMOS
             and candidate_space.jumped_to_most_distant
         ):
-            return candidate_space.models, history, previous_local_history
+            print(1)
+            return candidate_space
 
     if (
         predecessor_model is None
@@ -148,7 +151,8 @@ def candidates(
         predecessor_model=predecessor_model,
     )
 
-    return candidate_space.models, history, previous_local_history
+    print(0)
+    return candidate_space
 
 
 def model_to_petab(

@@ -88,14 +88,13 @@ def test_famos(
     def calibrate(
         model,
         expected_criterion_values=expected_criterion_values,
-        history=None,
     ) -> None:
         model.set_criterion(
             criterion=petab_select_problem.criterion,
             value=expected_criterion_values[model.model_id],
         )
 
-    history = {}
+    # history = {}
     progress_list = []
 
     candidate_space = petab_select_problem.new_candidate_space()
@@ -105,13 +104,16 @@ def test_famos(
         while True:
             # Save predecessor_models and find new candidates
             previous_predecessor_model = candidate_space.predecessor_model
-            candidate_models, history, _ = petab_select.ui.candidates(
+            # candidate_models, history, _ = petab_select.ui.candidates(
+            # candidate_models = petab_select.ui.candidates(
+            candidate_space = petab_select.ui.candidates(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
-                excluded_model_hashes=history,
+                excluded_model_hashes=candidate_space.history,
                 previous_predecessor_model=previous_predecessor_model,
-                history=history,
+                # history=history,
             )
+            candidate_models = candidate_space.models
             predecessor_model = candidate_space.predecessor_model
 
             # Prepare indicies to write to progress_list
@@ -141,7 +143,7 @@ def test_famos(
                 # set model_id to M_010101010101010 form
                 set_model_id(candidate_model)
                 # run calibration
-                calibrate(candidate_model, history=history)
+                calibrate(candidate_model)
             # Write the progress_list for this step
             if not candidate_space.jumped_to_most_distant:
                 progress_list.append(
