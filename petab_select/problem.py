@@ -30,7 +30,7 @@ class Problem(abc.ABC):
             The model space.
         calibrated_models:
             Calibrated models. Will be used to augment the model selection problem (e.g.
-            by excluding them from the model space).
+            by excluding them from the model space). FIXME refactor out
         candidate_space_arguments:
             Custom options that are used to construct the candidate space.
         compare:
@@ -80,8 +80,6 @@ class Problem(abc.ABC):
         if self.compare is None:
             self.compare = partial(default_compare, criterion=self.criterion)
 
-        self.calibrated_models = []
-
     def get_path(self, relative_path: Union[str, Path]) -> Path:
         """Get the path to a resource, from a relative path.
 
@@ -100,25 +98,33 @@ class Problem(abc.ABC):
             return Path(relative_path)
         return self.yaml_path.parent / relative_path
 
-    def add_calibrated_models(
+    def exclude_models(
         self,
         models: Iterable[Model],
-        exclude: bool = True,
     ) -> None:
-        """Add calibrated models to the history.
+        """Exclude models from the model space.
 
         Args:
             models:
-                The models to add to the history.
-            exclude:
-                Whether to exclude the hashes of the models from the model space.
+                The models.
         """
-        self.calibrated_models = list(chain(self.calibrated_models, models))
         self.model_space.exclude_models(models)
+
+    def exclude_model_hashes(
+        self,
+        model_hashes: Iterable[str],
+    ) -> None:
+        """Exclude models from the model space, by model hashes.
+
+        Args:
+            models:
+                The model hashes.
+        """
+        self.model_space.exclude_model_hashes(model_hashes)
 
     def set_state(
         self,
-        state,
+        state: Dict[str, Dict[str, Any]],
     ) -> None:
         """Set the state of the problem.
 
@@ -128,7 +134,8 @@ class Problem(abc.ABC):
             state:
                 The state to restore to.
         """
-        self.add_calibrated_models(state)
+        for setter, kwargs in state.items():
+            getattr(self, setter)(**kwargs)
 
     def get_state(
         self,
@@ -140,7 +147,17 @@ class Problem(abc.ABC):
         Returns:
             The current state of the problem.
         """
-        return self.calibrated_models
+        state = {
+            'excluded_model_hashes': {
+                'model_hashes': set.union(
+                    *[
+                        model_subspace.exclusions
+                        for model_subspace in self.model_space.model_subspaces
+                    ]
+                ),
+            },
+        }
+        return state
 
     @staticmethod
     def from_yaml(
@@ -207,7 +224,7 @@ class Problem(abc.ABC):
 
     def get_best(
         self,
-        models: Optional[Iterable[Model]] = None,
+        models: Optional[Iterable[Model]],
         criterion: Optional[Union[str, None]] = None,
         compute_criterion: bool = False,
     ) -> Model:
@@ -217,8 +234,7 @@ class Problem(abc.ABC):
 
         Args:
             models:
-                The best model will be taken from these models. Defaults to
-                `self.calibrated_models`.
+                The best model will be taken from these models.
             criterion:
                 The criterion by which models will be compared. Defaults to
                 `self.criterion` (e.g. as defined in the PEtab Select problem YAML
@@ -233,17 +249,6 @@ class Problem(abc.ABC):
         """
         if criterion is None:
             criterion = self.criterion
-        # TODO check if commenting this out broke behavior somewhere
-        # if models is not None:
-        #    self.add_calibrated_models(models)
-        # TODO refactor s.t. `self.calibrated_models is None` when empty.
-        if models is None:
-            if self.calibrated_models:
-                models = self.calibrated_models
-            else:
-                raise ValueError(
-                    'There are no calibrated models in the problem, and no models were supplied.'
-                )
 
         best_model = None
         for model in models:

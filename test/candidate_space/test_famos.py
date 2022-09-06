@@ -96,6 +96,8 @@ def test_famos(
 
     # history = {}
     progress_list = []
+    calibrated_models = {}
+    newly_calibrated_models = {}
 
     candidate_space = petab_select_problem.new_candidate_space()
 
@@ -107,10 +109,10 @@ def test_famos(
             candidate_space = petab_select.ui.candidates(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
-                excluded_model_hashes=candidate_space.calibrated_models,
+                calibrated_models=calibrated_models,
+                newly_calibrated_models=newly_calibrated_models,
                 previous_predecessor_model=previous_predecessor_model,
             )
-            candidate_models = candidate_space.models
             predecessor_model = candidate_space.predecessor_model
 
             # Prepare indicies to write to progress_list
@@ -135,12 +137,17 @@ def test_famos(
                 if predecessor_model_parameters[index] == "estimate"
             ]
 
-            # Calibrate candidate_models
-            for candidate_model in candidate_models:
+            # Calibrate candidate models
+            newly_calibrated_models = {}
+            for candidate_model in candidate_space.models:
                 # set model_id to M_010101010101010 form
                 set_model_id(candidate_model)
                 # run calibration
                 calibrate(candidate_model)
+                newly_calibrated_models[
+                    candidate_model.get_hash()
+                ] = candidate_model
+                calibrated_models.update(newly_calibrated_models)
             # Write the progress_list for this step
             if not candidate_space.jumped_to_most_distant:
                 progress_list.append(
@@ -155,8 +162,8 @@ def test_famos(
                 )
             else:
                 progress_list.append(predecessor_model.model_id)
-            # Stop iteration if there are no candidate_models
-            if not candidate_models:
+            # Stop iteration if there are no candidate models
+            if not candidate_space.models:
                 raise StopIteration("No valid models found.")
 
     assert progress_list == expected_progress_list

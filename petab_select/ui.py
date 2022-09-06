@@ -25,11 +25,15 @@ def candidates(
     limit: Union[float, int] = np.inf,
     limit_sent: Union[float, int] = np.inf,
     calibrated_models: Optional[Dict[str, Model]] = None,
+    newly_calibrated_models: Optional[Dict[str, Model]] = None,
     excluded_models: Optional[List[Model]] = None,
     excluded_model_hashes: Optional[List[str]] = None,
     criterion: Optional[Criterion] = None,
 ) -> CandidateSpace:
     """Search the model space for candidate models.
+
+    A predecessor model is chosen from `newly_calibrated_models` if available,
+    otherwise from `calibrated_models`, and is used for applicable methods.
 
     Args:
         problem:
@@ -48,6 +52,9 @@ def candidates(
             rejected and excluded).
         calibrated_models:
             All calibrated models in the model selection.
+        newly_calibrated_models:
+            All calibrated models in the most recent iteration of model
+            selection.
         excluded_models:
             Models that will be excluded from model subspaces during the search for
             candidates.
@@ -65,35 +72,29 @@ def candidates(
     #       model if their candidate space has models. Need a way to empty
     #       the candidate space of models... might be difficult with pickled
     #       candidate space objects/arguments?
-    newly_calibrated_models = None
-
-    if candidate_space is None:
-        candidate_space = problem.new_candidate_space(limit=limit)
-        if problem.calibrated_models:
-            candidate_space.exclude(problem.calibrated_models)
     if excluded_models is None:
         excluded_models = []
     if excluded_model_hashes is None:
         excluded_model_hashes = []
     if calibrated_models is None:
         calibrated_models = {}
+    if newly_calibrated_models is None:
+        newly_calibrated_models = {}
+    calibrated_models.update(newly_calibrated_models)
     if criterion is None:
         criterion = problem.criterion
+    if candidate_space is None:
+        candidate_space = problem.new_candidate_space(limit=limit)
+    candidate_space.exclude_hashes(calibrated_models)
 
+    # Set the predecessor model to the previous predecessor model.
     # Set the new predecessor_model from the initial model or
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
     predecessor_model = previous_predecessor_model
-    if candidate_space.models:
-        # Update history.
-        newly_calibrated_models = {
-            candidate_model.get_hash(): candidate_model
-            for candidate_model in candidate_space.models
-        }
-        calibrated_models.update(newly_calibrated_models)
-
+    if newly_calibrated_models:
         predecessor_model = problem.get_best(
-            candidate_space.models,
+            newly_calibrated_models.values(),
             criterion=criterion,
         )
         # If the new predecessor model isn't better than the previous one,
@@ -124,9 +125,12 @@ def candidates(
     if (
         predecessor_model is None
         and candidate_space.method in INITIAL_MODEL_METHODS
-        and problem.calibrated_models
+        and calibrated_models
     ):
-        predecessor_model = problem.get_best()
+        predecessor_model = problem.get_best(
+            models=calibrated_models.values(),
+            criterion=criterion,
+        )
     if predecessor_model is not None:
         candidate_space.reset(predecessor_model)
 

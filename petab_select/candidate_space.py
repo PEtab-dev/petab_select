@@ -50,12 +50,6 @@ class CandidateSpace(abc.ABC):
             A list of model hashes. Models that match a hash in `exclusions` will not
             be accepted into the candidate space. The hashes of models that are accepted
             are added to `exclusions`.
-        calibrated_models:
-            All previously calibrated models, as a dictionary where keys are
-            model hashes, and values are models.
-        newly_calibrated_models:
-            All models calibrated in the previous iteration of the candidate
-            space algorithm. Same type as `calibrated_models`.
         limit:
             A handler to limit the number of accepted models.
         method:
@@ -89,8 +83,6 @@ class CandidateSpace(abc.ABC):
         exclusions: Optional[List[Any]] = None,
         limit: TYPE_LIMIT = np.inf,
         summary_tsv: TYPE_PATH = None,
-        calibrated_models: Dict[str, Model] = None,
-        newly_calibrated_models: Dict[str, Model] = None,
     ):
         self.limit = LimitHandler(
             current=self.n_accepted,
@@ -104,13 +96,6 @@ class CandidateSpace(abc.ABC):
         if self.summary_tsv is not None:
             self.summary_tsv = Path(self.summary_tsv)
             self._setup_summary_tsv()
-
-        self.calibrated_models = calibrated_models
-        if self.calibrated_models is None:
-            self.calibrated_models = {}
-        self.newly_calibrated_models = newly_calibrated_models
-        if self.newly_calibrated_models is None:
-            self.newly_calibrated_models = {}
 
     def write_summary_tsv(self, row):
         if self.summary_tsv is None:
@@ -250,6 +235,15 @@ class CandidateSpace(abc.ABC):
                 self.exclusions.append(_model.get_hash())
         else:
             self.exclusions.append(model.get_hash())
+
+    def exclude_hashes(self, hashes: List[str]) -> None:
+        """Exclude models from future consideration, by hash.
+
+        Args:
+            hashes:
+                The model hashes that will be excluded
+        """
+        self.exclusions.extend(hashes)
 
     def excluded(
         self,
@@ -469,33 +463,28 @@ class CandidateSpace(abc.ABC):
         self,
         calibrated_models: Dict[str, Model],
         newly_calibrated_models: Dict[str, Model],
-        criterion: Optional[Criterion] = None,
+        criterion: Criterion,
     ):
-        """Inner candidate space update, only for FAMoSCandidateSpace.
+        """Do work in the candidate space after calibration.
 
-        In each call of the Method_caller check wheter the FAMoS method
-        should change methods by comparing `newly_calibrated_models`
-        of the last
-        search to the best max_nmb best models of the whole search. If
-        no new best model is found we change methods using the
-        provided or default method scheme.
+        For example, this is used by the `FamosCandidateSpace` to switch
+        methods.
 
-        If we change methods, to construct the new candidate space we
-        need the whole history of visited models to include them into
-        excluded models so the new method does not visit them anymore.
-
-        Non-dependent on method-changing, we update the method_history
-        with the current method that's being used.
+        Different candidate spaces require different arguments. All arguments
+        are here, to ensure candidate spaces can be switched easily and still
+        receive sufficient arguments.
 
         Args:
             calibrated_models:
-                All calibrated models of the model selection run
+                All previously calibrated models, as a dictionary where keys
+                are model hashes, and values are models.
             newly_calibrated_models:
-                new models from last step with their scores (AIC/BIC)
+                All models calibrated in the previous iteration of the
+                candidate space algorithm. Same type as `calibrated_models`.
+            criterion:
+                See attributes.
         """
-        self.calibrated_models.update(calibrated_models)
-        self.newly_calibrated_models = newly_calibrated_models
-        # criterion is for FAMoS
+        pass
 
 
 class ForwardCandidateSpace(CandidateSpace):
@@ -867,12 +856,14 @@ class FamosCandidateSpace(CandidateSpace):
     def update_after_calibration(
         self,
         *args,
+        calibrated_models: Dict[str, Model],
+        newly_calibrated_models: Dict[str, Model],
         criterion: Criterion,
         **kwargs,
     ) -> None:
         """See `CandidateSpace.update_after_calibration`."""
 
-        super().update_after_calibration(*args, **kwargs)
+        # super().update_after_calibration(*args, **kwargs)
 
         # In case we jumped to most distant in the last iteration,
         # there's no need for an update, so we reset the jumped variable
@@ -881,10 +872,15 @@ class FamosCandidateSpace(CandidateSpace):
             self.jumped_to_most_distant = False
             return False
 
-        if self.update_from_newly_calibrated_models(criterion=criterion):
+        if self.update_from_newly_calibrated_models(
+            newly_calibrated_models=newly_calibrated_models,
+            criterion=criterion,
+        ):
             logging.info("Switching method")
-            self.switch_method()
-            self.switch_inner_candidate_space()
+            self.switch_method(calibrated_models=calibrated_models)
+            self.switch_inner_candidate_space(
+                calibrated_models=calibrated_models,
+            )
             logging.info(
                 "Method switched to ", self.inner_candidate_space.method
             )
@@ -892,7 +888,9 @@ class FamosCandidateSpace(CandidateSpace):
         self.method_history.append(self.method)
 
     def update_from_newly_calibrated_models(
-        self, criterion: Criterion
+        self,
+        newly_calibrated_models: Dict[str, Model],
+        criterion: Criterion,
     ) -> bool:
         """Update the self.best_models with the latest
         `newly_calibrated_models`
@@ -900,13 +898,13 @@ class FamosCandidateSpace(CandidateSpace):
         True. False otherwise."""
 
         go_into_switch_method = True
-        for newly_calibrated_model in self.newly_calibrated_models.values():
+        for newly_calibrated_model in newly_calibrated_models.values():
             if (
                 self.best_model_of_current_run == VIRTUAL_INITIAL_MODEL
                 or default_compare(
-                    self.best_model_of_current_run,
-                    newly_calibrated_model,
-                    criterion,
+                    model0=self.best_model_of_current_run,
+                    model1=newly_calibrated_model,
+                    criterion=criterion,
                 )
             ):
                 go_into_switch_method = False
@@ -915,9 +913,9 @@ class FamosCandidateSpace(CandidateSpace):
             if len(
                 self.best_models
             ) < self.most_distant_max_number or default_compare(
-                self.best_models[self.most_distant_max_number - 1],
-                newly_calibrated_model,
-                criterion,
+                model0=self.best_models[self.most_distant_max_number - 1],
+                model1=newly_calibrated_model,
+                criterion=criterion,
             ):
                 self.insert_model_into_best_models(
                     model_to_insert=newly_calibrated_model,
@@ -1042,7 +1040,10 @@ class FamosCandidateSpace(CandidateSpace):
                 return False
         return True
 
-    def switch_method(self) -> None:
+    def switch_method(
+        self,
+        calibrated_models: Dict[str, Model],
+    ) -> None:
         """Switch to the next method with respect to the history
         of methods used and the switching scheme in self.method_scheme"""
 
@@ -1076,7 +1077,7 @@ class FamosCandidateSpace(CandidateSpace):
         # Terminate if next method is `None`
         if next_method is None:
             if self.n_reattempts:
-                self.jump_to_most_distant()
+                self.jump_to_most_distant(calibrated_models=calibrated_models)
                 return
             raise StopIteration(
                 f"The next method is {next_method}. The search is terminating."
@@ -1093,7 +1094,7 @@ class FamosCandidateSpace(CandidateSpace):
             and not self.swap_parameter_sets
         ):
             if self.n_reattempts:
-                self.jump_to_most_distant()
+                self.jump_to_most_distant(calibrated_models=calibrated_models)
                 return
             raise StopIteration(
                 f"The next method is {next_method}, but there are no critical or swap parameters sets. Terminating."
@@ -1107,7 +1108,10 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.method = method
 
-    def switch_inner_candidate_space(self):
+    def switch_inner_candidate_space(
+        self,
+        calibrated_models: Dict[str, Model],
+    ):
         """Switch self.inner_candidate_space to the candidate space of
         the current self.method."""
 
@@ -1116,14 +1120,19 @@ class FamosCandidateSpace(CandidateSpace):
         # calibrated models
         self.inner_candidate_space.reset(
             predecessor_model=self.predecessor_model,
-            exclusions=self.calibrated_models,
+            exclusions=calibrated_models,
         )
 
-    def jump_to_most_distant(self):
+    def jump_to_most_distant(
+        self,
+        calibrated_models: Dict[str, Model],
+    ):
         """Jump to most distant model with respect to the history of all
         calibrated models."""
 
-        predecessor_model = self.get_most_distant()
+        predecessor_model = self.get_most_distant(
+            calibrated_models=calibrated_models,
+        )
 
         logging.info("JUMPING: ", predecessor_model.parameters)
 
@@ -1145,7 +1154,10 @@ class FamosCandidateSpace(CandidateSpace):
         self.write_summary_tsv("Jumped to the most distant model.")
 
     # TODO Fix for non-famos model subspaces. FAMOS easy because of only 0;ESTIMATE
-    def get_most_distant(self) -> Model:
+    def get_most_distant(
+        self,
+        calibrated_models: Dict[str, Model],
+    ) -> Model:
         """
         Get most distant model to all the checked models. We take models from the
         sorted list of best models (self.best_models) and construct complements of
@@ -1177,7 +1189,7 @@ class FamosCandidateSpace(CandidateSpace):
             # initialize the least distance to the maximal possible value of it
             complement_least_distance = len(complement_parameters)
             # get the complement least distance
-            for calibrated_model in self.calibrated_models.values():
+            for calibrated_model in calibrated_models.values():
                 calibrated_model_estimated_parameters = np.array(
                     [
                         p == ESTIMATE

@@ -170,7 +170,7 @@ def test_bidirectional(
         bad_model_parameterizations,
     ) = ordered_model_parameterizations
     search_iteration = 0
-    for history_item in candidate_space.history:
+    for history_item in candidate_space.method_history:
         models = history_item[MODELS]
         if not models:
             continue
