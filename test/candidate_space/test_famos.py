@@ -88,15 +88,16 @@ def test_famos(
     def calibrate(
         model,
         expected_criterion_values=expected_criterion_values,
-        history=None,
     ) -> None:
         model.set_criterion(
             criterion=petab_select_problem.criterion,
             value=expected_criterion_values[model.model_id],
         )
 
-    history = {}
+    # history = {}
     progress_list = []
+    calibrated_models = {}
+    newly_calibrated_models = {}
 
     candidate_space = petab_select_problem.new_candidate_space()
 
@@ -105,12 +106,12 @@ def test_famos(
         while True:
             # Save predecessor_models and find new candidates
             previous_predecessor_model = candidate_space.predecessor_model
-            candidate_models, history, _ = petab_select.ui.candidates(
+            candidate_space = petab_select.ui.candidates(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
-                excluded_model_hashes=history,
+                calibrated_models=calibrated_models,
+                newly_calibrated_models=newly_calibrated_models,
                 previous_predecessor_model=previous_predecessor_model,
-                history=history,
             )
             predecessor_model = candidate_space.predecessor_model
 
@@ -136,12 +137,17 @@ def test_famos(
                 if predecessor_model_parameters[index] == "estimate"
             ]
 
-            # Calibrate candidate_models
-            for candidate_model in candidate_models:
+            # Calibrate candidate models
+            newly_calibrated_models = {}
+            for candidate_model in candidate_space.models:
                 # set model_id to M_010101010101010 form
                 set_model_id(candidate_model)
                 # run calibration
-                calibrate(candidate_model, history=history)
+                calibrate(candidate_model)
+                newly_calibrated_models[
+                    candidate_model.get_hash()
+                ] = candidate_model
+                calibrated_models.update(newly_calibrated_models)
             # Write the progress_list for this step
             if not candidate_space.jumped_to_most_distant:
                 progress_list.append(
@@ -156,8 +162,8 @@ def test_famos(
                 )
             else:
                 progress_list.append(predecessor_model.model_id)
-            # Stop iteration if there are no candidate_models
-            if not candidate_models:
+            # Stop iteration if there are no candidate models
+            if not candidate_space.models:
                 raise StopIteration("No valid models found.")
 
     assert progress_list == expected_progress_list
