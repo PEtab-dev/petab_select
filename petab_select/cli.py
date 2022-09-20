@@ -1,26 +1,70 @@
 """The PEtab Select command-line interface."""
 import warnings
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
 import click
 import dill
 import numpy as np
 import pandas as pd
 import yaml
+from more_itertools import one
 
 from . import ui
-from .candidate_space import (
-    BackwardCandidateSpace,
-    BruteForceCandidateSpace,
-    CandidateSpace,
-    ForwardCandidateSpace,
-    LateralCandidateSpace,
-    method_to_candidate_space_class,
-)
+from .candidate_space import CandidateSpace, method_to_candidate_space_class
 from .constants import INITIAL_MODEL_METHODS, PETAB_YAML
 from .model import Model, models_from_yaml_list, models_to_yaml_list
 from .problem import Problem
+
+
+def read_state(filename: str) -> Dict[str, Any]:
+    with open(filename, 'rb') as f:
+        state = dill.load(f)
+    return state
+
+
+def write_state(
+    state: Dict[str, Any],
+    filename: str,
+) -> Dict[str, Any]:
+    with open(filename, 'wb') as f:
+        dill.dump(state, f)
+
+
+def get_state(
+    problem: Problem,
+    candidate_space: CandidateSpace,
+) -> Dict[str, Any]:
+    state = {
+        'problem': problem.get_state(),
+        'candidate_space': candidate_space.get_state(),
+    }
+    return state
+
+
+def set_state(
+    state: Dict[str, Any],
+    problem: Problem,
+    candidate_space: CandidateSpace,
+) -> None:
+    if problem is not None:
+        problem.set_state(state['problem'])
+    if candidate_space is not None:
+        candidate_space.set_state(state['candidate_space'])
+
+
+def check_state_compatibility(
+    state: Dict[str, Any],
+    problem: Problem,
+    candidate_space: CandidateSpace,
+):
+    # if state['problem'].method != problem.method:
+    #    warnings.warn(
+    #        'The method in the problem loaded from the state does not match '
+    #        'the method specified in either the PEtab Select YAML file or '
+    #        'specified explicitly with this command.'
+    #    )
+    pass
 
 
 @click.group()
@@ -30,15 +74,15 @@ def cli():
 
 @cli.command("candidates")
 @click.option(
-    '--yaml',
-    '-y',
-    'yaml_',
+    '--problem',
+    '-p',
+    'problem_yaml',
     help='The PEtab Select YAML problem file.',
 )
 @click.option(
     '--state',
     '-s',
-    'state',
+    'state_filename',
     type=str,
     help='The file that stores the state.',
 )
@@ -57,31 +101,51 @@ def cli():
     default=None,
     help='The method used to identify the candidate models. Defaults to the method in the problem YAML.',
 )
+# @click.option(
+#    '--predecessor',
+#    '-p',
+#    'predecessor',
+#    type=str,
+#    default=None,
+#    help='(Optional) The predecessor model used in the candidate model search.',
+# )
 @click.option(
-    '--initial',
-    '-i',
-    'initial',
+    '--previous-predecessor-model',
+    '-P',
+    'previous_predecessor_model_yaml',
     type=str,
     default=None,
-    help='(Optional) The initial model used in the candidate model search.',
+    help='(Optional) The predecessor model used in the previous iteration of model selection.',
 )
+# @click.option(
+#    '--best',
+#    '-b',
+#    'best',
+#    type=str,
+#    default=None,
+#    help=(
+#        '(Optional) Use the best model as the predecessor model, from a collection of '
+#        'calibrated models.'
+#    ),
+# )
 @click.option(
-    '--predecessor',
-    '-p',
-    'predecessor',
+    '--calibrated-models',
+    '-C',
+    'calibrated_models_yamls',
     type=str,
+    multiple=True,
     default=None,
-    help='(Optional) The predecessor model used in the candidate model search.',
+    help='(Optional) Models that have been calibrated.',
 )
 @click.option(
-    '--best',
-    '-b',
-    'best',
+    '--newly-calibrated-models',
+    '-N',
+    'newly_calibrated_models_yamls',
     type=str,
+    multiple=True,
     default=None,
     help=(
-        '(Optional) Use the best model as the predecessor model, from a collection of '
-        'calibrated models.'
+        '(Optional) Models that were calibrated in the most recent iteration.'
     ),
 )
 @click.option(
@@ -129,13 +193,14 @@ def cli():
     help='Exclude model hashes in this file (one model hash per line).',
 )
 def candidates(
-    yaml_: str,
-    state: str,
+    problem_yaml: str,
+    state_filename: str,
     output: str,
     method: str = None,
-    initial: str = None,
-    predecessor: str = None,
-    best: str = None,
+    previous_predecessor_model_yaml: str = None,
+    # best: str = None,
+    calibrated_models_yamls: List[str] = None,
+    newly_calibrated_models_yamls: List[str] = None,
     limit: float = np.inf,
     limit_sent: float = np.inf,
     relative_paths: bool = False,
@@ -147,25 +212,13 @@ def candidates(
     Documentation for arguments can be viewed with
     `petab_select candidates --help`.
     """
-    if initial is not None:
-        warnings.warn(
-            '`initial` (`-i`) is deprecated in favor of `predecessor` (`-p`), '
-            'for internal consistency.',
-            DeprecationWarning,
-        )
-        if predecessor is not None:
-            raise ValueError(
-                'Only one of `initial` (`-i`) or `predecessor` (`-p`) should be set.'
-            )
-        predecessor = initial
+    # if predecessor is not None and best is not None:
+    #    raise KeyError(
+    #        'The `predecessor` (`-p`) and `best` (`-b`) arguments cannot be used '
+    #        'together, as they both set the predecessor model.'
+    #    )
 
-    if predecessor is not None and best is not None:
-        raise KeyError(
-            'The `predecessor` (`-p`) and `best` (`-b`) arguments cannot be used '
-            'together, as they both set the predecessor model.'
-        )
-
-    problem = Problem.from_yaml(yaml_)
+    problem = Problem.from_yaml(problem_yaml)
     if method is None:
         method = problem.method
 
@@ -173,13 +226,23 @@ def candidates(
     # the candidate space.
     problem.method = method
 
-    if Path(state).exists():
-        # Load state
-        with open(state, 'rb') as f:
-            problem.set_state(dill.load(f))
+    candidate_space = problem.new_candidate_space(limit=limit)
+
+    # Setup state
+    if not Path(state_filename).exists():
+        Path(state_filename).parent.mkdir(parents=True, exist_ok=True)
     else:
-        # Create the output path for the state
-        Path(state).parent.mkdir(parents=True, exist_ok=True)
+        state = read_state(state_filename)
+        check_state_compatibility(
+            state=state,
+            problem=problem,
+            candidate_space=candidate_space,
+        )
+        set_state(
+            state=state,
+            problem=problem,
+            candidate_space=candidate_space,
+        )
 
     excluded_models = []
     # TODO seems like default is `()`, not `None`...
@@ -194,17 +257,48 @@ def candidates(
             with open(excluded_model_hash_file, 'r') as f:
                 excluded_model_hashes += f.read().split('\n')
 
-    predecessor_model = None
-    if best is not None:
-        calibrated_models = models_from_yaml_list(best)
-        predecessor_model = problem.get_best(calibrated_models)
+    # if best is not None:
+    #    calibrated_models = models_from_yaml_list(best)
+    #    predecessor_model = problem.get_best(calibrated_models)
 
-    if predecessor is not None:
-        predecessor_model = Model.from_yaml(predecessor)
+    previous_predecessor_model = None
+    if previous_predecessor_model_yaml is not None:
+        previous_predecessor_model = Model.from_yaml(
+            previous_predecessor_model_yaml
+        )
 
-    candidate_space = ui.candidates(
+    # FIXME write single methods to take all models from lists of lists of
+    #       models recursively
+    calibrated_models = None
+    if calibrated_models_yamls is not None:
+        calibrated_models = {}
+        for calibrated_models_yaml in calibrated_models_yamls:
+            calibrated_models.update(
+                {
+                    model.get_hash(): model
+                    for model in models_from_yaml_list(calibrated_models_yaml)
+                }
+            )
+
+    newly_calibrated_models = None
+    if newly_calibrated_models_yamls is not None:
+        newly_calibrated_models = {}
+        for newly_calibrated_models_yaml in newly_calibrated_models_yamls:
+            newly_calibrated_models.update(
+                {
+                    model.get_hash(): model
+                    for model in models_from_yaml_list(
+                        newly_calibrated_models_yaml
+                    )
+                }
+            )
+
+    ui.candidates(
         problem=problem,
-        predecessor_model=predecessor_model,
+        candidate_space=candidate_space,
+        previous_predecessor_model=previous_predecessor_model,
+        calibrated_models=calibrated_models,
+        newly_calibrated_models=newly_calibrated_models,
         limit=limit,
         limit_sent=limit_sent,
         excluded_models=excluded_models,
@@ -212,8 +306,13 @@ def candidates(
     )
 
     # Save state
-    with open(state, 'wb') as f:
-        dill.dump(problem.get_state(), f)
+    write_state(
+        state=get_state(
+            problem=problem,
+            candidate_space=candidate_space,
+        ),
+        filename=state_filename,
+    )
 
     # Save candidates
     models_to_yaml_list(
@@ -225,9 +324,10 @@ def candidates(
 
 @cli.command("model_to_petab")
 @click.option(
-    '--yaml',
-    '-y',
-    'yaml_',
+    '--model',
+    '-m',
+    'models_yamls',
+    multiple=True,
     help='The PEtab Select model YAML file.',
 )
 @click.option(
@@ -238,8 +338,8 @@ def candidates(
     help='The directory where the PEtab files will be output.',
 )
 @click.option(
-    '--model',
-    '-m',
+    '--model_id',
+    '-i',
     'model_id',
     type=str,
     default=None,
@@ -249,7 +349,7 @@ def candidates(
     ),
 )
 def model_to_petab(
-    yaml_: str,
+    models_yamls: List[str],
     output_path: str,
     model_id: str = None,
 ) -> None:
@@ -260,48 +360,41 @@ def model_to_petab(
     Documentation for arguments can be viewed with
     `petab_select model_to_petab --help`.
     """
-    try:
-        model = Model.from_yaml(yaml_)
-    except ValueError as e1:
-        # There may be multiple models in a single file.
-        if model_id is None:
-            raise ValueError(
-                'There may be multiple models defined in the provided PEtab '
-                'Select model YAML file. If so, please specify the ID of one '
-                'model that you would like to convert to PEtab, or use '
-                '`models2petab` to convert all of them.'
-            )
-        try:
-            models = models_from_yaml_list(yaml_)
-            try:
-                model = one(
-                    [model for model in models if model.model_id == model_id]
-                )
-            except ValueError:
-                raise ValueError(
-                    'There must be exactly one model with the provided model '
-                    f'ID "{model_id}", in the provided PEtab Select model '
-                    'YAML file. This may not be the case.'
-                )
-        except Exception as e2:
-            # Unknown error.
-            raise Exception([e1, e2])
+    models = []
+    for models_yaml in models_yamls:
+        models.extend(models_from_yaml_list(models_yaml))
 
-    if model_id is not None and model.model_id != model_id:
+    model0 = None
+    try:
+        model0 = one(models)
+    except:
+        for model in models:
+            if model.model_id == model_id:
+                if model0 is not None:
+                    raise ValueError('There are multiple models with this ID.')
+                model0 = model
+                # TODO could `break` here and remove the above `ValueError`
+                #      and the `model0` logic
+    if model0 is None:
+        raise ValueError('Could not find a model with the specified model ID.')
+
+    if model_id is not None and model0.model_id != model_id:
         raise ValueError(
             'The ID of the model from the YAML file does not match the '
             'specified ID.'
         )
 
-    result = ui.model_to_petab(model, output_path)
+    result = ui.model_to_petab(model0, output_path)
     print(result[PETAB_YAML])
 
 
 @cli.command("models_to_petab")
 @click.option(
-    '--yaml',
-    '-y',
-    'yaml_',
+    '--models',
+    '-m',
+    'models_yamls',
+    type=str,
+    multiple=True,
     help='The PEtab Select model YAML file, containing a list of models.',
 )
 @click.option(
@@ -312,7 +405,7 @@ def model_to_petab(
     help='The directory where the PEtab files will be output. The PEtab files will be stored in a model-specific subdirectory.',
 )
 def models_to_petab(
-    yaml_: str,
+    models_yamls: List[str],
     output_path_prefix: str,
 ) -> None:
     """Create a PEtab problem for each model in a PEtab Select model YAML file.
@@ -326,7 +419,10 @@ def models_to_petab(
     Documentation for arguments can be viewed with
     `petab_select models_to_petab --help`.
     """
-    models = models_from_yaml_list(yaml_)
+    models = []
+    for models_yaml in models_yamls:
+        models.extend(models_from_yaml_list(models_yaml))
+
     model_ids = pd.Series([model.model_id for model in models])
     duplicates = '\n'.join(set(model_ids[model_ids.duplicated()]))
     if duplicates:
@@ -351,16 +447,18 @@ def models_to_petab(
 
 @cli.command("best")
 @click.option(
-    '--yaml',
-    '-y',
-    'yaml_',
+    '--problem',
+    '-p',
+    'problem_yaml',
+    type=str,
     help='The PEtab Select YAML problem file.',
 )
 @click.option(
-    '--models_yaml',
+    '--models',
     '-m',
-    'models_yaml',
+    'models_yamls',
     type=str,
+    multiple=True,
     help='A list of calibrated models.',
 )
 @click.option(
@@ -373,7 +471,7 @@ def models_to_petab(
 @click.option(
     '--state',
     '-s',
-    'state',
+    'state_filename',
     type=str,
     default=None,
     help='The file that stores the state.',
@@ -394,10 +492,10 @@ def models_to_petab(
     help='Whether to output paths relative to the output file.',
 )
 def best(
-    yaml_: str,
-    models_yaml: str,
+    problem_yaml: str,
+    models_yamls: List[str],
     output: str,
-    state: str = None,
+    state_filename: str = None,
     criterion: str = None,
     relative_paths: bool = False,
 ) -> None:
@@ -410,15 +508,29 @@ def best(
     if relative_paths:
         paths_relative_to = Path(output).parent
 
-    problem = Problem.from_yaml(yaml_)
-    if state is not None and Path(state).exists():
-        # Load state
-        with open(state, 'rb') as f:
-            problem.set_state(dill.load(f))
+    problem = Problem.from_yaml(problem_yaml)
 
-    calibrated_models = models_from_yaml_list(models_yaml)
+    if state_filename is not None:
+        state = read_state(state_filename)
+        check_state_compatibility(
+            state=state,
+            problem=problem,
+            candidate_space=None,
+        )
+        set_state(
+            state=state,
+            problem=problem,
+            candidate_space=None,
+        )
+
+    models = []
+    for models_yaml in models_yamls:
+        models.extend(models_from_yaml_list(models_yaml))
+
     best_model = ui.best(
-        problem=problem, models=calibrated_models, criterion=criterion
+        problem=problem,
+        models=models,
+        criterion=criterion,
     )
     best_model.to_yaml(output, paths_relative_to=paths_relative_to)
 

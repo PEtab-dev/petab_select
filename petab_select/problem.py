@@ -139,7 +139,7 @@ class Problem(abc.ABC):
 
     def get_state(
         self,
-    ):
+    ) -> Dict[str, Dict[str, Any]]:
         """Get the state of the problem.
 
         Currently, only the excluded models needs to be stored.
@@ -148,11 +148,11 @@ class Problem(abc.ABC):
             The current state of the problem.
         """
         state = {
-            'excluded_model_hashes': {
+            'exclude_model_hashes': {
                 'model_hashes': set.union(
                     *[
                         model_subspace.exclusions
-                        for model_subspace in self.model_space.model_subspaces
+                        for model_subspace in self.model_space.model_subspaces.values()
                     ]
                 ),
             },

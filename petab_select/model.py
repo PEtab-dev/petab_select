@@ -642,6 +642,7 @@ def default_compare(
 def models_from_yaml_list(
     model_list_yaml: TYPE_PATH,
     petab_problem: petab.Problem = None,
+    allow_single_model: bool = True,
 ) -> List[Model]:
     """Generate a model from a PEtab Select list of model YAML file.
 
@@ -650,6 +651,10 @@ def models_from_yaml_list(
             The path to the PEtab Select list of model YAML file.
         petab_problem:
             See `Model.from_dict`.
+        allow_single_model:
+            Given a YAML file that contains a single model directly (not in
+            a 1-element list), if `True` then the single model will be read in,
+            else an error will be raised.
 
     Returns:
         A list of model instances, initialized with the provided
@@ -659,6 +664,18 @@ def models_from_yaml_list(
         model_dict_list = yaml.safe_load(f)
     if model_dict_list is None:
         return []
+
+    if not isinstance(model_dict_list, list):
+        if allow_single_model:
+            return [
+                Model.from_dict(
+                    model_dict_list,
+                    base_path=Path(model_list_yaml).parent,
+                    petab_problem=petab_problem,
+                )
+            ]
+        raise ValueError('The YAML file does not contain a list of models.')
+
     return [
         Model.from_dict(
             model_dict,

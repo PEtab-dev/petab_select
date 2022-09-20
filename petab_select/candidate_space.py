@@ -73,6 +73,7 @@ class CandidateSpace(abc.ABC):
         #    Models will fail `self.consider` if `len(self.models) >= limit`.
     """
 
+    governing_method: Method = None
     method: Method = None
     retry_model_space_search_if_no_models: bool = False
 
@@ -89,7 +90,8 @@ class CandidateSpace(abc.ABC):
             limit=limit,
         )
         # Each candidate class specifies this as a class attribute.
-        self.governing_method = self.method
+        if self.governing_method is None:
+            self.governing_method = self.method
         self.reset(predecessor_model=predecessor_model, exclusions=exclusions)
 
         self.summary_tsv = summary_tsv
@@ -486,6 +488,29 @@ class CandidateSpace(abc.ABC):
         """
         pass
 
+    def get_state(self) -> Dict[str, Dict[str, Any]]:
+        """Get the candidate space state.
+
+        Returns:
+            The state.
+        """
+        return {
+            #'set_limit': self.get_limit(),
+            #'set_exclusions': self.get_exclusions(),
+            #'set_predecessor_model': self.get_predecessor_model(),
+            # summary tsv
+        }
+
+    def set_state(self, state: Dict[str, Dict[str, Any]]):
+        """Set the candidate space state.
+
+        Args:
+            state:
+                The state.
+        """
+        for setter, kwargs in state.items():
+            getattr(self, setter)(**kwargs)
+
 
 class ForwardCandidateSpace(CandidateSpace):
     """The forward method class.
@@ -577,7 +602,10 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
             and the list of `MODELS`.
     """
 
+    # TODO refactor method to inherit from governing_method if not specified
+    #      by constructor argument -- remove from here.
     method = Method.BIDIRECTIONAL
+    governing_method = Method.BIDIRECTIONAL
     retry_model_space_search_if_no_models = True
 
     def __init__(
@@ -589,6 +617,11 @@ class BidirectionalCandidateSpace(ForwardCandidateSpace):
         super().__init__(*args, **kwargs)
 
         # FIXME cannot access from CLI
+        # FIXME probably fine to replace `self.initial_method`
+        #       with `self.method` here. i.e.:
+        #       1. change `method` to `Method.FORWARD
+        #       2. change signature to `initial_method: Method = None`
+        #       3. change code here to `if initial_method is not None: self.method = initial_method`
         self.initial_method = initial_method
 
         self.method_history: List[Dict[str, Union[Method, List[Model]]]] = []
@@ -830,6 +863,40 @@ class FamosCandidateSpace(CandidateSpace):
 
         self.jumped_to_most_distant = False
         self.swap_done_successfully = False
+
+    def get_state(self) -> Dict[str, Dict[str, Any]]:
+        """Get the candidate space state.
+
+        Returns:
+            The state.
+        """
+        return {
+            #'set_limit': self.get_limit(),
+            #'set_exclusions': self.get_exclusions(),
+            #'set_predecessor_model': self.get_predecessor_model(),
+            'set_state_famos': {
+                attribute: getattr(self, attribute)
+                for attribute in [
+                    'jumped_to_most_distant',
+                    'swap_done_successfully',
+                    'best_models',
+                    'n_reattempts',
+                    'initial_method',
+                    'method',
+                    'method_history',
+                ]
+            },
+        }
+
+    def set_state_famos(self, state: Dict[str, Any]):
+        """Set the FAMoS-specific state.
+
+        Args:
+            state:
+                The state.
+        """
+        for attribute, value in state.items():
+            setattr(self, attribute, value)
 
     @classmethod
     def read_arguments_from_yaml_dict(cls, yaml_dict) -> dict:

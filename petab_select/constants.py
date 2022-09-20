@@ -122,10 +122,10 @@ class Method(str, Enum):
     BACKWARD = 'backward'
     BIDIRECTIONAL = 'bidirectional'
     BRUTE_FORCE = 'brute_force'
+    FAMOS = 'famos'
     FORWARD = 'forward'
     FORWARD_AND_BACKWARD = 'forward_and_backward'
     LATERAL = 'lateral'
-    FAMOS = 'famos'
 
 
 class Criterion(str, Enum):

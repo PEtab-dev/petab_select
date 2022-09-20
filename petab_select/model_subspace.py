@@ -225,10 +225,6 @@ class ModelSubspace(PetabMixin):
             return
 
         if candidate_space.limit.reached():
-            warnings.warn(
-                'The candidate space has already reached its limit of accepted models.',
-                RuntimeWarning,
-            )
             return
 
         # Compute parameter sets that are useful for finding minimal forward or backward
