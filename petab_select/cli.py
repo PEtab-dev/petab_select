@@ -175,7 +175,7 @@ def cli():
     help='Whether to output paths relative to the output file.',
 )
 @click.option(
-    '--excluded-model-file',
+    '--excluded-models',
     '-e',
     'excluded_model_files',
     type=str,
@@ -184,7 +184,7 @@ def cli():
     help='Exclude models in this file.',
 )
 @click.option(
-    '--excluded-model-hash-file',
+    '--excluded-model-hashes',
     '-E',
     'excluded_model_hash_files',
     type=str,
