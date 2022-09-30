@@ -1,9 +1,11 @@
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
 import petab
 import pytest
+from more_itertools import one
 
 import petab_select
 from petab_select import ESTIMATE, FamosCandidateSpace, Method, Model
@@ -51,8 +53,7 @@ def expected_progress_list():
         (Method.BACKWARD, {4}),
         (Method.FORWARD, set()),
         (Method.LATERAL, set()),
-        "M_0001011010010010",
-        (Method.LATERAL, set()),
+        (Method.MOST_DISTANT, {2, 3, 4, 5, 6, 7, 9, 11, 12, 13, 15}),
         (Method.LATERAL, {16, 7}),
         (Method.LATERAL, {5, 12}),
         (Method.LATERAL, {13, 15}),
@@ -94,18 +95,51 @@ def test_famos(
             value=expected_criterion_values[model.model_id],
         )
 
-    # history = {}
+    def parse_summary_to_progress_list(summary_tsv: str) -> Tuple[Method, set]:
+        """Get progress information from the summary file."""
+        df_raw = pd.read_csv(summary_tsv, sep='\t')
+        df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]
+
+        parameter_list = list(
+            petab_select_problem.model_space.model_subspaces[
+                'model_subspace_1'
+            ].parameters
+        )
+
+        progress_list = []
+
+        for index, (_, row) in enumerate(df.iterrows()):
+            method = Method(row["method"])
+
+            model = {
+                1 + parameter_list.index(parameter_id)
+                for parameter_id in eval(row["current model"])
+            }
+            if index == 0:
+                model0 = model
+
+            difference = model.symmetric_difference(model0)
+            progress_list.append((method, difference))
+            model0 = model
+
+        return progress_list
+
     progress_list = []
     calibrated_models = {}
     newly_calibrated_models = {}
 
     candidate_space = petab_select_problem.new_candidate_space()
+    candidate_space.summary_tsv.unlink(missing_ok=True)
+    candidate_space._setup_summary_tsv()
 
     with pytest.raises(StopIteration, match="No valid models found."):
         predecessor_model = candidate_space.predecessor_model
         while True:
             # Save predecessor_models and find new candidates
-            previous_predecessor_model = candidate_space.predecessor_model
+            if candidate_space.predecessor_model is not None:
+                previous_predecessor_model = candidate_space.predecessor_model
+            else:
+                previous_predecessor_model = one(candidate_space.models)
             candidate_space = petab_select.ui.candidates(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
@@ -113,57 +147,21 @@ def test_famos(
                 newly_calibrated_models=newly_calibrated_models,
                 previous_predecessor_model=previous_predecessor_model,
             )
-            predecessor_model = candidate_space.predecessor_model
-
-            # Prepare indicies to write to progress_list
-            previous_predecessor_model_parameters = (
-                previous_predecessor_model.get_parameter_values(
-                    parameter_ids=predecessor_model.petab_parameters
-                )
-            )
-            previous_predecessor_model_parameter_indices = [
-                index + 1
-                for index in range(len(previous_predecessor_model_parameters))
-                if previous_predecessor_model_parameters[index] == "estimate"
-            ]
-            predecessor_model_parameters = (
-                predecessor_model.get_parameter_values(
-                    parameter_ids=predecessor_model.petab_parameters
-                )
-            )
-            predecessor_model_parameter_indices = [
-                index + 1
-                for index in range(len(predecessor_model_parameters))
-                if predecessor_model_parameters[index] == "estimate"
-            ]
 
             # Calibrate candidate models
             newly_calibrated_models = {}
             for candidate_model in candidate_space.models:
-                # set model_id to M_010101010101010 form
                 set_model_id(candidate_model)
-                # run calibration
                 calibrate(candidate_model)
                 newly_calibrated_models[
                     candidate_model.get_hash()
                 ] = candidate_model
                 calibrated_models.update(newly_calibrated_models)
-            # Write the progress_list for this step
-            if not candidate_space.jumped_to_most_distant:
-                progress_list.append(
-                    (
-                        candidate_space.inner_candidate_space.method,
-                        set(
-                            previous_predecessor_model_parameter_indices
-                        ).symmetric_difference(
-                            set(predecessor_model_parameter_indices)
-                        ),
-                    )
-                )
-            else:
-                progress_list.append(predecessor_model.model_id)
+
             # Stop iteration if there are no candidate models
             if not candidate_space.models:
                 raise StopIteration("No valid models found.")
 
-    assert progress_list == expected_progress_list
+    progress_list = parse_summary_to_progress_list(candidate_space.summary_tsv)
+
+    assert progress_list == expected_progress_list, progress_list

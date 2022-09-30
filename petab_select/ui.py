@@ -265,9 +265,19 @@ def write_summary_tsv(
             )
         )
 
+    # FIXME remove once MostDistantCandidateSpace exists...
+    method = candidate_space.method
+    if (
+        candidate_space.governing_method == Method.FAMOS
+        and candidate_space.predecessor_model.predecessor_model_hash is None
+    ):
+        with open(candidate_space.summary_tsv, 'r') as f:
+            if sum(1 for _ in f) > 1:
+                method = Method.MOST_DISTANT
+
     candidate_space.write_summary_tsv(
         [
-            candidate_space.method,
+            method,
             len(candidate_space.models),
             diff_parameter_ids,
             predecessor_criterion,

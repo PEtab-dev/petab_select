@@ -106,7 +106,7 @@ class Model(PetabMixin):
     converters_save = {
         MODEL_ID: lambda x: x,
         MODEL_SUBSPACE_ID: lambda x: x,
-        MODEL_SUBSPACE_INDICES: lambda x: x,
+        MODEL_SUBSPACE_INDICES: lambda x: [int(i) for i in x],
         MODEL_HASH: lambda x: x,
         PREDECESSOR_MODEL_HASH: lambda x: x,
         PETAB_YAML: lambda x: str(x),

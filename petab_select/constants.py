@@ -126,6 +126,7 @@ class Method(str, Enum):
     FORWARD = 'forward'
     FORWARD_AND_BACKWARD = 'forward_and_backward'
     LATERAL = 'lateral'
+    MOST_DISTANT = 'most_distant'
 
 
 class Criterion(str, Enum):

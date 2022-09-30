@@ -20,6 +20,10 @@ from .problem import Problem
 def read_state(filename: str) -> Dict[str, Any]:
     with open(filename, 'rb') as f:
         state = dill.load(f)
+
+    state['problem'] = dill.loads(state['problem'])
+    state['candidate_space'] = dill.loads(state['candidate_space'])
+
     return state
 
 
@@ -36,21 +40,10 @@ def get_state(
     candidate_space: CandidateSpace,
 ) -> Dict[str, Any]:
     state = {
-        'problem': problem.get_state(),
-        'candidate_space': candidate_space.get_state(),
+        'problem': dill.dumps(problem),
+        'candidate_space': dill.dumps(candidate_space),
     }
     return state
-
-
-def set_state(
-    state: Dict[str, Any],
-    problem: Problem,
-    candidate_space: CandidateSpace,
-) -> None:
-    if problem is not None:
-        problem.set_state(state['problem'])
-    if candidate_space is not None:
-        candidate_space.set_state(state['candidate_space'])
 
 
 def check_state_compatibility(
@@ -101,14 +94,6 @@ def cli():
     default=None,
     help='The method used to identify the candidate models. Defaults to the method in the problem YAML.',
 )
-# @click.option(
-#    '--predecessor',
-#    '-p',
-#    'predecessor',
-#    type=str,
-#    default=None,
-#    help='(Optional) The predecessor model used in the candidate model search.',
-# )
 @click.option(
     '--previous-predecessor-model',
     '-P',
@@ -117,17 +102,6 @@ def cli():
     default=None,
     help='(Optional) The predecessor model used in the previous iteration of model selection.',
 )
-# @click.option(
-#    '--best',
-#    '-b',
-#    'best',
-#    type=str,
-#    default=None,
-#    help=(
-#        '(Optional) Use the best model as the predecessor model, from a collection of '
-#        'calibrated models.'
-#    ),
-# )
 @click.option(
     '--calibrated-models',
     '-C',
@@ -212,12 +186,6 @@ def candidates(
     Documentation for arguments can be viewed with
     `petab_select candidates --help`.
     """
-    # if predecessor is not None and best is not None:
-    #    raise KeyError(
-    #        'The `predecessor` (`-p`) and `best` (`-b`) arguments cannot be used '
-    #        'together, as they both set the predecessor model.'
-    #    )
-
     problem = Problem.from_yaml(problem_yaml)
     if method is None:
         method = problem.method
@@ -238,11 +206,8 @@ def candidates(
             problem=problem,
             candidate_space=candidate_space,
         )
-        set_state(
-            state=state,
-            problem=problem,
-            candidate_space=candidate_space,
-        )
+        problem = state['problem']
+        candidate_space = state['candidate_space']
 
     excluded_models = []
     # TODO seems like default is `()`, not `None`...
@@ -257,11 +222,7 @@ def candidates(
             with open(excluded_model_hash_file, 'r') as f:
                 excluded_model_hashes += f.read().split('\n')
 
-    # if best is not None:
-    #    calibrated_models = models_from_yaml_list(best)
-    #    predecessor_model = problem.get_best(calibrated_models)
-
-    previous_predecessor_model = None
+    previous_predecessor_model = candidate_space.predecessor_model
     if previous_predecessor_model_yaml is not None:
         previous_predecessor_model = Model.from_yaml(
             previous_predecessor_model_yaml

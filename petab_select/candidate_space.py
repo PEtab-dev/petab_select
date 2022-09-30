@@ -120,14 +120,6 @@ class CandidateSpace(abc.ABC):
         if self.summary_tsv.exists():
             with open(self.summary_tsv, "r", encoding="utf-8") as f:
                 last_row = f.readlines()[-1]
-
-            if (
-                'Continuing summary file with new candidate space.'
-                not in last_row
-            ):
-                self.write_summary_tsv(
-                    'Continuing summary file with new candidate space.'
-                )
         else:
             self.write_summary_tsv(
                 [
@@ -463,9 +455,6 @@ class CandidateSpace(abc.ABC):
 
     def update_after_calibration(
         self,
-        calibrated_models: Dict[str, Model],
-        newly_calibrated_models: Dict[str, Model],
-        criterion: Criterion,
     ):
         """Do work in the candidate space after calibration.
 
@@ -475,41 +464,8 @@ class CandidateSpace(abc.ABC):
         Different candidate spaces require different arguments. All arguments
         are here, to ensure candidate spaces can be switched easily and still
         receive sufficient arguments.
-
-        Args:
-            calibrated_models:
-                All previously calibrated models, as a dictionary where keys
-                are model hashes, and values are models.
-            newly_calibrated_models:
-                All models calibrated in the previous iteration of the
-                candidate space algorithm. Same type as `calibrated_models`.
-            criterion:
-                See attributes.
         """
         pass
-
-    def get_state(self) -> Dict[str, Dict[str, Any]]:
-        """Get the candidate space state.
-
-        Returns:
-            The state.
-        """
-        return {
-            #'set_limit': self.get_limit(),
-            #'set_exclusions': self.get_exclusions(),
-            #'set_predecessor_model': self.get_predecessor_model(),
-            # summary tsv
-        }
-
-    def set_state(self, state: Dict[str, Dict[str, Any]]):
-        """Set the candidate space state.
-
-        Args:
-            state:
-                The state.
-        """
-        for setter, kwargs in state.items():
-            getattr(self, setter)(**kwargs)
 
 
 class ForwardCandidateSpace(CandidateSpace):
@@ -732,6 +688,7 @@ class FamosCandidateSpace(CandidateSpace):
         (Method.FORWARD,): Method.BACKWARD,
         (Method.BACKWARD,): Method.FORWARD,
         (Method.LATERAL,): Method.FORWARD,
+        (Method.MOST_DISTANT,): Method.FORWARD,
         None: Method.FORWARD,
     }
 
@@ -753,6 +710,8 @@ class FamosCandidateSpace(CandidateSpace):
         if method_scheme is None:
             self.method_scheme = self.default_method_scheme
 
+        # FIXME remove and use `self.method` everywhere in the constructor
+        #       instead -- not required in other methods anymore
         self.initial_method = self.method_scheme[None]
         self.method = self.initial_method
         self.method_history = [self.initial_method]
@@ -805,6 +764,7 @@ class FamosCandidateSpace(CandidateSpace):
                 Method.FORWARD,
                 Method.LATERAL,
                 Method.BACKWARD,
+                Method.MOST_DISTANT,
             ]:
                 raise NotImplementedError(
                     f'Methods FAMoS can swap to are `Method.FORWARD`, `Method.BACKWARD` and `Method.LATERAL`, not {method}. \
@@ -864,40 +824,6 @@ class FamosCandidateSpace(CandidateSpace):
         self.jumped_to_most_distant = False
         self.swap_done_successfully = False
 
-    def get_state(self) -> Dict[str, Dict[str, Any]]:
-        """Get the candidate space state.
-
-        Returns:
-            The state.
-        """
-        return {
-            #'set_limit': self.get_limit(),
-            #'set_exclusions': self.get_exclusions(),
-            #'set_predecessor_model': self.get_predecessor_model(),
-            'set_state_famos': {
-                attribute: getattr(self, attribute)
-                for attribute in [
-                    'jumped_to_most_distant',
-                    'swap_done_successfully',
-                    'best_models',
-                    'n_reattempts',
-                    'initial_method',
-                    'method',
-                    'method_history',
-                ]
-            },
-        }
-
-    def set_state_famos(self, state: Dict[str, Any]):
-        """Set the FAMoS-specific state.
-
-        Args:
-            state:
-                The state.
-        """
-        for attribute, value in state.items():
-            setattr(self, attribute, value)
-
     @classmethod
     def read_arguments_from_yaml_dict(cls, yaml_dict) -> dict:
         kwargs = copy.deepcopy(yaml_dict)
@@ -937,6 +863,9 @@ class FamosCandidateSpace(CandidateSpace):
         # to False and continue to candidate generation
         if self.jumped_to_most_distant:
             self.jumped_to_most_distant = False
+            jumped_to_model = one(newly_calibrated_models.values())
+            self.set_predecessor_model(jumped_to_model)
+            self.best_model_of_current_run = jumped_to_model
             return False
 
         if self.update_from_newly_calibrated_models(
@@ -1182,6 +1111,7 @@ class FamosCandidateSpace(CandidateSpace):
         """Switch self.inner_candidate_space to the candidate space of
         the current self.method."""
 
+        # if self.method != Method.MOST_DISTANT:
         self.inner_candidate_space = self.inner_candidate_spaces[self.method]
         # reset the next inner candidate space with the current history of all
         # calibrated models
@@ -1209,16 +1139,20 @@ class FamosCandidateSpace(CandidateSpace):
             for critical_set in self.critical_parameter_sets:
                 predecessor_model.parameters[critical_set[0]] = ESTIMATE
 
-        self.update_method(self.initial_method)
+        # self.update_method(self.initial_method)
+        self.update_method(Method.MOST_DISTANT)
 
         self.n_reattempts -= 1
         self.jumped_to_most_distant = True
 
-        self.predecessor_model = predecessor_model
-        self.best_model_of_current_run = predecessor_model
+        # FIXME rename here `predecessor_model` to `most_distant_model`
+        # self.predecessor_model = None
+        self.set_predecessor_model(None)
+        self.best_model_of_current_run = None
         self.models = [predecessor_model]
 
         self.write_summary_tsv("Jumped to the most distant model.")
+        self.update_method(self.method_scheme[(Method.MOST_DISTANT,)])
 
     # TODO Fix for non-famos model subspaces. FAMOS easy because of only 0;ESTIMATE
     def get_most_distant(

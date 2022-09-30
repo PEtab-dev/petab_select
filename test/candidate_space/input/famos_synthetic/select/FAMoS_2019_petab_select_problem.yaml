@@ -31,6 +31,9 @@ candidate_space_arguments:
   - previous_methods:
     - lateral
     next_method: forward
+  - previous_methods:
+    - most_distant
+    next_method: lateral
   - previous_methods: null
     next_method: lateral
   n_reattempts: 1
@@ -53,3 +56,4 @@ candidate_space_arguments:
     - mu_AD
     - mu_BD
     - mu_CD
+  summary_tsv: output_famos/summary.tsv

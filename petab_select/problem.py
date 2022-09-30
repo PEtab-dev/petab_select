@@ -122,43 +122,6 @@ class Problem(abc.ABC):
         """
         self.model_space.exclude_model_hashes(model_hashes)
 
-    def set_state(
-        self,
-        state: Dict[str, Dict[str, Any]],
-    ) -> None:
-        """Set the state of the problem.
-
-        Currently, only the excluded models needs to be stored.
-
-        Args:
-            state:
-                The state to restore to.
-        """
-        for setter, kwargs in state.items():
-            getattr(self, setter)(**kwargs)
-
-    def get_state(
-        self,
-    ) -> Dict[str, Dict[str, Any]]:
-        """Get the state of the problem.
-
-        Currently, only the excluded models needs to be stored.
-
-        Returns:
-            The current state of the problem.
-        """
-        state = {
-            'exclude_model_hashes': {
-                'model_hashes': set.union(
-                    *[
-                        model_subspace.exclusions
-                        for model_subspace in self.model_space.model_subspaces.values()
-                    ]
-                ),
-            },
-        }
-        return state
-
     @staticmethod
     def from_yaml(
         yaml_path: Union[str, Path],
