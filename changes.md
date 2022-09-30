@@ -1,5 +1,60 @@
 # Changes
 
+## 0.1.0
+There are several new candidate spaces, including the FAMoS method. There are also code quality checks (`black` / `isort` / notebook checks) and tests / CI with `tox`.
+
+Below are some significant changes. One major change is that the predecessor model is no longer explicitly specified, instead it is taken as the best model from a set of provided models.
+This means a calibration tool only needs to calibrate all models that PEtab Select provides, then send all calibrated models back to PEtab select, at each iteration.
+This change is implemented to support the FAMoS method.
+
+### `CandidateSpace`
+- new candidate spaces
+  - `BidirectionalCandidateSpace`
+    - tests models with both the forward and backward method at each iteration
+  - `ForwardAndBackwardCandidateSpace`
+    - alternates between the forward and backward method
+  - `LateralCandidateSpace`
+    - moves "sideways" through the model space with parameter swaps
+      - a lateral move is where one parameter is turned off, and another parameter is turned on, simultaneously
+  - `FamosCandidateSpace`
+    - implements the FAMoS method ( https://doi.org/10.1371/journal.pcbi.1007230 )
+- candidate spaces have a `update_after_calibration` method
+  - this provides functionality to support FAMoS operations that occur inbetween calibration iterations
+
+### `Problem`
+- renamed method `add_calibrated_models` to `exclude_models`
+- new method `exclude_model_hashes`
+- cleaned `get_best`
+
+### `ui.candidates`
+- logic change: predecessor model is taken from the following in descending priority, to support the FAMoS method
+  - best of `newly_calibarated_models`
+  - best of `calibrated_models`
+  - `previous_predecessor_model`
+- refactored to instead take newly calibrated models as an argument, instead of assuming they are at `candidate_space.models`
+- renamed `history` to `calibrated_models`
+
+### CLI
+- `candidates`
+  - see logic change in `ui.candidates`
+    - breaking change: renamed `--predecessor` to `--previous-predecessor-model` to ensure this logic change is noticed by developers
+    - removed deprecated `--initial` argument
+    - removed `--best`
+    - added argument `--calibrated-models` to specify file(s) that contain all calibrated models from all iterations so far
+    - added argument `--newly-calibrated-models` to specify file(s) that contain all calibrates models from the latest iteration
+  - renamed arguments to align `cli.candidates` with `ui.candidates`
+    - renamed `--yaml` to `--problem`
+    - renamed `--excluded-model-file` to `--excluded-model-file`
+    - renamed `--excluded-model-hash-file` to `--excluded-model-hashes`
+- `best`
+  - renamed arguments to align `cli.best` with `ui.best`
+    - renamed `--yaml` to `--problem`
+    - renamed `--models_yaml` to `--models`
+- `model_to_petab` and `models_to_petab`, respectively
+  - renamed to align `ui` and `cli` methods
+    - renamed `--yaml` to `model` and `models`, respectively
+    - renamed shorthand `-m` for `--model_id` to `-i` to avoid conflict with new `--model/--models` arguments
+
 ## 0.0.9
 Fixed automatic exclusions from the Python interface. Now, exclusions are only automatically managed in `Problem`s (thereby also the model space and model subspaces) and `CandidateSpace`s.
 

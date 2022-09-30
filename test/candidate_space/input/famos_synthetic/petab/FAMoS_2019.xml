@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" level="3" version="1">
+  <model id="FAMoS_2019" name="FAMoS_2019">
+    <listOfCompartments>
+      <compartment id="Compartment" size="1" constant="true"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species id="A" compartment="Compartment" initialAmount="100" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="B" compartment="Compartment" initialAmount="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="C" compartment="Compartment" initialAmount="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="D" compartment="Compartment" initialAmount="0" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+    </listOfSpecies>
+    <listOfParameters>
+      <parameter id="ro_A" name="ro_A" value="0" constant="true"/>
+      <parameter id="ro_B" name="ro_B" value="0.1" constant="true"/>
+      <parameter id="ro_C" name="ro_C" value="0.1" constant="true"/>
+      <parameter id="ro_D" name="ro_D" value="0" constant="true"/>
+      <parameter id="mu_AB" name="mu_AB" value="0.1" constant="true"/>
+      <parameter id="mu_BA" name="mu_BA" value="0" constant="true"/>
+      <parameter id="mu_AC" name="mu_AC" value="0" constant="true"/>
+      <parameter id="mu_CA" name="mu_CA" value="0" constant="true"/>
+      <parameter id="mu_AD" name="mu_AD" value="0" constant="true"/>
+      <parameter id="mu_DA" name="mu_DA" value="0" constant="true"/>
+      <parameter id="mu_BC" name="mu_BC" value="0.05" constant="true"/>
+      <parameter id="mu_CB" name="mu_CB" value="0" constant="true"/>
+      <parameter id="mu_BD" name="mu_BD" value="0.2" constant="true"/>
+      <parameter id="mu_DB" name="mu_DB" value="0" constant="true"/>
+      <parameter id="mu_CD" name="mu_CD" value="0" constant="true"/>
+      <parameter id="mu_DC" name="mu_DC" value="0" constant="true"/>
+    </listOfParameters>
+    <listOfRules>
+      <rateRule variable="A">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <apply>
+              <minus/>
+              <apply>
+                <minus/>
+                <apply>
+                  <plus/>
+                  <apply>
+                    <times/>
+                    <ci> mu_BA </ci>
+                    <ci> B </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> mu_CA </ci>
+                    <ci> C </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> mu_DA </ci>
+                    <ci> D </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> ro_A </ci>
+                    <ci> A </ci>
+                  </apply>
+                </apply>
+                <apply>
+                  <times/>
+                  <ci> mu_AB </ci>
+                  <ci> A </ci>
+                </apply>
+              </apply>
+              <apply>
+                <times/>
+                <ci> mu_AC </ci>
+                <ci> A </ci>
+              </apply>
+            </apply>
+            <apply>
+              <times/>
+              <ci> mu_AD </ci>
+              <ci> A </ci>
+            </apply>
+          </apply>
+        </math>
+      </rateRule>
+      <rateRule variable="B">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <apply>
+              <minus/>
+              <apply>
+                <minus/>
+                <apply>
+                  <plus/>
+                  <apply>
+                    <times/>
+                    <ci> mu_AB </ci>
+                    <ci> A </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> mu_CB </ci>
+                    <ci> C </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> mu_DB </ci>
+                    <ci> D </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> ro_B </ci>
+                    <ci> B </ci>
+                  </apply>
+                </apply>
+                <apply>
+                  <times/>
+                  <ci> mu_BA </ci>
+                  <ci> B </ci>
+                </apply>
+              </apply>
+              <apply>
+                <times/>
+                <ci> mu_BC </ci>
+                <ci> B </ci>
+              </apply>
+            </apply>
+            <apply>
+              <times/>
+              <ci> mu_BD </ci>
+              <ci> B </ci>
+            </apply>
+          </apply>
+        </math>
+      </rateRule>
+      <rateRule variable="C">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <apply>
+              <minus/>
+              <apply>
+                <minus/>
+                <apply>
+                  <plus/>
+                  <apply>
+                    <times/>
+                    <ci> mu_AC </ci>
+                    <ci> A </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> mu_BC </ci>
+                    <ci> B </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> mu_DC </ci>
+                    <ci> D </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> ro_C </ci>
+                    <ci> C </ci>
+                  </apply>
+                </apply>
+                <apply>
+                  <times/>
+                  <ci> mu_CA </ci>
+                  <ci> C </ci>
+                </apply>
+              </apply>
+              <apply>
+                <times/>
+                <ci> mu_CB </ci>
+                <ci> C </ci>
+              </apply>
+            </apply>
+            <apply>
+              <times/>
+              <ci> mu_CD </ci>
+              <ci> C </ci>
+            </apply>
+          </apply>
+        </math>
+      </rateRule>
+      <rateRule variable="D">
+        <math xmlns="http://www.w3.org/1998/Math/MathML">
+          <apply>
+            <minus/>
+            <apply>
+              <minus/>
+              <apply>
+                <minus/>
+                <apply>
+                  <plus/>
+                  <apply>
+                    <times/>
+                    <ci> mu_AD </ci>
+                    <ci> A </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> mu_BD </ci>
+                    <ci> B </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> mu_CD </ci>
+                    <ci> C </ci>
+                  </apply>
+                  <apply>
+                    <times/>
+                    <ci> ro_D </ci>
+                    <ci> D </ci>
+                  </apply>
+                </apply>
+                <apply>
+                  <times/>
+                  <ci> mu_DA </ci>
+                  <ci> D </ci>
+                </apply>
+              </apply>
+              <apply>
+                <times/>
+                <ci> mu_DB </ci>
+                <ci> D </ci>
+              </apply>
+            </apply>
+            <apply>
+              <times/>
+              <ci> mu_DC </ci>
+              <ci> D </ci>
+            </apply>
+          </apply>
+        </math>
+      </rateRule>
+    </listOfRules>
+  </model>
+</sbml>

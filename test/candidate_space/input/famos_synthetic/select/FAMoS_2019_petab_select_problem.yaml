@@ -1,0 +1,59 @@
+version: beta_1
+criterion: AICc
+method: famos
+model_space_files:
+- model_space_FAMoS_2019.tsv
+candidate_space_arguments:
+  critical_parameter_sets: []
+  method_scheme:
+  - previous_methods:
+    - backward
+    - forward
+    next_method: lateral
+  - previous_methods:
+    - forward
+    - backward
+    next_method: lateral
+  - previous_methods:
+    - backward
+    - lateral
+    next_method: null
+  - previous_methods:
+    - forward
+    - lateral
+    next_method: null
+  - previous_methods:
+    - forward
+    next_method: backward
+  - previous_methods:
+    - backward
+    next_method: forward
+  - previous_methods:
+    - lateral
+    next_method: forward
+  - previous_methods:
+    - most_distant
+    next_method: lateral
+  - previous_methods: null
+    next_method: lateral
+  n_reattempts: 1
+  predecessor_model: ../test_files/predecessor_model.yaml
+  consecutive_laterals: true
+  swap_parameter_sets:
+  - - ro_A
+    - mu_BA
+    - mu_CA
+    - mu_DA
+  - - ro_B
+    - mu_AB
+    - mu_CB
+    - mu_DB
+  - - ro_C
+    - mu_AC
+    - mu_BC
+    - mu_DC
+  - - ro_D
+    - mu_AD
+    - mu_BD
+    - mu_CD
+  summary_tsv: output_famos/summary.tsv

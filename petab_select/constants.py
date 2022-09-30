@@ -3,7 +3,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Union
 
-
 # Zero-indexed column/row indices
 MODEL_ID_COLUMN = 0
 PETAB_YAML_COLUMN = 1
@@ -18,19 +17,20 @@ ESTIMATE = 'estimate'
 PETAB_ESTIMATE_FALSE = 0
 PETAB_ESTIMATE_TRUE = 1
 
-#TYPING_PATH = Union[str, Path]
+# TYPING_PATH = Union[str, Path]
 TYPE_PATH = Union[str, Path]
 
 # Model space file columns
 # TODO ensure none of these occur twice in the column header (this would
 #      suggest that a parameter has a conflicting name)
-#MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
-#YAML = 'YAML'  # FIXME
+# MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
+# YAML = 'YAML'  # FIXME
 MODEL_ID = 'model_id'
 MODEL_SUBSPACE_ID = 'model_subspace_id'
 MODEL_SUBSPACE_INDICES = 'model_subspace_indices'
 MODEL_CODE = 'model_code'
 MODEL_HASH = 'model_hash'
+MODEL_HASHES = 'model_hashes'
 # If `predecessor_model_hash` is defined for a model, it is the ID of the model that the
 # current model was/is to be compared to. This is part of the result and is
 # only (optionally) set by the PEtab calibration tool. It is not defined by the
@@ -42,19 +42,19 @@ PETAB_YAML = 'petab_yaml'
 SBML = 'sbml'
 HASH = 'hash'
 
-#MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
+# MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
 MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_SUBSPACE_ID, PETAB_YAML]
 
-#COMPARED_MODEL_ID = 'compared_'+MODEL_ID
+# COMPARED_MODEL_ID = 'compared_'+MODEL_ID
 YAML_FILENAME = 'yaml'
 
-#FORWARD = 'forward'
-#BACKWARD = 'backward'
-#BIDIRECTIONAL = 'bidirectional'
-#LATERAL = 'lateral'
+# FORWARD = 'forward'
+# BACKWARD = 'backward'
+# BIDIRECTIONAL = 'bidirectional'
+# LATERAL = 'lateral'
 
 
-#DISTANCES = {
+# DISTANCES = {
 #    FORWARD: {
 #        'l1': 1,
 #        'size': 1,
@@ -67,26 +67,26 @@ YAML_FILENAME = 'yaml'
 #        'l1': 2,
 #        'size': 0,
 #    },
-#}
+# }
 
 CRITERIA = 'criteria'
 # FIXME remove, change all uses to Enum below
-#AIC = 'AIC'
-#AICC = 'AICc'
-#BIC = 'BIC'
-#AKAIKE_INFORMATION_CRITERION = AIC
-#CORRECTED_AKAIKE_INFORMATION_CRITERION = AICC
-#BAYESIAN_INFORMATION_CRITERION = BIC
-#LH = 'LH'
-#LLH = 'LLH'
-#NLLH = 'NLLH'
-#LIKELIHOOD = LH
-#LOG_LIKELIHOOD = LLH
-#NEGATIVE_LOG_LIKELIHOOD = NLLH
+# AIC = 'AIC'
+# AICC = 'AICc'
+# BIC = 'BIC'
+# AKAIKE_INFORMATION_CRITERION = AIC
+# CORRECTED_AKAIKE_INFORMATION_CRITERION = AICC
+# BAYESIAN_INFORMATION_CRITERION = BIC
+# LH = 'LH'
+# LLH = 'LLH'
+# NLLH = 'NLLH'
+# LIKELIHOOD = LH
+# LOG_LIKELIHOOD = LLH
+# NEGATIVE_LOG_LIKELIHOOD = NLLH
 
 
 PARAMETERS = 'parameters'
-#PARAMETER_ESTIMATE = 'parameter_estimate'
+# PARAMETER_ESTIMATE = 'parameter_estimate'
 ESTIMATED_PARAMETERS = 'estimated_parameters'
 
 CRITERION = 'criterion'
@@ -94,7 +94,14 @@ METHOD = 'method'
 VERSION = 'version'
 MODEL_SPACE_FILES = 'model_space_files'
 
+CANDIDATE_SPACE_ARGUMENTS = 'candidate_space_arguments'
+METHOD_SCHEME = 'method_scheme'
+PREVIOUS_METHODS = 'previous_methods'
+NEXT_METHOD = 'next_method'
+PREDECESSOR_MODEL = 'predecessor_model'
+
 MODEL = 'model'
+MODELS = 'models'
 
 # Parameters can be fixed to a value, or estimated if indicated with the string
 # `ESTIMATE`.
@@ -111,14 +118,20 @@ TYPE_CRITERION = float
 
 class Method(str, Enum):
     """String literals for model selection methods."""
+
     BACKWARD = 'backward'
     BIDIRECTIONAL = 'bidirectional'
     BRUTE_FORCE = 'brute_force'
+    FAMOS = 'famos'
     FORWARD = 'forward'
+    FORWARD_AND_BACKWARD = 'forward_and_backward'
     LATERAL = 'lateral'
+    MOST_DISTANT = 'most_distant'
+
 
 class Criterion(str, Enum):
     """String literals for model selection criteria."""
+
     AIC = 'AIC'
     AICC = 'AICc'
     BIC = 'BIC'
@@ -132,18 +145,23 @@ STEPWISE_METHODS = [
     Method.BACKWARD,
     Method.BIDIRECTIONAL,
     Method.FORWARD,
+    Method.FORWARD_AND_BACKWARD,
     Method.LATERAL,
 ]
 # Methods that require an initial model.
 INITIAL_MODEL_METHODS = [
     Method.BACKWARD,
+    Method.BIDIRECTIONAL,
     Method.FORWARD,
+    Method.FORWARD_AND_BACKWARD,
     Method.LATERAL,
 ]
 
 # Virtual initial models can be used to initialize some initial model methods.
 VIRTUAL_INITIAL_MODEL = 'virtual_initial_model'
 VIRTUAL_INITIAL_MODEL_METHODS = [
+    Method.BACKWARD,
+    Method.BIDIRECTIONAL,
     Method.FORWARD,
-    Method.BACKWARD
+    Method.FORWARD_AND_BACKWARD,
 ]

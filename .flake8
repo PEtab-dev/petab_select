@@ -1,0 +1,9 @@
+########################
+# Flake8 Configuration #
+########################
+
+[flake8]
+
+per-file-ignores =
+    # Imported but unused
+    */__init__.py:F401,F403

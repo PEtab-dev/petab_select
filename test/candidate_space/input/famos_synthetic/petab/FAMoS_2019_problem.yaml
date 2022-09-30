@@ -1,0 +1,11 @@
+format_version: 1
+parameter_file: parameters_FAMoS_2019.tsv
+problems:
+- condition_files:
+  - experimental_conditions_FAMoS_2019.tsv
+  measurement_files:
+  - FAMos_2019_synth_measurements_0.1noise.tsv
+  observable_files:
+  - observables_FAMoS_2019.tsv
+  sbml_files:
+  - FAMoS_2019.xml

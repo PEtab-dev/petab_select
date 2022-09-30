@@ -1,0 +1,56 @@
+name: CI
+
+# trigger
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+  schedule:
+    # run Tuesday and Friday at 02:00 UTC
+    - cron: '00 2 * * TUE,FRI'
+
+jobs:
+  base:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # test on latest and minimum python version
+        python-version: ['3.10', '3.8']
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Prepare python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache
+      uses: actions/cache@v1
+      with:
+        path: ~ /.cache
+        key: ci-${{ runner.os }}-${{ matrix.python-version }}-base
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          swig \
+          libatlas-base-dev \
+          libhdf5-serial-dev
+
+    - name: Install Python dependencies
+      run: pip install -r requirements_dev.txt
+
+    - name: Run tox
+      run: python -m tox
+
+    - name: Run pre-commit hooks
+      run: pre-commit run --all-files
+
+    - name: Coverage
+      uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml

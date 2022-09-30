@@ -1,0 +1,17 @@
+parameterId	parameterScale	lowerBound	upperBound	estimate	nominalValue
+ro_A	lin	-5	5	0	0
+ro_B	lin	-5	5	1	0.1
+ro_C	lin	-5	5	1	0.1
+ro_D	lin	-5	5	0	0
+mu_AB	log10	1E-15	5	1	0.1
+mu_BA	log10	1E-15	5	0	0
+mu_AC	log10	1E-15	5	0	0
+mu_CA	log10	1E-15	5	0	0
+mu_AD	log10	1E-15	5	0	0
+mu_DA	log10	1E-15	5	0	0
+mu_BC	log10	1E-15	5	1	0.05
+mu_CB	log10	1E-15	5	0	0
+mu_BD	log10	1E-15	5	1	0.2
+mu_DB	log10	1E-15	5	0	0
+mu_CD	log10	1E-15	5	0	0
+mu_DC	log10	1E-15	5	0	0
