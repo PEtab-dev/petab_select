@@ -455,6 +455,8 @@ class CandidateSpace(abc.ABC):
 
     def update_after_calibration(
         self,
+        *args,
+        **kwargs,
     ):
         """Do work in the candidate space after calibration.
 
