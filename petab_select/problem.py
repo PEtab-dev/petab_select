@@ -30,11 +30,12 @@ class Problem(abc.ABC):
             The model space.
         calibrated_models:
             Calibrated models. Will be used to augment the model selection problem (e.g.
-            by excluding them from the model space).
+            by excluding them from the model space). FIXME refactor out
         candidate_space_arguments:
             Custom options that are used to construct the candidate space.
         compare:
-            A method that compares models by selection criterion.
+            A method that compares models by selection criterion. See
+            `petab_select.model.default_compare` for an example.
         criterion:
             The criterion used to compare models.
         method:
@@ -79,8 +80,6 @@ class Problem(abc.ABC):
         if self.compare is None:
             self.compare = partial(default_compare, criterion=self.criterion)
 
-        self.calibrated_models = []
-
     def get_path(self, relative_path: Union[str, Path]) -> Path:
         """Get the path to a resource, from a relative path.
 
@@ -99,47 +98,29 @@ class Problem(abc.ABC):
             return Path(relative_path)
         return self.yaml_path.parent / relative_path
 
-    def add_calibrated_models(
+    def exclude_models(
         self,
         models: Iterable[Model],
-        exclude: bool = True,
     ) -> None:
-        """Add calibrated models to the history.
+        """Exclude models from the model space.
 
         Args:
             models:
-                The models to add to the history.
-            exclude:
-                Whether to exclude the hashes of the models from the model space.
+                The models.
         """
-        self.calibrated_models = list(chain(self.calibrated_models, models))
         self.model_space.exclude_models(models)
 
-    def set_state(
+    def exclude_model_hashes(
         self,
-        state,
+        model_hashes: Iterable[str],
     ) -> None:
-        """Set the state of the problem.
-
-        Currently, only the excluded models needs to be stored.
+        """Exclude models from the model space, by model hashes.
 
         Args:
-            state:
-                The state to restore to.
+            models:
+                The model hashes.
         """
-        self.add_calibrated_models(state)
-
-    def get_state(
-        self,
-    ):
-        """Get the state of the problem.
-
-        Currently, only the excluded models needs to be stored.
-
-        Returns:
-            The current state of the problem.
-        """
-        return self.calibrated_models
+        self.model_space.exclude_model_hashes(model_hashes)
 
     @staticmethod
     def from_yaml(
@@ -206,8 +187,9 @@ class Problem(abc.ABC):
 
     def get_best(
         self,
-        models: Optional[Iterable[Model]] = None,
+        models: Optional[Iterable[Model]],
         criterion: Optional[Union[str, None]] = None,
+        compute_criterion: bool = False,
     ) -> Model:
         """Get the best model from a collection of models.
 
@@ -215,38 +197,32 @@ class Problem(abc.ABC):
 
         Args:
             models:
-                The best model will be taken from these models. Defaults to
-                `self.calibrated_models`.
+                The best model will be taken from these models.
             criterion:
                 The criterion by which models will be compared. Defaults to
                 `self.criterion` (e.g. as defined in the PEtab Select problem YAML
                 file).
+            compute_criterion:
+                Whether to try computing criterion values, if sufficient
+                information is available (e.g., likelihood and number of
+                parameters, to compute AIC).
 
         Returns:
             The best model.
         """
         if criterion is None:
             criterion = self.criterion
-        # TODO check if commenting this out broke behavior somewhere
-        # if models is not None:
-        #    self.add_calibrated_models(models)
-        # TODO refactor s.t. `self.calibrated_models is None` when empty.
-        if models is None:
-            if self.calibrated_models:
-                models = self.calibrated_models
-            else:
-                raise ValueError(
-                    'There are no calibrated models in the problem, and no models were supplied.'
-                )
 
         best_model = None
         for model in models:
+            if compute_criterion and not model.has_criterion(criterion):
+                model.get_criterion(criterion)
             if best_model is None:
                 if model.has_criterion(criterion):
                     best_model = model
                 # TODO warn if criterion is not available?
                 continue
-            if self.compare(best_model, model):
+            if self.compare(best_model, model, criterion=criterion):
                 best_model = model
         if best_model is None:
             raise KeyError(

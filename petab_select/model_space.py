@@ -1,6 +1,7 @@
 """The `ModelSpace` class and related methods."""
 import abc
 import itertools
+import logging
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import (
@@ -220,16 +221,20 @@ class ModelSpace:
             exclude:
                 Whether to exclude the new candidates from the model subspaces.
         """
+        if candidate_space.limit.reached():
+            warnings.warn(
+                'The candidate space has already reached its limit of accepted models.',
+                RuntimeWarning,
+            )
+            return candidate_space.models
 
         @candidate_space.wrap_search_subspaces
         def search_subspaces(only_one_subspace: bool = False):
             # TODO change dict to list of subspaces. Each subspace should manage its own
             #      ID
             if only_one_subspace and len(self.model_subspaces) > 1:
-                import logging
-
                 logging.warning(
-                    f'There is more than one model subspace. This can lead to problems for candidate space {candidate_space}. Especially if they have different petab yaml files.'
+                    f'There is more than one model subspace. This can lead to problems for candidate space {candidate_space}, especially if they have different PEtab YAML files.'
                 )
             for model_subspace in self.model_subspaces.values():
                 model_subspace.search(

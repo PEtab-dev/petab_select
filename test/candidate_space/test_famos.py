@@ -1,9 +1,11 @@
 from pathlib import Path
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
 import petab
 import pytest
+from more_itertools import one
 
 import petab_select
 from petab_select import ESTIMATE, FamosCandidateSpace, Method, Model
@@ -51,8 +53,7 @@ def expected_progress_list():
         (Method.BACKWARD, {4}),
         (Method.FORWARD, set()),
         (Method.LATERAL, set()),
-        "M_0001011010010010",
-        (Method.LATERAL, set()),
+        (Method.MOST_DISTANT, {2, 3, 4, 5, 6, 7, 9, 11, 12, 13, 15}),
         (Method.LATERAL, {16, 7}),
         (Method.LATERAL, {5, 12}),
         (Method.LATERAL, {13, 15}),
@@ -94,113 +95,73 @@ def test_famos(
             value=expected_criterion_values[model.model_id],
         )
 
-    history = {}
-    progress_list = []
+    def parse_summary_to_progress_list(summary_tsv: str) -> Tuple[Method, set]:
+        """Get progress information from the summary file."""
+        df_raw = pd.read_csv(summary_tsv, sep='\t')
+        df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]
 
-    lateral_method_switching = {
-        (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
-        (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
-        (Method.BACKWARD, Method.LATERAL): None,
-        (Method.FORWARD, Method.LATERAL): None,
-        (Method.FORWARD,): Method.BACKWARD,
-        (Method.BACKWARD,): Method.FORWARD,
-        (Method.LATERAL,): Method.FORWARD,
-        None: Method.LATERAL,
-    }
+        parameter_list = list(
+            petab_select_problem.model_space.model_subspaces[
+                'model_subspace_1'
+            ].parameters
+        )
+
+        progress_list = []
+
+        for index, (_, row) in enumerate(df.iterrows()):
+            method = Method(row["method"])
+
+            model = {
+                1 + parameter_list.index(parameter_id)
+                for parameter_id in eval(row["current model"])
+            }
+            if index == 0:
+                model0 = model
+
+            difference = model.symmetric_difference(model0)
+            progress_list.append((method, difference))
+            model0 = model
+
+        return progress_list
+
+    progress_list = []
+    calibrated_models = {}
+    newly_calibrated_models = {}
 
     candidate_space = petab_select_problem.new_candidate_space()
+    candidate_space.summary_tsv.unlink(missing_ok=True)
+    candidate_space._setup_summary_tsv()
 
-    try:
+    with pytest.raises(StopIteration, match="No valid models found."):
         predecessor_model = candidate_space.predecessor_model
         while True:
-            # Calibrated models in this iteration that improve on the predecessor
-            # model.
-            better_models = []
-            # All calibrated models in this iteration (see second return value).
-            local_history = {}
-
-            previous_predecessor_model_parameters = (
-                candidate_space.predecessor_model.get_parameter_values(
-                    parameter_ids=predecessor_model.petab_parameters
-                )
-            )
-            previous_predecessor_model_parameter_indices = [
-                index + 1
-                for index in range(len(previous_predecessor_model_parameters))
-                if previous_predecessor_model_parameters[index] == "estimate"
-            ]
-            predecessor_model_parameters = (
-                predecessor_model.get_parameter_values(
-                    parameter_ids=predecessor_model.petab_parameters
-                )
-            )
-            predecessor_model_parameter_indices = [
-                index + 1
-                for index in range(len(predecessor_model_parameters))
-                if predecessor_model_parameters[index] == "estimate"
-            ]
-
-            candidate_models = petab_select.ui.candidates(
+            # Save predecessor_models and find new candidates
+            if candidate_space.predecessor_model is not None:
+                previous_predecessor_model = candidate_space.predecessor_model
+            else:
+                previous_predecessor_model = one(candidate_space.models)
+            candidate_space = petab_select.ui.candidates(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
-                excluded_model_hashes=list(history),
-                predecessor_model=predecessor_model,
-            ).models
-            progress_list.append(
-                (
-                    candidate_space.inner_candidate_space.method,
-                    set(
-                        previous_predecessor_model_parameter_indices
-                    ).symmetric_difference(
-                        set(predecessor_model_parameter_indices)
-                    ),
-                )
+                calibrated_models=calibrated_models,
+                newly_calibrated_models=newly_calibrated_models,
+                previous_predecessor_model=previous_predecessor_model,
             )
 
-            if not candidate_models:
+            # Calibrate candidate models
+            newly_calibrated_models = {}
+            for candidate_model in candidate_space.models:
+                set_model_id(candidate_model)
+                calibrate(candidate_model)
+                newly_calibrated_models[
+                    candidate_model.get_hash()
+                ] = candidate_model
+                calibrated_models.update(newly_calibrated_models)
+
+            # Stop iteration if there are no candidate models
+            if not candidate_space.models:
                 raise StopIteration("No valid models found.")
 
-            for candidate_model in candidate_models:
-                # set model_id to M_010101010101010 form
-                set_model_id(candidate_model)
-                # run calibration
-                calibrate(candidate_model)
+    progress_list = parse_summary_to_progress_list(candidate_space.summary_tsv)
 
-                local_history[candidate_model.model_id] = candidate_model
-                # if candidate model has better criteria, add to better models
-                if default_compare(
-                    model0=predecessor_model,
-                    model1=candidate_model,
-                    criterion=petab_select_problem.criterion,
-                ):
-                    better_models.append(candidate_model)
-
-            history.update(local_history)
-            best_model = None
-            if better_models:
-                best_model = petab_select.ui.best(
-                    problem=petab_select_problem,
-                    models=better_models,
-                    criterion=petab_select_problem.criterion,
-                )
-            jumped_to_most_distant = candidate_space.update_after_calibration(
-                history=history,
-                local_history=local_history,
-                criterion=petab_select_problem.criterion,
-            )
-            # If candidate space not Famos then ignored.
-            # Else, in case we jumped to most distant in this iteration, update the
-            # best_model to the predecessor_model (jumped to model) so it becomes
-            # the predecessor model in next iteration.
-            # Also update the local_history with it.
-            if jumped_to_most_distant:
-                best_model = candidate_space.predecessor_model
-                set_model_id(best_model)
-                calibrate(best_model)
-                local_history[best_model.model_id] = best_model
-                progress_list.append(best_model.model_id)
-            if best_model is not None:
-                predecessor_model = best_model
-
-    except StopIteration:
-        assert progress_list == expected_progress_list
+    assert progress_list == expected_progress_list, progress_list
