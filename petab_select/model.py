@@ -26,6 +26,7 @@ from .constants import (
     TYPE_CRITERION,
     TYPE_PARAMETER,
     TYPE_PATH,
+    VIRTUAL_INITIAL_MODEL,
     Criterion,
 )
 from .criteria import CriterionComputer
@@ -105,7 +106,7 @@ class Model(PetabMixin):
     converters_save = {
         MODEL_ID: lambda x: x,
         MODEL_SUBSPACE_ID: lambda x: x,
-        MODEL_SUBSPACE_INDICES: lambda x: x,
+        MODEL_SUBSPACE_INDICES: lambda x: [int(i) for i in x],
         MODEL_HASH: lambda x: x,
         PREDECESSOR_MODEL_HASH: lambda x: x,
         PETAB_YAML: lambda x: str(x),
@@ -587,7 +588,7 @@ def default_compare(
     """Compare two calibrated models by their criterion values.
 
     It is assumed that the model `model0` provides a value for the criterion
-    `criterion`.
+    `criterion`, or is the `VIRTUAL_INITIAL_MODEL`.
 
     Args:
         model0:
@@ -609,6 +610,8 @@ def default_compare(
             f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".'
         )
         return False
+    if model0 == VIRTUAL_INITIAL_MODEL or model0 is None:
+        return True
     if criterion_threshold < 0:
         warnings.warn(
             'The provided criterion threshold is negative. The absolute value will be used instead.'
@@ -639,6 +642,7 @@ def default_compare(
 def models_from_yaml_list(
     model_list_yaml: TYPE_PATH,
     petab_problem: petab.Problem = None,
+    allow_single_model: bool = True,
 ) -> List[Model]:
     """Generate a model from a PEtab Select list of model YAML file.
 
@@ -647,6 +651,10 @@ def models_from_yaml_list(
             The path to the PEtab Select list of model YAML file.
         petab_problem:
             See `Model.from_dict`.
+        allow_single_model:
+            Given a YAML file that contains a single model directly (not in
+            a 1-element list), if `True` then the single model will be read in,
+            else an error will be raised.
 
     Returns:
         A list of model instances, initialized with the provided
@@ -656,6 +664,18 @@ def models_from_yaml_list(
         model_dict_list = yaml.safe_load(f)
     if model_dict_list is None:
         return []
+
+    if not isinstance(model_dict_list, list):
+        if allow_single_model:
+            return [
+                Model.from_dict(
+                    model_dict_list,
+                    base_path=Path(model_list_yaml).parent,
+                    petab_problem=petab_problem,
+                )
+            ]
+        raise ValueError('The YAML file does not contain a list of models.')
+
     return [
         Model.from_dict(
             model_dict,

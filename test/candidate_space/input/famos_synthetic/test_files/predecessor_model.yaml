@@ -1,0 +1,39 @@
+criteria:
+  AIC: 30330.782621349786
+  AICc: 30332.80096997364
+  BIC: 30358.657538777607
+  NLLH: 15155.391310674893
+estimated_parameters:
+  mu_AB: 0.09706971737957297
+  mu_AD: -0.6055359156893474
+  mu_BA: 0.6989700040781575
+  mu_CA: -13.545121478780585
+  mu_CD: -13.955162965672203
+  mu_DA: -13.405909047226377
+  mu_DB: -13.402598631022197
+  mu_DC: -1.1619119214640863
+  ro_A: -1.6431508614147425
+  ro_B: 2.9912966824709097
+model_hash: null
+model_id: M_1100110111000111
+model_subspace_id: model_subspace_1
+model_subspace_indices: null
+parameters:
+  mu_AB: estimate
+  mu_AC: 0
+  mu_AD: estimate
+  mu_BA: estimate
+  mu_BC: 0
+  mu_BD: 0
+  mu_CA: estimate
+  mu_CB: 0
+  mu_CD: estimate
+  mu_DA: estimate
+  mu_DB: estimate
+  mu_DC: estimate
+  ro_A: estimate
+  ro_B: estimate
+  ro_C: 0
+  ro_D: 0
+petab_yaml: ../petab/FAMoS_2019_problem.yaml
+predecessor_model_hash: null

@@ -94,6 +94,12 @@ METHOD = 'method'
 VERSION = 'version'
 MODEL_SPACE_FILES = 'model_space_files'
 
+CANDIDATE_SPACE_ARGUMENTS = 'candidate_space_arguments'
+METHOD_SCHEME = 'method_scheme'
+PREVIOUS_METHODS = 'previous_methods'
+NEXT_METHOD = 'next_method'
+PREDECESSOR_MODEL = 'predecessor_model'
+
 MODEL = 'model'
 MODELS = 'models'
 
@@ -116,9 +122,11 @@ class Method(str, Enum):
     BACKWARD = 'backward'
     BIDIRECTIONAL = 'bidirectional'
     BRUTE_FORCE = 'brute_force'
+    FAMOS = 'famos'
     FORWARD = 'forward'
     FORWARD_AND_BACKWARD = 'forward_and_backward'
     LATERAL = 'lateral'
+    MOST_DISTANT = 'most_distant'
 
 
 class Criterion(str, Enum):

@@ -1,0 +1,2 @@
+model_subspace_id	petab_yaml	ro_A	ro_B	ro_C	ro_D	mu_AB	mu_BA	mu_AC	mu_CA	mu_AD	mu_DA	mu_BC	mu_CB	mu_BD	mu_DB	mu_CD	mu_DC
+model_subspace_1	../petab/FAMoS_2019_problem.yaml	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate	0;estimate

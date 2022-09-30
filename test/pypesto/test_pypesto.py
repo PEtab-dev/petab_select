@@ -24,7 +24,7 @@ test_cases_path = Path(__file__).resolve().parent.parent.parent / 'test_cases'
 # Reduce runtime but with high reproducibility
 minimize_options = {
     'n_starts': 10,
-    'optimizer': pypesto.optimize.FidesOptimizer(),
+    'optimizer': pypesto.optimize.FidesOptimizer(verbose=0),
     'engine': pypesto.engine.MultiProcessEngine(),
     'filename': None,
 }
@@ -50,8 +50,9 @@ def test_pypesto():
         )
 
         # Get the best model, load the expected model.
-        models = pypesto_select_problem.history.values()
-        best_model = petab_select_problem.get_best(models)
+        best_model = petab_select_problem.get_best(
+            models=pypesto_select_problem.calibrated_models.values(),
+        )
         expected_model = Model.from_yaml(expected_model_yaml)
 
         def get_series(model) -> pd.Series:

@@ -231,15 +231,7 @@ def test_search_brute_force(model_subspace):
     """
     # Test limit: the number of candidate models is at the limit.
     assert len(candidate_space.models) == limit_accepted_candidates
-    # Test limit: a warning is emitted, as the candidate space is already at its limit
-    # of models.
-    with pytest.warns(
-        RuntimeWarning,
-        match="The candidate space has already reached its limit of accepted models.",
-    ) as warning_record:
-        model_subspace.search(candidate_space=candidate_space)
-    # The search stopped after the limit was reached, hence only warned once.
-    assert len(warning_record) == 1
+    model_subspace.search(candidate_space=candidate_space)
     # Test limit: the search adds no additional models to the "full" candidate space.
     assert len(candidate_space.models) == limit_accepted_candidates
 

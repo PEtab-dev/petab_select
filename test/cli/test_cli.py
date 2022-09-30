@@ -48,9 +48,9 @@ def test_model_to_petab(
     result = cli_runner.invoke(
         petab_select.cli.model_to_petab,
         [
-            '-y',
+            '--model',
             model_yaml,
-            '-o',
+            '--output',
             output_path_model,
         ],
     )
@@ -90,9 +90,9 @@ def test_models_to_petab(
     result = cli_runner.invoke(
         petab_select.cli.models_to_petab,
         [
-            '-y',
+            '--models',
             models_yaml,
-            '-o',
+            '--output',
             output_path_models,
         ],
     )

@@ -10,3 +10,6 @@ coverage.xml
 
 # tox
 .tox
+
+# osx
+.DS_Store
