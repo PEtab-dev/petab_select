@@ -1,7 +1,10 @@
 # Changes
 
+## 0.1.2
+Bugfix: ensure correct type for some model savers
+
 ## 0.1.1
-Bugfix (pypesto test version).
+Bugfix: pypesto test version
 
 ## 0.1.0
 There are several new candidate spaces, including the FAMoS method. There are also code quality checks (`black` / `isort` / notebook checks) and tests / CI with `tox`.
