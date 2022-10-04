@@ -104,20 +104,20 @@ class Model(PetabMixin):
         },
     }
     converters_save = {
-        MODEL_ID: lambda x: x,
-        MODEL_SUBSPACE_ID: lambda x: x,
-        MODEL_SUBSPACE_INDICES: lambda x: [int(i) for i in x],
-        MODEL_HASH: lambda x: x,
-        PREDECESSOR_MODEL_HASH: lambda x: x,
+        MODEL_ID: lambda x: str(x),
+        MODEL_SUBSPACE_ID: lambda x: str(x),
+        MODEL_SUBSPACE_INDICES: lambda x: [int(xi) for xi in x],
+        MODEL_HASH: lambda x: str(x),
+        PREDECESSOR_MODEL_HASH: lambda x: str(x),
         PETAB_YAML: lambda x: str(x),
-        PARAMETERS: lambda x: x,
+        PARAMETERS: lambda x: {str(k): v for k, v in x.items()},
         # FIXME handle with a `set_estimated_parameters` method instead?
         # to avoid `float` cast here. Reason for cast is because e.g. pyPESTO
         # can provide type `np.float64`, which causes issues when writing to
         # YAML.
         # ESTIMATED_PARAMETERS: lambda x: x,
         ESTIMATED_PARAMETERS: lambda x: {
-            id: float(value) for id, value in x.items()
+            str(id): float(value) for id, value in x.items()
         },
         CRITERIA: lambda x: {
             criterion_id.value: criterion_value
