@@ -85,8 +85,8 @@ setup(
             'amici >= 0.11.25',
             'fides >= 0.7.5',
             # FIXME
-            # 'pypesto > 0.2.13',
-            'pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@develop#egg=pypesto',
+            'pypesto > 0.2.13',
+            # 'pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@develop#egg=pypesto',
         ],
         #'reports': ['Jinja2'],
         #'combine': ['python-libcombine>=0.2.6'],
