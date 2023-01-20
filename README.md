@@ -120,7 +120,7 @@ The test cases are available in the `test_cases` directory, and are provided in 
 | 0006    | AIC       | forward            | 1                 |                   |                   |                      |
 | 0007<sup>[2](#test_case_0007_and_0008)</sup>    | AIC       | forward            | 1                 |                   |                   |                      |
 | 0008<sup>[2](#test_case_0007_and_0008)</sup>    | AICc       | backward            | 1                 |                   |                   |                      |
-| 0009<sup>[2](#test_case_0009)</sup>    | AICc       | FAMoS            | 1                 | Yes                  |                   | Yes                     |
+| 0009<sup>[3](#test_case_0009)</sup>    | AICc       | FAMoS            | 1                 | Yes                  |                   | Yes                     |
 
 <a name="test_case_0002">1</a>. Model `M1_0` differs from `M1_1` in three parameters, but only 1 additional estimated parameter. The effect of this on model selection criteria needs to be clarified. Test case 0006 is a duplicate of 0002 that doesn't have this issue.
 
