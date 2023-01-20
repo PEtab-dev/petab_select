@@ -8,4 +8,4 @@ problems:
   observable_files:
   - observables.tsv
   sbml_files:
-  - ../model/model.xml
+  - model.xml
