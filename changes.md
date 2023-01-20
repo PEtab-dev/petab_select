@@ -1,5 +1,8 @@
 # Changes
 
+## 0.1.3
+New test case: 0009 (Blasi)
+
 ## 0.1.2
 Bugfix: ensure correct type for some model savers
 
