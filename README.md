@@ -21,6 +21,7 @@ in the `doc/examples` directory.
 - `forward`: https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches
 - `backward`: https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches
 - `brute_force`: Optimize all possible model candidates, then return the model with the best criterion value.
+- `famos`: https://doi.org/10.1371/journal.pcbi.1007230
 
 Note that the directional methods (forward, backward) find models with the smallest step size (in terms of number of estimated parameters). For example, given the forward method and a predecessor model with 2 estimated parameters, if there are no models with 3 estimated parameters, but some models with 4 estimated parameters, then the search may return candidate models with 4 estimated parameters.
 
@@ -125,4 +126,4 @@ The test cases are available in the `test_cases` directory, and are provided in 
 
 <a name="test_case_0007_and_0008">2</a>. Noise parameter is removed, noise is fixed to `1`.
 
-<a name="test_case_0009">3</a>. This is a computationally-expensive problem to solve. Developers can try a model selection initialized with the provided predecessor model, which is a model start that reproducibly finds the expected model. To solve the problem reproducibly <i>ab initio</i>, on the order of 100 random model starts are required.
+<a name="test_case_0009">3</a>. This is a computationally-expensive problem to solve. Developers can try a model selection initialized with the provided predecessor model, which is a model start that reproducibly finds the expected model. To solve the problem reproducibly <i>ab initio</i>, on the order of 100 random model starts are required. This test case reproduces the model selection problem presented in https://doi.org/10.1016/j.cels.2016.01.002 .
