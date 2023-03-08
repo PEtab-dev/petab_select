@@ -1,5 +1,5 @@
 """Visualization routines for model selection with pyPESTO."""
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -45,10 +45,27 @@ def get_selected_models(
     return selected_models[::-1]
 
 
-def selected_models(
+def get_relative_criterion_values(
+    criterion_values: Union[Dict[str, float], List[float]],
+) -> Union[Dict[str, float], List[float]]:
+    values = criterion_values
+    if isinstance(criterion_values, dict):
+        values = criterion_values.values()
+
+    value0 = np.inf
+    for value in values:
+        if value < value0:
+            value0 = value
+
+    if isinstance(criterion_values, dict):
+        return {k: v - value0 for k, v in criterion_values.items()}
+    return [v - value0 for v in criterion_values]
+
+
+def line_selected(
     models: List[Model],
     criterion: Criterion,
-    relative: str = True,
+    relative: bool = True,
     fz: int = 14,
     size: Tuple[float, float] = (5, 4),
     labels: Dict[str, str] = None,
@@ -85,10 +102,6 @@ def selected_models(
     """
     models = get_selected_models(models=models, criterion=criterion)
 
-    zero = 0
-    if relative:
-        zero = models[-1].get_criterion(criterion)
-
     if labels is None:
         labels = {}
 
@@ -103,9 +116,10 @@ def selected_models(
         labels.get(model.get_hash(), model.model_id): model.get_criterion(
             criterion
         )
-        - zero
         for model in models
     }
+    if relative:
+        criterion_values = get_relative_criterion_values(criterion_values)
 
     ax.plot(
         criterion_values.keys(),
@@ -118,7 +132,7 @@ def selected_models(
     ax.get_xticks()
     ax.set_xticks(list(range(len(criterion_values))))
     ax.set_ylabel(
-        criterion + ('(relative)' if relative else '(absolute)'), fontsize=fz
+        criterion + (' (relative)' if relative else ' (absolute)'), fontsize=fz
     )
     # could change to compared_model_ids, if all models are plotted
     ax.set_xticklabels(
@@ -135,13 +149,14 @@ def selected_models(
     return ax
 
 
-def directed_graph(
+def graph_history(
     models: List[Model],
     criterion: Criterion = None,
+    ax: plt.Axes = None,
+    labels: Dict[str, str] = None,
     optimal_distance: float = 1,
     options: Dict = None,
-    labels: Dict[str, str] = None,
-    ax: plt.Axes = None,
+    relative: bool = True,
 ) -> plt.Axes:
     """Plot all calibrated models in the model space, as a directed graph.
 
@@ -174,11 +189,18 @@ def directed_graph(
     """
     model_hashes = get_model_hashes(models)
 
+    criterion_values = {
+        model_hash: model.get_criterion(criterion)
+        for model_hash, model in model_hashes.items()
+    }
+    if relative:
+        criterion_values = get_relative_criterion_values(criterion_values)
+
     if labels is None:
         labels = {
             model_hash: model.model_id
             + (
-                f"\n{model.get_criterion(criterion):.2f}"
+                f"\n{criterion_values[model_hash]:.2f}"
                 if criterion is not None
                 else ""
             )
@@ -227,10 +249,11 @@ def directed_graph(
     return ax
 
 
-def bar_graph(
+def bar_criterion_vs_models(
     models: List[Model],
     criterion: Criterion = None,
     labels: Dict[str, str] = None,
+    relative: bool = True,
     ax: plt.Axes = None,
 ) -> plt.Axes:
     """Plot all calibrated models and their criterion value.
@@ -245,6 +268,9 @@ def bar_graph(
         A dictionary of model labels, where keys are model hashes, and
         values are model labels, for plotting. If a model label is not
         provided, it will be generated from its model ID.
+    relative:
+        If `True`, criterion values are offset by the minimum criterion
+        value.
     ax:
         The axis to use for plotting.
 
@@ -270,8 +296,63 @@ def bar_graph(
         )
         for model in models
     }
+    if relative:
+        criterion_values = get_relative_criterion_values(criterion_values)
     ax.bar(criterion_values.keys(), criterion_values.values())
     ax.set_xlabel("Model labels")
-    ax.set_ylabel(criterion.value)
+    ax.set_ylabel(
+        criterion.value + (' (relative)' if relative else ' (absolute)')
+    )
+
+    return ax
+
+
+def scatter_criterion_vs_n_estimated(
+    models: List[Model],
+    criterion: Criterion = None,
+    relative: bool = True,
+    ax: plt.Axes = None,
+) -> plt.Axes:
+    """Plot criterion values against number of estimated parameters.
+
+    Parameters
+    ----------
+    models:
+        A list of models.
+    criterion:
+        The criterion.
+    ax:
+        The axis to use for plotting.
+    relative:
+        If `True`, criterion values are offset by the minimum criterion
+        value.
+
+    Returns
+    -------
+    matplotlib.pyplot.Axes
+        The plot axis.
+    """
+    model_hashes = get_model_hashes(models)
+
+    n_estimated = []
+    criterion_values = []
+    for model in models:
+        n_estimated.append(len(model.get_estimated_parameter_ids_all()))
+        criterion_values.append(model.get_criterion(criterion))
+    if relative:
+        criterion_values = get_relative_criterion_values(criterion_values)
+
+    if ax is None:
+        _, ax = plt.subplots()
+
+    ax.scatter(
+        n_estimated,
+        criterion_values,
+    )
+
+    ax.set_xlabel("Number of estimated parameters")
+    ax.set_ylabel(
+        criterion.value + (' (relative)' if relative else ' (absolute)')
+    )
 
     return ax
