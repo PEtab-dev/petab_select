@@ -54,6 +54,7 @@ class Problem(abc.ABC):
             Reason for not saving:
                 Essentially reproducible from `Problem.method` and
                 `Problem.calibrated_models`.
+            FIXME now needs to be saved, due to FAMoS changes
     """
 
     def __init__(

@@ -1,0 +1,9 @@
+model_subspace_id	petab_yaml	k1	k2	k3
+MS_0	petab_problem.yaml	0	0	0
+MS_1	petab_problem.yaml	0.2	0.1	estimate
+MS_2	petab_problem.yaml	0.2	estimate	0
+MS_3	petab_problem.yaml	estimate	0.1	0
+MS_4	petab_problem.yaml	0.2	estimate	estimate
+MS_5	petab_problem.yaml	estimate	0.1	estimate
+MS_6	petab_problem.yaml	estimate	estimate	0
+MS_7	petab_problem.yaml	estimate	estimate	estimate

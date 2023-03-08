@@ -1,5 +1,6 @@
 """Model selection extension for PEtab."""
 
+from . import plot
 from .candidate_space import *
 from .constants import *
 from .criteria import *
