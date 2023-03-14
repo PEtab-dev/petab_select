@@ -476,16 +476,20 @@ def graph_iteration_layers(
         VIRTUAL_INITIAL_MODEL, "Virtual\nInitial\nModel"
     )
 
-    missing_labels = [
-        model.get_hash() for model in models if model.get_hash() not in labels
-    ]
-    missing_labels += [
-        model.predecessor_model_hash
+    missing_labels = {
+        model.get_hash(): model.model_id
+        for model in models
+        if model.get_hash() not in labels
+    }
+    missing_labels2 = {
+        model.predecessor_model_hash: model.predecessor_model_hash
         for model in models
         if model.predecessor_model_hash not in labels
-    ]
-    for label in missing_labels:
-        labels[label] = label
+    }
+    labels.update(missing_labels2)
+    labels.update(missing_labels)
+    # for label in missing_labels:
+    #    labels[label] = label
 
     default_draw_networkx_kwargs = {
         'node_color': NORMAL_NODE_COLOR,
