@@ -14,6 +14,7 @@ from .constants import VIRTUAL_INITIAL_MODEL, Criterion
 from .model import Model
 
 RELATIVE_LABEL_FONTSIZE = -2
+NORMAL_NODE_COLOR = 'darkgrey'
 
 
 def default_label_maker(model: Model) -> str:
@@ -130,7 +131,7 @@ def line_selected(
         criterion_values.keys(),
         criterion_values.values(),
         linewidth=linewidth,
-        color='lightgrey',
+        color=NORMAL_NODE_COLOR,
         # edgecolor='k'
     )
 
@@ -159,6 +160,7 @@ def graph_history(
     criterion: Criterion = None,
     ax: plt.Axes = None,
     labels: Dict[str, str] = None,
+    colors: Dict[str, str] = None,
     optimal_distance: float = 1,
     options: Dict = None,
     relative: bool = True,
@@ -184,6 +186,8 @@ def graph_history(
         A dictionary of model labels, where keys are model hashes, and
         values are model labels, for plotting. If a model label is not
         provided, it will be generated from its model ID.
+    colors:
+        Colors for each model, using their labels.
     ax:
         The axis to use for plotting.
 
@@ -211,6 +215,8 @@ def graph_history(
             )
             for model_hash, model in model_hashes.items()
         }
+    labels = labels.copy()
+    labels[VIRTUAL_INITIAL_MODEL] = "Virtual\nInitial\nModel"
 
     G = nx.DiGraph()
     edges = []
@@ -237,19 +243,31 @@ def graph_history(
 
     G.add_edges_from(edges)
     default_options = {
-        'node_color': 'lightgrey',
+        'node_color': NORMAL_NODE_COLOR,
         'arrowstyle': '-|>',
         'node_shape': 's',
         'node_size': 2500,
     }
-    if options is not None:
-        default_options.update(options)
+    if options is None:
+        options = default_options
+    if colors is not None:
+        if label_diff := set(colors).difference(list(G)):
+            raise ValueError(
+                "Colors were provided for the following model labels, but "
+                "these are not in the graph: {label_diff}"
+            )
+
+        node_colors = [
+            colors.get(model_label, default_options['node_color'])
+            for model_label in list(G)
+        ]
+        options.update({'node_color': node_colors})
 
     if ax is None:
         _, ax = plt.subplots(figsize=(12, 12))
 
     pos = nx.spring_layout(G, k=optimal_distance, iterations=20)
-    nx.draw_networkx(G, pos, ax=ax, **default_options)
+    nx.draw_networkx(G, pos, ax=ax, **options)
 
     return ax
 
@@ -260,6 +278,8 @@ def bar_criterion_vs_models(
     labels: Dict[str, str] = None,
     relative: bool = True,
     ax: plt.Axes = None,
+    bar_kwargs: Dict[str, Any] = None,
+    colors: Dict[str, str] = None,
 ) -> plt.Axes:
     """Plot all calibrated models and their criterion value.
 
@@ -278,6 +298,8 @@ def bar_criterion_vs_models(
         value.
     ax:
         The axis to use for plotting.
+    bar_kwargs:
+        Passed to the matplotlib `ax.bar` call.
 
     Returns
     -------
@@ -285,6 +307,9 @@ def bar_criterion_vs_models(
         The plot axis.
     """
     model_hashes = get_model_hashes(models)
+
+    if bar_kwargs is None:
+        bar_kwargs = {}
 
     if labels is None:
         labels = {
@@ -301,9 +326,22 @@ def bar_criterion_vs_models(
         )
         for model in models
     }
+
+    if colors is not None:
+        if label_diff := set(colors).difference(criterion_values):
+            raise ValueError(
+                "Colors were provided for the following model labels, but "
+                "these are not in the graph: {label_diff}"
+            )
+
+        bar_kwargs['color'] = [
+            colors.get(model_label, NORMAL_NODE_COLOR)
+            for model_label in criterion_values
+        ]
+
     if relative:
         criterion_values = get_relative_criterion_values(criterion_values)
-    ax.bar(criterion_values.keys(), criterion_values.values())
+    ax.bar(criterion_values.keys(), criterion_values.values(), **bar_kwargs)
     ax.set_xlabel("Model labels")
     ax.set_ylabel(
         criterion.value + (' (relative)' if relative else ' (absolute)')
@@ -317,6 +355,9 @@ def scatter_criterion_vs_n_estimated(
     criterion: Criterion = None,
     relative: bool = True,
     ax: plt.Axes = None,
+    colors: Dict[str, str] = None,
+    labels: Dict[str, str] = None,
+    scatter_kwargs: Dict[str, str] = None,
 ) -> plt.Axes:
     """Plot criterion values against number of estimated parameters.
 
@@ -339,6 +380,26 @@ def scatter_criterion_vs_n_estimated(
     """
     model_hashes = get_model_hashes(models)
 
+    if labels is None:
+        labels = {
+            model_hash: model.model_id
+            for model_hash, model in model_hashes.items()
+        }
+
+    if scatter_kwargs is None:
+        scatter_kwargs = {}
+
+    if colors is not None:
+        if label_diff := set(colors).difference(labels.values()):
+            raise ValueError(
+                "Colors were provided for the following model labels, but "
+                "these are not in the graph: {label_diff}"
+            )
+        scatter_kwargs['c'] = [
+            colors.get(model_label, NORMAL_NODE_COLOR)
+            for model_label in labels.values()
+        ]
+
     n_estimated = []
     criterion_values = []
     for model in models:
@@ -353,6 +414,7 @@ def scatter_criterion_vs_n_estimated(
     ax.scatter(
         n_estimated,
         criterion_values,
+        **scatter_kwargs,
     )
 
     ax.set_xlabel("Number of estimated parameters")
@@ -370,6 +432,7 @@ def graph_iteration_layers(
     relative: bool = True,
     ax: plt.Axes = None,
     draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
+    colors: Dict[str, str] = None,
 ) -> plt.Axes:
     """Graph the models of each iteration of model selection.
 
@@ -409,22 +472,23 @@ def graph_iteration_layers(
             )
             for model in models
         }
-        labels[VIRTUAL_INITIAL_MODEL] = "Virtual\nInitial\nModel"
-        missing_labels = [
-            model.predecessor_model_hash
-            for model in models
-            if model.predecessor_model_hash not in labels
-        ]
-        for label in missing_labels:
-            labels[label] = label
+    labels[VIRTUAL_INITIAL_MODEL] = "Virtual\nInitial\nModel"
+    missing_labels = [
+        model.predecessor_model_hash
+        for model in models
+        if model.predecessor_model_hash not in labels
+    ]
+    for label in missing_labels:
+        labels[label] = label
 
+    default_draw_networkx_kwargs = {
+        'node_color': NORMAL_NODE_COLOR,
+        'arrowstyle': '-|>',
+        'node_shape': 's',
+        'node_size': 2500,
+    }
     if draw_networkx_kwargs is None:
-        draw_networkx_kwargs = {
-            'node_color': 'lightgrey',
-            'arrowstyle': '-|>',
-            'node_shape': 's',
-            'node_size': 2500,
-        }
+        draw_networkx_kwargs = default_draw_networkx_kwargs
 
     ancestry = {
         model.get_hash(): model.predecessor_model_hash for model in models
@@ -457,12 +521,33 @@ def graph_iteration_layers(
         for j, model_hash in enumerate(layer)
     }
     nx.relabel_nodes(G, mapping=labels, copy=False)
+    if colors is not None:
+        if label_diff := set(colors).difference(list(G)):
+            raise ValueError(
+                "Colors were provided for the following model labels, but "
+                "these are not in the graph: {label_diff}"
+            )
+
+        node_colors = [
+            colors.get(
+                model_label,
+                draw_networkx_kwargs.get(
+                    'node_color', default_draw_networkx_kwargs['node_color']
+                ),
+            )
+            for model_label in list(G)
+        ]
+        draw_networkx_kwargs.update({'node_color': node_colors})
     nx.draw_networkx(G, pos, ax=ax, **draw_networkx_kwargs)
 
     # Add `n=...` labels
     N = [len(y) for y in Y]
     for x, n in zip(X, N):
-        ax.annotate(f'n={n}', xy=(x, 1.1), fontsize=12)
+        ax.annotate(
+            f'n={n}',
+            xy=(x, 1.1),
+            fontsize=draw_networkx_kwargs.get('font_size', 20),
+        )
 
     # Get selected parameter IDs
     # TODO move this logic elsewhere
@@ -528,7 +613,11 @@ def graph_iteration_layers(
 
     # Add labels for selected parameters
     for x, label in zip(X, selected_parameter_ids):
-        ax.annotate("\n".join(label), xy=(x, 1.15), fontsize=12)
+        ax.annotate(
+            "\n".join(label),
+            xy=(x, 1.15),
+            fontsize=draw_networkx_kwargs.get('font_size', 20),
+        )
 
     # Set margins for the axes so that nodes aren't clipped
     ax.margins(0.15)
