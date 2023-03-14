@@ -1,9 +1,12 @@
 """Visualization routines for model selection with pyPESTO."""
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import petab
+from more_itertools import one
+from toposort import toposort
 
 from .constants import VIRTUAL_INITIAL_MODEL, Criterion
 from .model import Model
@@ -354,5 +357,159 @@ def scatter_criterion_vs_n_estimated(
     ax.set_ylabel(
         criterion.value + (' (relative)' if relative else ' (absolute)')
     )
+
+    return ax
+
+
+def graph_iteration_layers(
+    models: List[Model],
+    criterion: Optional[Criterion] = None,
+    labels: Dict[str, str] = None,
+    relative: bool = True,
+    ax: plt.Axes = None,
+    draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
+) -> plt.Axes:
+    """Graph the models of each iteration of model selection.
+
+    Parameters
+    ----------
+    models:
+        A list of models.
+    criterion:
+        The criterion.
+    labels:
+        A dictionary of model labels, where keys are model hashes, and
+        values are model labels, for plotting. If a model label is not
+        provided, it will be generated from its model ID.
+    relative:
+        If `True`, criterion values are offset by the minimum criterion
+        value.
+    ax:
+        The axis to use for plotting.
+    draw_networkx_kwargs:
+        Passed to the `networkx.draw_networkx` call.
+
+    Returns
+    -------
+    matplotlib.pyplot.Axes
+        The plot axis.
+    """
+    if ax is None:
+        _, ax = plt.subplots(figsize=(20, 10))
+
+    if labels is None:
+        labels = {
+            model.get_hash(): model.model_id
+            + (
+                f'\n{model.get_criterion(criterion):.2f}'
+                if criterion is not None
+                else ''
+            )
+            for model in models
+        }
+        labels[VIRTUAL_INITIAL_MODEL] = "Virtual\nInitial\nModel"
+
+    if draw_networkx_kwargs is None:
+        draw_networkx_kwargs = {
+            'node_color': 'lightgrey',
+            'arrowstyle': '-|>',
+            'node_shape': 's',
+            'node_size': 2500,
+        }
+
+    ancestry = {
+        model.get_hash(): model.predecessor_model_hash for model in models
+    }
+    ancestry_as_set = {k: set([v]) for k, v in ancestry.items()}
+    ordering = [list(hashes) for hashes in toposort(ancestry_as_set)]
+
+    G = nx.DiGraph(
+        [
+            (predecessor, successor)
+            for successor, predecessor in ancestry.items()
+        ]
+    )
+    # FIXME change positions so that top edge of topmost node, and bottom edge
+    # of bottommost nodes, are at 1 and 0, respectively
+    X = [
+        (0 if len(ordering) == 1 else 1 / (len(ordering) - 1)) * i
+        for i in range(0, len(ordering))
+    ]
+    Y = [
+        [
+            (0 if len(layer) == 1 else 1 / (len(layer) - 1)) * j
+            for j in range(0, len(layer))
+        ]
+        for layer in ordering
+    ]
+    pos = {
+        labels[model_hash]: (X[i], Y[i][j])
+        for i, layer in enumerate(ordering)
+        for j, model_hash in enumerate(layer)
+    }
+    nx.relabel_nodes(G, mapping=labels, copy=False)
+    nx.draw_networkx(G, pos, ax=ax, **draw_networkx_kwargs)
+
+    # Add `n=...` labels
+    N = [len(y) for y in Y]
+    for x, n in zip(X, N):
+        ax.annotate(f'n={n}', xy=(x, 1.1), fontsize=12)
+
+    # Get selected parameter IDs
+    # TODO move this logic elsewhere
+    selected_hashes = set(ancestry.values())
+    selected_models = {}
+    for model in models:
+        if model.get_hash() in selected_hashes:
+            selected_models[model.get_hash()] = model
+
+    selected_parameters = {
+        model_hash: sorted(model.estimated_parameters)
+        for model_hash, model in selected_models.items()
+    }
+
+    selected_order = [
+        [model_hash for model_hash in layer if model_hash in selected_models]
+        for layer in ordering
+    ]
+    selected_order = [
+        None if not model_hash else one(model_hash)
+        for model_hash in selected_order
+    ]
+
+    selected_parameter_ids = []
+    estimated0 = None
+    model_hash = None
+    for model_hash in selected_order:
+        if model_hash is None:
+            selected_parameter_ids.append('')
+            continue
+        if estimated0 is not None:
+            new_parameter_id = one(
+                set(selected_parameters[model_hash]).difference(estimated0)
+            )
+            new_parameter_name = selected_models[
+                model_hash
+            ].petab_problem.parameter_df.get(
+                'parameterName', new_parameter_id
+            )[
+                new_parameter_id
+            ]
+            new_parameter_name = new_parameter_name.replace(
+                '\\\\rightarrow ', '->'
+            )
+            new_parameter_name = f'${new_parameter_name}$'
+            selected_parameter_ids.append(new_parameter_name)
+        else:
+            selected_parameter_ids.append('')
+        estimated0 = selected_parameters[model_hash]
+
+    # Add labels for selected parameters
+    for x, label in zip(X, selected_parameter_ids):
+        ax.annotate(label, xy=(x, 1.15), fontsize=12)
+
+    # Set margins for the axes so that nodes aren't clipped
+    ax.margins(0.15)
+    ax.axis("off")
 
     return ax
