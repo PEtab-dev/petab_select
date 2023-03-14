@@ -502,6 +502,8 @@ def graph_iteration_layers(
                 for new_parameter_id in new_parameter_ids
             ]
             for index, new_parameter_name in enumerate(new_parameter_names):
+                if not new_parameter_name:
+                    new_parameter_name = new_parameter_id
                 if not isinstance(new_parameter_name, str):
                     new_parameter_names[index] = new_parameter_name[
                         new_parameter_id
