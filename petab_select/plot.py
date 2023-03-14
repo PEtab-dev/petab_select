@@ -4,8 +4,10 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import pandas as pd
 import petab
 from more_itertools import one
+from petab.C import PARAMETER_NAME
 from toposort import toposort
 
 from .constants import VIRTUAL_INITIAL_MODEL, Criterion
@@ -492,27 +494,34 @@ def graph_iteration_layers(
             selected_parameter_ids.append('')
             continue
         if estimated0 is not None:
-            new_parameter_ids = set(
-                selected_parameters[model_hash]
-            ).symmetric_difference(estimated0)
-            new_parameter_names = [
-                selected_models[model_hash].petab_problem.parameter_df.get(
-                    'parameterName', new_parameter_id
+            new_parameter_ids = list(
+                set(selected_parameters[model_hash]).symmetric_difference(
+                    estimated0
                 )
-                for new_parameter_id in new_parameter_ids
-            ]
-            for index, new_parameter_name in enumerate(new_parameter_names):
-                if not new_parameter_name:
-                    new_parameter_name = new_parameter_id
-                if not isinstance(new_parameter_name, str):
-                    new_parameter_names[index] = new_parameter_name[
-                        new_parameter_id
+            )
+            new_parameter_names = []
+            for new_parameter_id in new_parameter_ids:
+                # Default to parameter ID, use parameter name if available
+                new_parameter_name = new_parameter_id
+                if (
+                    PARAMETER_NAME
+                    in selected_models[
+                        model_hash
+                    ].petab_problem.parameter_df.columns
+                ):
+                    petab_parameter_name = selected_models[
+                        model_hash
+                    ].petab_problem.parameter_df.loc[
+                        new_parameter_id, PARAMETER_NAME
                     ]
+                    if not pd.isna(petab_parameter_name):
+                        new_parameter_name = petab_parameter_name
+                new_parameter_names.append(new_parameter_name)
             new_parameter_names = [
                 new_parameter_name.replace('\\\\rightarrow ', '->')
                 for new_parameter_name in new_parameter_names
             ]
-            selected_parameter_ids.append(new_parameter_names)
+            selected_parameter_ids.append(sorted(new_parameter_names))
         else:
             selected_parameter_ids.append([''])
         estimated0 = selected_parameters[model_hash]
