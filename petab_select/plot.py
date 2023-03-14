@@ -408,6 +408,13 @@ def graph_iteration_layers(
             for model in models
         }
         labels[VIRTUAL_INITIAL_MODEL] = "Virtual\nInitial\nModel"
+        missing_labels = [
+            model.predecessor_model_hash
+            for model in models
+            if model.predecessor_model_hash not in labels
+        ]
+        for label in missing_labels:
+            labels[label] = label
 
     if draw_networkx_kwargs is None:
         draw_networkx_kwargs = {
@@ -485,28 +492,32 @@ def graph_iteration_layers(
             selected_parameter_ids.append('')
             continue
         if estimated0 is not None:
-            new_parameter_id = one(
-                set(selected_parameters[model_hash]).difference(estimated0)
-            )
-            new_parameter_name = selected_models[
-                model_hash
-            ].petab_problem.parameter_df.get(
-                'parameterName', new_parameter_id
-            )[
-                new_parameter_id
+            new_parameter_ids = set(
+                selected_parameters[model_hash]
+            ).symmetric_difference(estimated0)
+            new_parameter_names = [
+                selected_models[model_hash].petab_problem.parameter_df.get(
+                    'parameterName', new_parameter_id
+                )
+                for new_parameter_id in new_parameter_ids
             ]
-            new_parameter_name = new_parameter_name.replace(
-                '\\\\rightarrow ', '->'
-            )
-            new_parameter_name = f'${new_parameter_name}$'
-            selected_parameter_ids.append(new_parameter_name)
+            for index, new_parameter_name in enumerate(new_parameter_names):
+                if not isinstance(new_parameter_name, str):
+                    new_parameter_names[
+                        index
+                    ] = f"${new_parameter_name[new_parameter_id]}$"
+            new_parameter_names = [
+                new_parameter_name.replace('\\\\rightarrow ', '->')
+                for new_parameter_name in new_parameter_names
+            ]
+            selected_parameter_ids.append(new_parameter_names)
         else:
-            selected_parameter_ids.append('')
+            selected_parameter_ids.append([''])
         estimated0 = selected_parameters[model_hash]
 
     # Add labels for selected parameters
     for x, label in zip(X, selected_parameter_ids):
-        ax.annotate(label, xy=(x, 1.15), fontsize=12)
+        ax.annotate("\n".join(label), xy=(x, 1.15), fontsize=12)
 
     # Set margins for the axes so that nodes aren't clipped
     ax.margins(0.15)
