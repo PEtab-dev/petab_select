@@ -472,8 +472,14 @@ def graph_iteration_layers(
             )
             for model in models
         }
-    labels[VIRTUAL_INITIAL_MODEL] = "Virtual\nInitial\nModel"
+    labels[VIRTUAL_INITIAL_MODEL] = labels.get(
+        VIRTUAL_INITIAL_MODEL, "Virtual\nInitial\nModel"
+    )
+
     missing_labels = [
+        model.get_hash() for model in models if model.get_hash() not in labels
+    ]
+    missing_labels += [
         model.predecessor_model_hash
         for model in models
         if model.predecessor_model_hash not in labels
