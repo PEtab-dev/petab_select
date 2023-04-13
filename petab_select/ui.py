@@ -269,6 +269,7 @@ def write_summary_tsv(
     method = candidate_space.method
     if (
         candidate_space.governing_method == Method.FAMOS
+        and isinstance(candidate_space.predecessor_model, Model)
         and candidate_space.predecessor_model.predecessor_model_hash is None
     ):
         with open(candidate_space.summary_tsv, 'r') as f:
