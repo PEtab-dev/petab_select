@@ -1,5 +1,8 @@
 # Changes
 
+## 0.1.4
+Bugfix: summary TSV now supports string-valued predecessor models
+
 ## 0.1.3
 New test case: 0009 (Blasi)
 
