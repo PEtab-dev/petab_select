@@ -1,5 +1,8 @@
 # Changes
 
+## 0.1.5
+Bugfix: criterion values are now explicitly type-cast to float (#39)
+
 ## 0.1.4
 Bugfix: summary TSV now supports string-valued predecessor models (#37)
 
