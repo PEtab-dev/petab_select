@@ -120,7 +120,7 @@ class Model(PetabMixin):
             str(id): float(value) for id, value in x.items()
         },
         CRITERIA: lambda x: {
-            criterion_id.value: criterion_value
+            criterion_id.value: float(criterion_value)
             for criterion_id, criterion_value in x.items()
         },
     }
