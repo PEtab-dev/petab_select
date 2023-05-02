@@ -99,7 +99,7 @@ class Model(PetabMixin):
         ESTIMATED_PARAMETERS: lambda x: x,
         CRITERIA: lambda x: {
             # `criterion_id_value` is the ID of the criterion in the enum `Criterion`.
-            Criterion(criterion_id_value): criterion_value
+            Criterion(criterion_id_value): float(criterion_value)
             for criterion_id_value, criterion_value in x.items()
         },
     }
