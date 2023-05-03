@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         # test on latest and minimum python version
-        python-version: ['3.10', '3.8']
+        python-version: ['3.11', '3.9']
 
     steps:
     - name: Check out repository

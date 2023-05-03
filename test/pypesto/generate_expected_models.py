@@ -14,6 +14,7 @@ from petab_select.constants import CRITERIA, ESTIMATED_PARAMETERS, MODEL
 SKIP_TEST_CASES_WITH_PREEXISTING_EXPECTED_MODEL = False
 
 import os
+
 os.environ["AMICI_EXPERIMENTAL_SBML_NONCONST_CLS"] = "1"
 
 # Set to `[]` to test all
@@ -28,7 +29,9 @@ test_cases_path = Path(__file__).resolve().parent.parent.parent / 'test_cases'
 # Reduce runtime but with high reproducibility
 minimize_options = {
     'n_starts': 24,
-    'optimizer': pypesto.optimize.FidesOptimizer(verbose=0, hessian_update=fides.BFGS()),
+    'optimizer': pypesto.optimize.FidesOptimizer(
+        verbose=0, hessian_update=fides.BFGS()
+    ),
     'engine': pypesto.engine.MultiProcessEngine(),
     'filename': None,
     'progress_bar': False,
