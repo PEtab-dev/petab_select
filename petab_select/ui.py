@@ -68,6 +68,7 @@ def candidates(
     Returns:
         The candidate space, which contains the candidate models.
     """
+    do_search = True
     # FIXME might be difficult for a CLI tool to specify a specific predecessor
     #       model if their candidate space has models. Need a way to empty
     #       the candidate space of models... might be difficult with pickled
@@ -108,11 +109,15 @@ def candidates(
         ):
             predecessor_model = previous_predecessor_model
 
-        candidate_space.update_after_calibration(
-            calibrated_models=calibrated_models,
-            newly_calibrated_models=newly_calibrated_models,
-            criterion=criterion,
-        )
+        try:
+            candidate_space.update_after_calibration(
+                calibrated_models=calibrated_models,
+                newly_calibrated_models=newly_calibrated_models,
+                criterion=criterion,
+            )
+        except StopIteration:
+            do_search = False
+
         # If candidate space not Famos then ignored.
         # Else, in case we jumped to most distant in this iteration, go into
         # calibration with only the model we've jumped to.
@@ -142,7 +147,8 @@ def candidates(
     problem.model_space.exclude_model_hashes(
         model_hashes=excluded_model_hashes
     )
-    problem.model_space.search(candidate_space, limit=limit_sent)
+    if do_search:
+        problem.model_space.search(candidate_space, limit=limit_sent)
 
     write_summary_tsv(
         problem=problem,
