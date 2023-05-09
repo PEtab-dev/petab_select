@@ -1,5 +1,8 @@
 # Changes
 
+## 0.1.7
+The FAMoS implementation raised an unhandled `StopIteration` when the method switching scheme terminated. When using FAMoS via the UI, this is now handled. Expect an extra line in the summary file produced by the UI, with `# candidates=0`.
+
 ## 0.1.6
 - The predecessor model in test case 0009 is now specified in the PEtab problem YAML, so is used automatically. A dummy negative log-likelihood value of `inf` was specified for the predecessor model, to enable comparison to calibrated models, without having to calibrate the predecessor model.
 - All criterion values are now cast to float, for the `inf` in the predecessor model in test case 0009
