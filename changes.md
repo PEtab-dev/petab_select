@@ -1,5 +1,9 @@
 # Changes
 
+## 0.1.6
+- The predecessor model in test case 0009 is now specified in the PEtab problem YAML, so is used automatically. A dummy negative log-likelihood value of `inf` was specified for the predecessor model, to enable comparison to calibrated models, without having to calibrate the predecessor model.
+- All criterion values are now cast to float, for the `inf` in the predecessor model in test case 0009
+
 ## 0.1.5
 Bugfix: criterion values are now explicitly type-cast to float (#39)
 
