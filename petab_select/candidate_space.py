@@ -1094,7 +1094,7 @@ class FamosCandidateSpace(CandidateSpace):
             if self.n_reattempts:
                 self.jump_to_most_distant(calibrated_models=calibrated_models)
                 return
-            raise StopIteration(
+            raise ValueError(
                 f"The next method is {next_method}, but there are no critical or swap parameters sets. Terminating."
             )
         if previous_method == Method.LATERAL:
