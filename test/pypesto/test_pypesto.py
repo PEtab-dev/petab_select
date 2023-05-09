@@ -19,6 +19,11 @@ test_cases = [
     #'0008',
 ]
 
+# Do not use computationally-expensive test cases in CI
+skip_test_cases = [
+    '0009',
+]
+
 test_cases_path = Path(__file__).resolve().parent.parent.parent / 'test_cases'
 
 # Reduce runtime but with high reproducibility
@@ -33,6 +38,9 @@ minimize_options = {
 def test_pypesto():
     for test_case_path in test_cases_path.glob('*'):
         if test_cases and test_case_path.stem not in test_cases:
+            continue
+
+        if test_case_path.stem in skip_test_cases:
             continue
 
         expected_model_yaml = test_case_path / 'expected.yaml'
