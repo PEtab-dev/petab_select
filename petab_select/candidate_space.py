@@ -44,6 +44,8 @@ class CandidateSpace(abc.ABC):
             useful?
         predecessor_model:
             The model used for comparison, e.g. for stepwise methods.
+        previous_predecessor_model:
+            The previous predecessor model.
         models:
             The current set of candidate models.
         exclusions:
@@ -84,6 +86,7 @@ class CandidateSpace(abc.ABC):
         exclusions: Optional[List[Any]] = None,
         limit: TYPE_LIMIT = np.inf,
         summary_tsv: TYPE_PATH = None,
+        previous_predecessor_model: Optional[Model] = None,
     ):
         self.limit = LimitHandler(
             current=self.n_accepted,
@@ -98,6 +101,10 @@ class CandidateSpace(abc.ABC):
         if self.summary_tsv is not None:
             self.summary_tsv = Path(self.summary_tsv)
             self._setup_summary_tsv()
+
+        self.previous_predecessor_model = previous_predecessor_model
+        if self.previous_predecessor_model is None:
+            self.previous_predecessor_model = self.predecessor_model
 
     def write_summary_tsv(self, row):
         if self.summary_tsv is None:
@@ -140,7 +147,6 @@ class CandidateSpace(abc.ABC):
         if (
             predecessor_model_yaml := kwargs.pop(PREDECESSOR_MODEL, None)
         ) is not None:
-
             predecessor_model = Model.from_yaml(predecessor_model_yaml)
 
         return {
