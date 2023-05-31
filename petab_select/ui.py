@@ -21,7 +21,6 @@ from .problem import Problem
 def candidates(
     problem: Problem,
     candidate_space: Optional[CandidateSpace] = None,
-    previous_predecessor_model: Optional[Model] = None,
     limit: Union[float, int] = np.inf,
     limit_sent: Union[float, int] = np.inf,
     calibrated_models: Optional[Dict[str, Model]] = None,
@@ -41,10 +40,6 @@ def candidates(
         candidate_space:
             The candidate space. Defaults to a new candidate space based on the method
             defined in the problem.
-        previous_predecessor_model:
-            The previous predecessor model for a compatible method. This is
-            used as the predecessor model for the current iteration, if a
-            better model doesn't exist in the candidate space models.
         limit:
             The maximum number of models to add to the candidate space.
         limit_sent:
@@ -92,7 +87,7 @@ def candidates(
     # Set the new predecessor_model from the initial model or
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
-    predecessor_model = previous_predecessor_model
+    predecessor_model = candidate_space.previous_predecessor_model
     if newly_calibrated_models:
         predecessor_model = problem.get_best(
             newly_calibrated_models.values(),
@@ -103,11 +98,11 @@ def candidates(
         # If FAMoS jumped this will not be useful, since the jumped-to model
         # can be expected to be worse than the jumped-from model, in general.
         if not default_compare(
-            model0=previous_predecessor_model,
+            model0=candidate_space.previous_predecessor_model,
             model1=predecessor_model,
             criterion=criterion,
         ):
-            predecessor_model = previous_predecessor_model
+            predecessor_model = candidate_space.previous_predecessor_model
 
         try:
             candidate_space.update_after_calibration(
@@ -153,9 +148,11 @@ def candidates(
     write_summary_tsv(
         problem=problem,
         candidate_space=candidate_space,
-        previous_predecessor_model=previous_predecessor_model,
+        previous_predecessor_model=candidate_space.previous_predecessor_model,
         predecessor_model=predecessor_model,
     )
+
+    candidate_space.previous_predecessor_model = predecessor_model
 
     return candidate_space
 
