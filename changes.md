@@ -1,5 +1,10 @@
 # Changes
 
+## 0.1.8
+- improved reproducibility of `summary.tsv` files
+    - sorted parameter IDs
+    - store the previous predecessor model in the state and candidate space
+
 ## 0.1.7
 The FAMoS implementation raised an unhandled `StopIteration` when the method switching scheme terminated. When using FAMoS via the UI, this is now handled. Expect an extra line in the summary file produced by the UI, with `# candidates=0`.
 
