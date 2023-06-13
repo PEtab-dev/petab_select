@@ -1,5 +1,9 @@
 # Changes
 
+## 0.1.9
+- improved reproducibility of test case 0009
+  - new predecessor model
+
 ## 0.1.8
 - improved reproducibility of `summary.tsv` files
     - sorted parameter IDs
