@@ -71,7 +71,8 @@ class Model(PetabMixin):
         estimated_parameters:
             Parameter estimates from a model calibration tool, for parameters
             that are specified as estimated in the PEtab problem or PEtab
-            Select model YAML.
+            Select model YAML. These are untransformed values (i.e., not on
+            log scale).
         saved_attributes:
             Attributes that will be saved to disk by the `Model.to_yaml`
             method.
@@ -262,6 +263,27 @@ class Model(PetabMixin):
         criterion_value = self.criterion_computer(criterion)
         self.set_criterion(criterion, criterion_value)
         return criterion_value
+
+    def set_estimated_parameters(
+        self,
+        estimated_parameters: Dict[str, float],
+        scaled: bool = False,
+    ) -> None:
+        """Set the estimated parameters.
+
+        Args:
+            estimated_parameters:
+                The estimated parameters.
+            scaled:
+                Whether the `estimated_parameters` values are on the scale
+                defined in the PEtab problem (`True`), or untransformed
+                (`False`).
+        """
+        if scaled:
+            estimated_parameters = self.petab_problem.unscale_parameters(
+                estimated_parameters
+            )
+        self.estimated_parameters = estimated_parameters
 
     @staticmethod
     def from_dict(
