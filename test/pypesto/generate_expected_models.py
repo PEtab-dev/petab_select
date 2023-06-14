@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import fides
@@ -12,15 +13,16 @@ from petab_select import Model
 from petab_select.constants import CRITERIA, ESTIMATED_PARAMETERS, MODEL
 
 SKIP_TEST_CASES_WITH_PREEXISTING_EXPECTED_MODEL = False
-
-import os
-
 os.environ["AMICI_EXPERIMENTAL_SBML_NONCONST_CLS"] = "1"
 
 # Set to `[]` to test all
 test_cases = [
     #'0004',
     #'0008',
+]
+
+# Do not use computationally-expensive test cases in CI
+skip_test_cases = [
     '0009',
 ]
 
@@ -37,10 +39,19 @@ minimize_options = {
     'progress_bar': False,
 }
 
+
+def objective_customizer(obj):
+    # obj.amici_solver.setAbsoluteTolerance(1e-17)
+    obj.amici_solver.setRelativeTolerance(1e-12)
+
+
 # Indentation to match `test_pypesto.py`, to make it easier to keep files similar.
 if True:
     for test_case_path in test_cases_path.glob('*'):
         if test_cases and test_case_path.stem not in test_cases:
+            continue
+
+        if test_case_path.stem in skip_test_cases:
             continue
 
         expected_model_yaml = test_case_path / 'expected.yaml'
@@ -64,6 +75,7 @@ if True:
         # Run the selection process until "exhausted".
         pypesto_select_problem.select_to_completion(
             minimize_options=minimize_options,
+            objective_customizer=objective_customizer,
         )
 
         # Get the best model
