@@ -1,5 +1,9 @@
 # Changes
 
+## 0.1.10
+- added `Model.set_estimated_parameters`
+  - now expected that `Model.estimated_parameters` has untransformed values
+
 ## 0.1.9
 - improved reproducibility of test case 0009
   - new predecessor model
