@@ -109,7 +109,7 @@ class Model(PetabMixin):
         MODEL_SUBSPACE_ID: lambda x: str(x),
         MODEL_SUBSPACE_INDICES: lambda x: [int(xi) for xi in x],
         MODEL_HASH: lambda x: str(x),
-        PREDECESSOR_MODEL_HASH: lambda x: str(x),
+        PREDECESSOR_MODEL_HASH: lambda x: str(x) if x is not None else x,
         PETAB_YAML: lambda x: str(x),
         PARAMETERS: lambda x: {str(k): v for k, v in x.items()},
         # FIXME handle with a `set_estimated_parameters` method instead?
