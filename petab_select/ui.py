@@ -31,8 +31,8 @@ def candidates(
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
-    A predecessor model is chosen from `newly_calibrated_models` if available,
-    otherwise from `calibrated_models`, and is used for applicable methods.
+    A predecessor model is chosen from ``newly_calibrated_models`` if available,
+    otherwise from ``calibrated_models``, and is used for applicable methods.
 
     Args:
         problem:

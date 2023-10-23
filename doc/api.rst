@@ -8,7 +8,6 @@ petab-select Python API
 
    petab_select
    petab_select.candidate_space
-   petab_select.cli
    petab_select.constants
    petab_select.criteria
    petab_select.handlers

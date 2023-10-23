@@ -45,13 +45,16 @@ class ModelSubspace(PetabMixin):
         parameters:
             The key is the ID of the parameter. The value is a list of values
             that the parameter can take (including `ESTIMATE`).
-        #history:
-        #    A history of all models that have been accepted by the candidate
-        #    space. Models are represented as indices (see e.g.
-        #    `ModelSubspace.parameters_to_indices`).
         exclusions:
             Hashes of models that have been previously submitted to a candidate space
-            for consideration (`CandidateSpace.consider`).
+            for consideration (:meth:`CandidateSpace.consider`).
+    """
+    """
+    FIXME(dilpath)
+    #history:
+    #    A history of all models that have been accepted by the candidate
+    #    space. Models are represented as indices (see e.g.
+    #    `ModelSubspace.parameters_to_indices`).
     """
 
     def __init__(
@@ -110,7 +113,7 @@ class ModelSubspace(PetabMixin):
     def get_models(self, estimated_parameters: List[str]) -> Iterator[Model]:
         """Get models in the subspace by estimated parameters.
 
-        All models that have the provided `estimated_parameters` are returned.
+        All models that have the provided ``estimated_parameters`` are returned.
 
         Args:
             estimated_parameters:
@@ -119,10 +122,12 @@ class ModelSubspace(PetabMixin):
                 in the subset of PEtab parameters that exist in the model
                 subspace definition. Parameters in the PEtab problem but not
                 the model subspace definition should not be included here.
+
+                FIXME(dilpath)
                 TODO support the full set of PEtab parameters? Then would need
-                     to turn off estimation for parameters that are not
-                     provided in `estimated_parameters` -- maybe unexpected for
-                     users.
+                to turn off estimation for parameters that are not
+                provided in `estimated_parameters` -- maybe unexpected for
+                users.
 
         Returns:
             A list of models.
@@ -185,7 +190,7 @@ class ModelSubspace(PetabMixin):
         """Search for candidate models in this model subspace.
 
         Nothing is returned, as the result is managed by the
-        `candidate_space`.
+        ``candidate_space``.
 
         Args:
             candidate_space:
@@ -642,8 +647,8 @@ class ModelSubspace(PetabMixin):
     def exclude_models(self, models: Iterable[Model]) -> None:
         """Exclude models from the model subspace.
 
-        Models are excluded in `ModelSubspace.indices_to_model`, which contains the
-        only call to `Model.__init__` in the `ModelSubspace` class.
+        Models are excluded in :meth:`ModelSubspace.indices_to_model`, which contains the
+        only call to :meth:`Model.__init__` in the :class:`ModelSubspace` class.
 
         Args:
             models:
@@ -683,7 +688,7 @@ class ModelSubspace(PetabMixin):
         definition: Union[Dict[str, str], pd.Series],
         parent_path: TYPE_PATH = None,
     ) -> 'ModelSubspace':
-        """Create a `ModelSubspace` from a definition.
+        """Create a :class:`ModelSubspace` from a definition.
 
         Args:
             model_subspace_id:
@@ -718,13 +723,13 @@ class ModelSubspace(PetabMixin):
 
         Args:
             indices:
-                The indices of the lists in the values of the `ModelSubspace.parameters`
+                The indices of the lists in the values of the ``ModelSubspace.parameters``
                 dictionary, ordered by the keys of this dictionary.
 
         Returns:
             A model with the PEtab problem of this subspace and the parameterization
             that corresponds to the indices.
-            `None`, if the model is excluded from the subspace.
+            ``None``, if the model is excluded from the subspace.
         """
         model = Model(
             petab_yaml=self.petab_yaml,
@@ -745,7 +750,7 @@ class ModelSubspace(PetabMixin):
 
         Args:
             indices:
-                See `ModelSubspace.indices_to_model`.
+                See :meth:`ModelSubspace.indices_to_model`.
 
         Returns:
             The parameterization that corresponds to the indices.
@@ -796,7 +801,7 @@ class ModelSubspace(PetabMixin):
 
         Returns:
             A model with the PEtab problem of this subspace and the parameterization.
-            `None`, if the model is excluded from the subspace.
+            ``None``, if the model is excluded from the subspace.
         """
         indices = self.parameters_to_indices(parameters)
         model = self.indices_to_model(indices)

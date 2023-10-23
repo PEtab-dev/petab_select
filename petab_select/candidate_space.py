@@ -40,8 +40,8 @@ class CandidateSpace(abc.ABC):
     Attributes:
         distances:
             The distances of all candidate models from the initial model.
-            FIXME change list to int? Is storage of more than one value
-            useful?
+
+            FIXME(dilpath) change list to int? Is storage of more than one value useful?
         predecessor_model:
             The model used for comparison, e.g. for stepwise methods.
         previous_predecessor_model:
@@ -49,9 +49,9 @@ class CandidateSpace(abc.ABC):
         models:
             The current set of candidate models.
         exclusions:
-            A list of model hashes. Models that match a hash in `exclusions` will not
+            A list of model hashes. Models that match a hash in ``exclusions`` will not
             be accepted into the candidate space. The hashes of models that are accepted
-            are added to `exclusions`.
+            are added to ``exclusions``.
         limit:
             A handler to limit the number of accepted models.
         method:
@@ -59,20 +59,22 @@ class CandidateSpace(abc.ABC):
         governing_method:
             Used to store the search method that governs the choice of method during
             a search. In some cases, this is always the same as the method attribute.
-            An example of a difference is in the bidirectional method, where `governing_method`
+            An example of a difference is in the bidirectional method, where ``governing_method``
             stores the bidirectional method, whereas `method` may also store the forward or
             backward methods.
         retry_model_space_search_if_no_models:
             Whether a search with a candidate space should be repeated upon failure.
-            Useful for the `BidirectionalCandidateSpace`, which switches directions
+            Useful for the :class:`BidirectionalCandidateSpace`, which switches directions
             upon failure.
         summary_tsv:
-            A string or `pathlib.Path`. A summary of the model selection progress
+            A string or :class:`pathlib.Path`. A summary of the model selection progress
             will be written to this file.
-        #limited:
-        #    A descriptor that handles the limit on the number of accepted models.
-        #limit:
-        #    Models will fail `self.consider` if `len(self.models) >= limit`.
+
+    FIXME(dilpath)
+    #limited:
+    #    A descriptor that handles the limit on the number of accepted models.
+    #limit:
+    #    Models will fail `self.consider` if `len(self.models) >= limit`.
     """
 
     governing_method: Method = None
@@ -162,7 +164,7 @@ class CandidateSpace(abc.ABC):
         models in the model space.
 
         For example, given a forward selection method that starts with an
-        initial model `self.predecessor_model` that has no estimated
+        initial model ``self.predecessor_model`` that has no estimated
         parameters, then only models with one or more estimated parameters are
         plausible.
 
@@ -171,7 +173,7 @@ class CandidateSpace(abc.ABC):
                 The candidate model.
 
         Returns:
-            `True` if `model` is plausible, else `False`.
+            ``True`` if ``model`` is plausible, else ``False``.
         """
         return True
 
@@ -185,7 +187,7 @@ class CandidateSpace(abc.ABC):
                 The initial model.
 
         Returns:
-            The distance from `predecessor_model` to `model`, or `None` if the
+            The distance from ``predecessor_model`` to ``model``, or ``None`` if the
             distance should not be computed.
         """
         return None
@@ -203,9 +205,11 @@ class CandidateSpace(abc.ABC):
                 The model that will be added.
             distance:
                 The distance of the model from the predecessor model.
-            #keep_others:
-            #    Whether to keep other models that were previously added to the
-            #    candidate space.
+
+        FIXME(dilpath)
+        #keep_others:
+        #    Whether to keep other models that were previously added to the
+        #    candidate space.
         """
         model.predecessor_model_hash = (
             self.predecessor_model.get_hash()
@@ -270,15 +274,17 @@ class CandidateSpace(abc.ABC):
 
         Args:
             model:
-                The candidate model. This value may be `None` if the `ModelSubspace`
+                The candidate model. This value may be ``None`` if the :class:`ModelSubspace`
                 decided to exclude the model that would have been sent.
 
         Returns:
             Whether it is OK to send additional models to the candidate space. For
             example, if the limit of the number of accepted models has been reached,
             then no further models should be sent.
+
+            FIXME(dilpath)
             TODO change to return whether the model was accepted, and instead add
-                 `self.continue` to determine whether additional models should be sent.
+            `self.continue` to determine whether additional models should be sent.
         """
         # Model was excluded by the `ModelSubspace` that called this method, so can be
         # skipped.
@@ -340,7 +346,7 @@ class CandidateSpace(abc.ABC):
         """Decorate the subspace searches of a model space.
 
         Used by candidate spaces to perform changes that alter the search.
-        See `BidirectionalCandidateSpace` for an example, where it's used to switch directions.
+        See :class:`BidirectionalCandidateSpace` for an example, where it's used to switch directions.
 
         Args:
             search_subspaces:
@@ -466,7 +472,7 @@ class CandidateSpace(abc.ABC):
     ):
         """Do work in the candidate space after calibration.
 
-        For example, this is used by the `FamosCandidateSpace` to switch
+        For example, this is used by the :class:`FamosCandidateSpace` to switch
         methods.
 
         Different candidate spaces require different arguments. All arguments
@@ -481,10 +487,10 @@ class ForwardCandidateSpace(CandidateSpace):
 
     Attributes:
         direction:
-            `1` for the forward method, `-1` for the backward method.
+            ``1`` for the forward method, ``-1`` for the backward method.
         max_steps:
             Maximum number of steps forward in a single iteration of forward selection.
-            Defaults to no maximum (`None`).
+            Defaults to no maximum (``None``).
     """
 
     method = Method.FORWARD
@@ -530,7 +536,7 @@ class ForwardCandidateSpace(CandidateSpace):
         return distances['l1']
 
     def _consider_method(self, model) -> bool:
-        """See `CandidateSpace._consider_method`."""
+        """See :meth:`CandidateSpace._consider_method`."""
         distance = self.distance(model)
 
         # Get the distance of the current "best" plausible model(s)
@@ -680,9 +686,9 @@ class FamosCandidateSpace(CandidateSpace):
         n_reattempts:
             Integer. The total number of times that a jump-to-most-distance action
             will be performed, triggered whenever the model selection would
-            normally terminate. Defaults to no reattempts (`0`).
+            normally terminate. Defaults to no reattempts (``0``).
         consecutive_laterals:
-            Boolean. If `True`, the method will continue performing lateral moves
+            Boolean. If ``True``, the method will continue performing lateral moves
             while they produce better models. Otherwise, the method scheme will
             be applied after one lateral move.
     """
@@ -896,10 +902,9 @@ class FamosCandidateSpace(CandidateSpace):
         newly_calibrated_models: Dict[str, Model],
         criterion: Criterion,
     ) -> bool:
-        """Update the self.best_models with the latest
-        `newly_calibrated_models`
+        """Update ``self.best_models`` with the latest ``newly_calibrated_models``
         and determine if there was a new best model. If so, return
-        True. False otherwise."""
+        ``True``. ``False`` otherwise."""
 
         go_into_switch_method = True
         for newly_calibrated_model in newly_calibrated_models.values():
@@ -929,7 +934,7 @@ class FamosCandidateSpace(CandidateSpace):
         self.best_models = self.best_models[: self.most_distant_max_number]
 
         # When we switch to LATERAL method, we will do only one iteration with this
-        # method. So if we do it succesfully (i.e. that we found a new best model), we
+        # method. So if we do it successfully (i.e. that we found a new best model), we
         # want to switch method. This is why we put go_into_switch_method to True, so
         # we go into the method switching pipeline
         if self.method == Method.LATERAL and not self.consecutive_laterals:
@@ -949,9 +954,9 @@ class FamosCandidateSpace(CandidateSpace):
         self.best_models.insert(insert_index, model_to_insert)
 
     def consider(self, model: Union[Model, None]) -> bool:
-        """Re-define consider of FAMoS to be the consider method
-        of the inner_candidate_space. Update all the attributes
-        changed in the condsider method."""
+        """Re-define ``consider`` of FAMoS to be the ``consider`` method
+        of the ``inner_candidate_space``. Update all the attributes
+        changed in the ``consider`` method."""
 
         if self.limit.reached():
             return False
@@ -975,12 +980,12 @@ class FamosCandidateSpace(CandidateSpace):
         return True
 
     def _consider_method(self, model) -> bool:
-        """See `CandidateSpace._consider_method`."""
+        """See :meth:`CandidateSpace._consider_method`."""
         return self.inner_candidate_space._consider_method(model)
 
     def reset_accepted(self) -> None:
         """Changing the reset_accepted to reset the
-        inner_candidate_space as well."""
+        ``inner_candidate_space`` as well."""
         super().reset_accepted()
         self.inner_candidate_space.reset_accepted()
 
@@ -988,7 +993,7 @@ class FamosCandidateSpace(CandidateSpace):
         self, predecessor_model: Union[Model, str, None]
     ):
         """Setting the predecessor model for the
-        inner_candidate_space as well."""
+        ``inner_candidate_space`` as well."""
         super().set_predecessor_model(predecessor_model=predecessor_model)
         self.inner_candidate_space.set_predecessor_model(
             predecessor_model=predecessor_model
@@ -996,7 +1001,7 @@ class FamosCandidateSpace(CandidateSpace):
 
     def set_exclusions(self, exclusions: Union[List[str], None]):
         """Setting the exclusions for the
-        inner_candidate_space as well."""
+        ``inner_candidate_space`` as well."""
         self.exclusions = exclusions
         self.inner_candidate_space.exclusions = exclusions
         if self.exclusions is None:
@@ -1005,7 +1010,7 @@ class FamosCandidateSpace(CandidateSpace):
 
     def set_limit(self, limit: TYPE_LIMIT = None):
         """Setting the limit for the
-        inner_candidate_space as well."""
+        ``inner_candidate_space`` as well."""
         if limit is not None:
             self.limit.set_limit(limit)
             self.inner_candidate_space.limit.set_limit(limit)
@@ -1049,7 +1054,7 @@ class FamosCandidateSpace(CandidateSpace):
         calibrated_models: Dict[str, Model],
     ) -> None:
         """Switch to the next method with respect to the history
-        of methods used and the switching scheme in self.method_scheme"""
+        of methods used and the switching scheme in ``self.method_scheme``."""
 
         previous_method = self.method
         next_method = previous_method
@@ -1108,7 +1113,7 @@ class FamosCandidateSpace(CandidateSpace):
         self.update_method(method=next_method)
 
     def update_method(self, method: Method):
-        """Update self.method to the method."""
+        """Update ``self.method`` to ``method``."""
 
         self.method = method
 
@@ -1116,7 +1121,7 @@ class FamosCandidateSpace(CandidateSpace):
         self,
         calibrated_models: Dict[str, Model],
     ):
-        """Switch self.inner_candidate_space to the candidate space of
+        """Switch ``self.inner_candidate_space`` to the candidate space of
         the current self.method."""
 
         # if self.method != Method.MOST_DISTANT:
@@ -1169,11 +1174,12 @@ class FamosCandidateSpace(CandidateSpace):
     ) -> Model:
         """
         Get most distant model to all the checked models. We take models from the
-        sorted list of best models (self.best_models) and construct complements of
+        sorted list of best models (``self.best_models``) and construct complements of
         these models. For all these complements we compute the distance in number of
         different estimated parameters to all models from history. For each complement
         we take the minimum of these distances as it's distance to history. Then we
         choose the complement model with the maximal distance to history.
+
         TODO:
         Next we check if this model is contained in any subspace. If so we choose it.
         If not we choose the model in a subspace that has least distance to this

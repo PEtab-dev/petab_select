@@ -48,16 +48,16 @@ class Model(PetabMixin):
 
     Attributes:
         converters_load:
-            Functions to convert attributes from YAML to `Model`.
+            Functions to convert attributes from YAML to :class:`Model`.
         converters_save:
-            Functions to convert attributes from `Model` to YAML.
+            Functions to convert attributes from :class:`Model` to YAML.
         criteria:
             The criteria values of the calibrated model (e.g. AIC).
         hash_attributes:
             This attribute is currently not used.
             Attributes that will be used to calculate the hash of the
-            `Model` instance. NB: this hash is used during pairwise comparison
-            to determine whether any two `Model` instances are unique. The
+            :class:`Model` instance. NB: this hash is used during pairwise comparison
+            to determine whether any two :class:`Model` instances are unique. The
             model instances are compared by their parameter estimation
             problems, as opposed to parameter estimation results, which may
             differ due to e.g. floating-point arithmetic.
@@ -74,7 +74,7 @@ class Model(PetabMixin):
             Select model YAML. These are untransformed values (i.e., not on
             log scale).
         saved_attributes:
-            Attributes that will be saved to disk by the `Model.to_yaml`
+            Attributes that will be saved to disk by the :meth:`Model.to_yaml`
             method.
     """
 
@@ -192,7 +192,7 @@ class Model(PetabMixin):
 
         Args:
             criterion:
-                The criterion (e.g. `petab_select.constants.Criterion.AIC`).
+                The criterion (e.g. ``petab_select.constants.Criterion.AIC``).
             value:
                 The criterion value for the (presumably calibrated) model.
         """
@@ -229,10 +229,10 @@ class Model(PetabMixin):
 
         Args:
             criterion:
-                The ID of the criterion (e.g. `petab_select.constants.Criterion.AIC`).
+                The ID of the criterion (e.g. ``petab_select.constants.Criterion.AIC``).
             compute:
                 Whether to try to compute the criterion value based on other model
-                attributes. For example, if the `'AIC'` criterion is requested, this
+                attributes. For example, if the ``'AIC'`` criterion is requested, this
                 can be computed from a predetermined model likelihood and its
                 number of estimated parameters.
 
@@ -255,7 +255,7 @@ class Model(PetabMixin):
 
         Args:
             id:
-                The ID of the criterion (e.g. `petab_select.constants.Criterion.AIC`).
+                The ID of the criterion (e.g. ``petab_select.constants.Criterion.AIC``).
 
         Returns:
             The criterion value.
@@ -275,9 +275,9 @@ class Model(PetabMixin):
             estimated_parameters:
                 The estimated parameters.
             scaled:
-                Whether the `estimated_parameters` values are on the scale
-                defined in the PEtab problem (`True`), or untransformed
-                (`False`).
+                Whether the ``estimated_parameters`` values are on the scale
+                defined in the PEtab problem (``True``), or untransformed
+                (``False``).
         """
         if scaled:
             estimated_parameters = self.petab_problem.unscale_parameters(
@@ -298,15 +298,15 @@ class Model(PetabMixin):
                 A dictionary of attributes. The keys are attribute
                 names, the values are the corresponding attribute values for
                 the model. Required attributes are the required arguments of
-                the `Model.__init__` method.
+                the :meth:`Model.__init__` method.
             base_path:
                 The path that any relative paths in the model are relative to
                 (e.g. the path to the PEtab problem YAML file
-                `Model.petab_yaml` may be relative).
+                :meth:`Model.petab_yaml` may be relative).
             petab_problem:
                 Optionally provide the PEtab problem, to avoid loading it multiple
                 times.
-                NB: This may causes issues if multiple models write to the same PEtab
+                NB: This may cause issues if multiple models write to the same PEtab
                 problem in memory.
 
         Returns:
@@ -363,20 +363,20 @@ class Model(PetabMixin):
         resolve_paths: bool = True,
         paths_relative_to: Union[str, Path] = None,
     ) -> Dict[str, Any]:
-        """Generate a dictionary from the attributes of a `Model` instance.
+        """Generate a dictionary from the attributes of a :class:`Model` instance.
 
         Args:
             resolve_paths:
                 Whether to resolve relative paths into absolute paths.
             paths_relative_to:
-                If not `None`, paths will be converted to be relative to this path.
-                Takes priority over `resolve_paths`.
+                If not ``None``, paths will be converted to be relative to this path.
+                Takes priority over ``resolve_paths``.
 
         Returns:
             A dictionary of attributes. The keys are attribute
             names, the values are the corresponding attribute values for
             the model. Required attributes are the required arguments of
-            the `Model.__init__` method.
+            the :meth:`Model.__init__` method.
         """
         model_dict = {}
         for attribute in self.saved_attributes:
@@ -398,14 +398,14 @@ class Model(PetabMixin):
         return model_dict
 
     def to_yaml(self, petab_yaml: TYPE_PATH, *args, **kwargs) -> None:
-        """Generate a PEtab Select model YAML file from a `Model` instance.
+        """Generate a PEtab Select model YAML file from a :class:`Model` instance.
 
         Parameters:
             petab_yaml:
                 The location where the PEtab Select model YAML file will be
                 saved.
             args, kwargs:
-                Additional arguments are passed to `self.to_dict`.
+                Additional arguments are passed to ``self.to_dict``.
         """
         # FIXME change `getattr(self, PETAB_YAML)` to be relative to
         # destination?
@@ -428,9 +428,9 @@ class Model(PetabMixin):
         Returns:
             A 2-tuple. The first value is a PEtab problem that can be used
             with a PEtab-compatible tool for calibration of this model. If
-            `output_path` is not `None`, the second value is the path to a
+            ``output_path`` is not ``None``, the second value is the path to a
             PEtab YAML file that can be used to load the PEtab problem (the
-            first value) into any PEtab-compatible tool. If
+            first value) into any PEtab-compatible tool.
         """
         # TODO could use `copy.deepcopy(self.petab_problem)` from PetabMixin?
         petab_problem = petab.Problem.from_yaml(str(self.petab_yaml))
@@ -466,7 +466,7 @@ class Model(PetabMixin):
         is calibrated twice and the two calibrated models differ in their parameter
         estimates, then they will still have the same hash.
 
-        This is not implemented as `__hash__` because Python automatically truncates
+        This is not implemented as ``__hash__`` because Python automatically truncates
         values in a system-dependent manner, which reduces interoperability
         ( https://docs.python.org/3/reference/datamodel.html#object.__hash__ ).
 
@@ -503,8 +503,9 @@ class Model(PetabMixin):
         return f'{header}\n{data}'
 
     def get_mle(self) -> Dict[str, float]:
-        """Get the maximum likelihood estimate of the model.
-
+        """Get the maximum likelihood estimate of the model."""
+        """
+        FIXME(dilpath)
         # Check if original PEtab problem or PEtab Select model has estimated
         # parameters. e.g. can use some of `self.to_petab` to get the parameter
         # df and see if any are estimated.
@@ -576,10 +577,10 @@ class Model(PetabMixin):
     ) -> List[TYPE_PARAMETER]:
         """Get parameter values.
 
-        Includes `ESTIMATE` for parameters that should be estimated.
+        Includes ``ESTIMATE`` for parameters that should be estimated.
 
-        The ordering is by `parameter_ids` if supplied, else
-        `self.petab_parameters`.
+        The ordering is by ``parameter_ids`` if supplied, else
+        ``self.petab_parameters``.
 
         Args:
             parameter_ids:
@@ -609,8 +610,8 @@ def default_compare(
 ) -> bool:
     """Compare two calibrated models by their criterion values.
 
-    It is assumed that the model `model0` provides a value for the criterion
-    `criterion`, or is the `VIRTUAL_INITIAL_MODEL`.
+    It is assumed that the model ``model0`` provides a value for the criterion
+    ``criterion``, or is the ``VIRTUAL_INITIAL_MODEL``.
 
     Args:
         model0:
@@ -624,8 +625,8 @@ def default_compare(
             model. Should be non-negative.
 
     Returns:
-        `True` if `model1` has a better criterion value than `model0`, else
-        `False`.
+        ``True` if ``model1`` has a better criterion value than ``model0``, else
+        ``False``.
     """
     if not model1.has_criterion(criterion):
         warnings.warn(
@@ -672,11 +673,11 @@ def models_from_yaml_list(
         model_list_yaml:
             The path to the PEtab Select list of model YAML file.
         petab_problem:
-            See `Model.from_dict`.
+            See :meth:`Model.from_dict`.
         allow_single_model:
             Given a YAML file that contains a single model directly (not in
-            a 1-element list), if `True` then the single model will be read in,
-            else an error will be raised.
+            a 1-element list), if ``True`` then the single model will be read in,
+            else a ``ValueError`` will be raised.
 
     Returns:
         A list of model instances, initialized with the provided

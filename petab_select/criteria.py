@@ -11,16 +11,17 @@ from .constants import (  # LH,; LLH,; NLLH,
     Criterion,
 )
 
+import petab_select
 # from .model import Model
 
 
 # use as attribute e.g. `Model.criterion_computer`?
 class CriterionComputer:
-    """Compute various criterion."""
+    """Compute various criteria."""
 
     def __init__(
         self,
-        model: 'petab_select.Model',
+        model: 'petab_select.model.Model',
     ):
         self.model = model
         self._petab_problem = None
@@ -29,7 +30,7 @@ class CriterionComputer:
     def petab_problem(self) -> petab.Problem:
         """The PEtab problem that corresponds to the model.
 
-        Implemented as a property such that the `petab.Problem` object
+        Implemented as a property such that the :class:`petab.Problem` object
         is only constructed if explicitly requested.
 
         Improves speed of operations on models by a lot. For example, analysis of models
