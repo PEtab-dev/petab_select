@@ -41,6 +41,13 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
 }
 
+autosummary_generate = True
+autodoc_default_options = {
+    "special-members": "__init__",
+    "inherited-members": True,
+}
+
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
