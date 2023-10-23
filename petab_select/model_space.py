@@ -1,35 +1,20 @@
 """The `ModelSpace` class and related methods."""
-import abc
 import itertools
 import logging
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    List,
-    Optional,
-    TextIO,
-    Union,
-    get_args,
-)
+from typing import Any, Iterable, List, Optional, TextIO, Union, get_args
 
 import numpy as np
 import pandas as pd
-from more_itertools import nth
 
 from .candidate_space import CandidateSpace
 from .constants import (
-    ESTIMATE,
     HEADER_ROW,
-    MODEL_ID,
     MODEL_ID_COLUMN,
-    MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS,
     MODEL_SUBSPACE_ID,
     PARAMETER_DEFINITIONS_START,
     PARAMETER_VALUE_DELIMITER,
-    PETAB_YAML,
     PETAB_YAML_COLUMN,
     TYPE_PATH,
 )

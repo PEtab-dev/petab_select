@@ -1,19 +1,11 @@
-import csv
-import os.path
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import petab
 
 from .candidate_space import CandidateSpace
-from .constants import (
-    ESTIMATE,
-    INITIAL_MODEL_METHODS,
-    TYPE_PATH,
-    Criterion,
-    Method,
-)
+from .constants import INITIAL_MODEL_METHODS, TYPE_PATH, Criterion, Method
 from .model import Model, default_compare
 from .problem import Problem
 
