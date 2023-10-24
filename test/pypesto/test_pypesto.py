@@ -46,7 +46,6 @@ def objective_customizer(obj):
     obj.amici_solver.setRelativeTolerance(1e-12)
 
 
-@pytest.mark.skip(reason="FIXME")
 def test_pypesto():
     for test_case_path in test_cases_path.glob('*'):
         if test_cases and test_case_path.stem not in test_cases:
