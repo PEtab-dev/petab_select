@@ -417,7 +417,7 @@ class Model(PetabMixin):
     def to_petab(
         self,
         output_path: TYPE_PATH = None,
-    ) -> Tuple[petab.Problem, TYPE_PATH]:
+    ) -> Dict[str, Union[petab.Problem, TYPE_PATH]]:
         """Generate a PEtab problem.
 
         Args:
