@@ -3,13 +3,9 @@
 import math
 
 import petab
-from petab.C import OBJECTIVE, OBJECTIVE_PRIOR_PARAMETERS, OBJECTIVE_PRIOR_TYPE
+from petab.C import OBJECTIVE_PRIOR_PARAMETERS, OBJECTIVE_PRIOR_TYPE
 
-from .constants import (  # LH,; LLH,; NLLH,
-    PETAB_PROBLEM,
-    TYPE_CRITERION,
-    Criterion,
-)
+from .constants import PETAB_PROBLEM, Criterion  # LH,; LLH,; NLLH,
 
 # from .model import Model
 

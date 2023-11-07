@@ -4,7 +4,6 @@ import bisect
 import copy
 import csv
 import logging
-import os.path
 import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -27,7 +26,6 @@ from .constants import (
     Method,
 )
 from .handlers import TYPE_LIMIT, LimitHandler
-from .misc import snake_case_to_camel_case
 from .model import Model, default_compare
 
 
