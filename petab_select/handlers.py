@@ -1,7 +1,4 @@
-from pathlib import Path
-from typing import Any, Callable, List, Optional, Union
-
-import numpy as np
+from typing import Callable, Union
 
 # `float` for `np.inf`
 TYPE_LIMIT = Union[float, int]

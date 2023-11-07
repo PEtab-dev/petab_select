@@ -1,11 +1,9 @@
 """The `Model` class."""
-import abc
 import warnings
 from os.path import relpath
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import numpy as np
 import petab
 import yaml
 from more_itertools import one

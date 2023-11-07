@@ -1,5 +1,4 @@
 """The PEtab Select command-line interface."""
-import warnings
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -7,12 +6,11 @@ import click
 import dill
 import numpy as np
 import pandas as pd
-import yaml
 from more_itertools import one
 
 from . import ui
-from .candidate_space import CandidateSpace, method_to_candidate_space_class
-from .constants import INITIAL_MODEL_METHODS, PETAB_YAML
+from .candidate_space import CandidateSpace
+from .constants import PETAB_YAML
 from .model import Model, models_from_yaml_list, models_to_yaml_list
 from .problem import Problem
 

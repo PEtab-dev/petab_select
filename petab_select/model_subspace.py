@@ -1,27 +1,20 @@
 import math
 import warnings
-from itertools import chain, product
+from itertools import product
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-import petab
-from more_itertools import one, powerset
-from petab.C import NOMINAL_VALUE
+from more_itertools import powerset
 
 from .candidate_space import CandidateSpace
 from .constants import (
-    CODE_DELIMITER,
     ESTIMATE,
     MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS,
-    MODEL_SUBSPACE_ID,
     PARAMETER_VALUE_DELIMITER,
-    PETAB_ESTIMATE_FALSE,
-    PETAB_ESTIMATE_TRUE,
     PETAB_YAML,
     STEPWISE_METHODS,
-    TYPE_PARAMETER,
     TYPE_PARAMETER_DICT,
     TYPE_PARAMETER_OPTIONS,
     TYPE_PARAMETER_OPTIONS_DICT,
