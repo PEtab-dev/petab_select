@@ -6,7 +6,7 @@ import csv
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, Type
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import numpy as np
 from more_itertools import one

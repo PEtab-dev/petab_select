@@ -47,7 +47,9 @@ def calibrate(
     )
 
 
-def parse_summary_to_progress_list(summary_tsv: str) -> List[Tuple[Method, set]]:
+def parse_summary_to_progress_list(
+    summary_tsv: str,
+) -> List[Tuple[Method, set]]:
     """Get progress information from the summary file."""
     df_raw = pd.read_csv(summary_tsv, sep='\t')
     df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]
