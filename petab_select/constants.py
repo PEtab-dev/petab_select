@@ -105,7 +105,6 @@ MODELS = 'models'
 
 # Parameters can be fixed to a value, or estimated if indicated with the string
 # `ESTIMATE`.
-# TODO change to `Literal[ESTIMATE]` (Python >= 3.8)
 TYPE_PARAMETER = Union[float, int, Literal[ESTIMATE]]
 TYPE_PARAMETER_OPTIONS = List[TYPE_PARAMETER]
 # Parameter ID -> parameter value mapping.
