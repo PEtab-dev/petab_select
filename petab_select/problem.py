@@ -30,7 +30,7 @@ class Problem(abc.ABC):
         calibrated_models:
             Calibrated models. Will be used to augment the model selection problem (e.g.
             by excluding them from the model space).
-            FIXME refactor out
+            FIXME(dilpath) refactor out
         candidate_space_arguments:
             Custom options that are used to construct the candidate space.
         compare:
