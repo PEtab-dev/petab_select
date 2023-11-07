@@ -1,7 +1,7 @@
 """Constants for the PEtab Select package."""
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Union, Literal
+from typing import Dict, List, Literal, Union
 
 # Zero-indexed column/row indices
 MODEL_ID_COLUMN = 0

@@ -42,6 +42,7 @@ class ModelSubspace(PetabMixin):
             Hashes of models that have been previously submitted to a candidate space
             for consideration (:meth:`CandidateSpace.consider`).
     """
+
     """
     FIXME(dilpath)
     #history:

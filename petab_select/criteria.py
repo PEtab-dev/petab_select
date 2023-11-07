@@ -5,9 +5,10 @@ import math
 import petab
 from petab.C import OBJECTIVE_PRIOR_PARAMETERS, OBJECTIVE_PRIOR_TYPE
 
+import petab_select
+
 from .constants import PETAB_PROBLEM, Criterion  # LH,; LLH,; NLLH,
 
-import petab_select
 # from .model import Model
 
 
