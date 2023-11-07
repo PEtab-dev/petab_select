@@ -6,7 +6,7 @@ import csv
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import numpy as np
 from more_itertools import one
@@ -1364,7 +1364,7 @@ candidate_space_classes = [
 ]
 
 
-def method_to_candidate_space_class(method: Method) -> str:
+def method_to_candidate_space_class(method: Method) -> Type[CandidateSpace]:
     """Instantiate a candidate space given its method name.
 
     Args:
