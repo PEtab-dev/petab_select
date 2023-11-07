@@ -88,17 +88,16 @@ setup(
             'pypesto > 0.2.13',
             # 'pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@develop#egg=pypesto',
         ],
-        #'reports': ['Jinja2'],
-        #'combine': ['python-libcombine>=0.2.6'],
-        #'doc': [
-        #    'sphinx>=3.5.3',
-        #    'sphinxcontrib-napoleon>=0.7',
-        #    'sphinx-markdown-tables>=0.0.15',
-        #    'sphinx-rtd-theme>=0.5.1',
-        #    'recommonmark>=0.7.1',
-        #    'nbsphinx>=0.8.2',
-        #    'm2r>=0.2.1',
-        #    'ipython>=7.21.0',
-        # ]
+        'doc': [
+            'sphinx>=3.5.3',
+            'sphinxcontrib-napoleon>=0.7',
+            'sphinx-markdown-tables>=0.0.15',
+            'sphinx-rtd-theme>=0.5.1',
+            'recommonmark>=0.7.1',
+            'nbsphinx>=0.8.2',
+            'ipython>=7.21.0',
+            'readthedocs-sphinx-ext @ git+https://github.com/readthedocs/readthedocs-sphinx-ext',
+            'sphinx-autodoc-typehints',
+        ],
     },
 )

@@ -34,7 +34,9 @@ def read_model_space_file(filename: str) -> TextIO:
 
     Returns:
         A temporary file object, which is the unpacked file.
-
+    """
+    """
+    FIXME(dilpath)
     Todo:
         * Consider alternatives to `_{n}` suffix for model `modelId`
         * How should the selected model be reported to the user? Remove the
@@ -98,13 +100,13 @@ def line2row(
         delimiter:
             The string that separates columns in the file.
         unpacked:
-            Whether the line format is in the unpacked format. If False,
-            parameter values are not converted to `float`.
+            Whether the line format is in the unpacked format. If ``False``,
+            parameter values are not converted to ``float``.
         convert_parameters_to_float:
-            Whether parameters should be converted to `float`.
+            Whether parameters should be converted to ``float``.
 
     Returns:
-        A list of column values. Parameter values are converted to `float`.
+        A list of column values. Parameter values are converted to ``float``.
     """
     columns = line.strip().split(delimiter)
     metadata = columns[:PARAMETER_DEFINITIONS_START]

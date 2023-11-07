@@ -29,12 +29,13 @@ class Problem(abc.ABC):
             The model space.
         calibrated_models:
             Calibrated models. Will be used to augment the model selection problem (e.g.
-            by excluding them from the model space). FIXME refactor out
+            by excluding them from the model space).
+            FIXME(dilpath) refactor out
         candidate_space_arguments:
             Custom options that are used to construct the candidate space.
         compare:
             A method that compares models by selection criterion. See
-            `petab_select.model.default_compare` for an example.
+            :func:`petab_select.model.default_compare` for an example.
         criterion:
             The criterion used to compare models.
         method:
@@ -44,15 +45,19 @@ class Problem(abc.ABC):
         yaml_path:
             The location of the selection problem YAML file. Used for relative
             paths that exist in e.g. the model space files.
-            TODO should the relative paths be relative to the YAML or the
-            file that contains them?
 
+            TODO should the relative paths be relative to the YAML or the file that contains them?
+
+    """
+
+    """
+    FIXME(dilpath)
     Unsaved attributes:
         candidate_space:
             The candidate space that will be used.
             Reason for not saving:
-                Essentially reproducible from `Problem.method` and
-                `Problem.calibrated_models`.
+                Essentially reproducible from :attr:`Problem.method` and
+                :attr:`Problem.calibrated_models`.
     """
 
     def __init__(
@@ -89,7 +94,8 @@ class Problem(abc.ABC):
 
         Returns:
             The path to the resource.
-
+        """
+        """
         TODO:
             Unused?
         """
@@ -199,7 +205,7 @@ class Problem(abc.ABC):
                 The best model will be taken from these models.
             criterion:
                 The criterion by which models will be compared. Defaults to
-                `self.criterion` (e.g. as defined in the PEtab Select problem YAML
+                ``self.criterion`` (e.g. as defined in the PEtab Select problem YAML
                 file).
             compute_criterion:
                 Whether to try computing criterion values, if sufficient
@@ -238,7 +244,7 @@ class Problem(abc.ABC):
         """Construct a new candidate space.
 
         Args:
-            *args, **kwargs:
+            args, kwargs:
                 Arguments are passed to the candidate space constructor.
             method:
                 The model selection method.

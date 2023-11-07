@@ -1,7 +1,7 @@
 """Constants for the PEtab Select package."""
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Literal, Union
 
 # Zero-indexed column/row indices
 MODEL_ID_COLUMN = 0
@@ -105,8 +105,7 @@ MODELS = 'models'
 
 # Parameters can be fixed to a value, or estimated if indicated with the string
 # `ESTIMATE`.
-# TODO change to `Literal[ESTIMATE]` (Python >= 3.8)
-TYPE_PARAMETER = Union[float, int, ESTIMATE]
+TYPE_PARAMETER = Union[float, int, Literal[ESTIMATE]]
 TYPE_PARAMETER_OPTIONS = List[TYPE_PARAMETER]
 # Parameter ID -> parameter value mapping.
 TYPE_PARAMETER_DICT = Dict[str, TYPE_PARAMETER]
