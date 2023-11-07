@@ -1,13 +1,12 @@
 """The model selection problem class."""
 import abc
 from functools import partial
-from itertools import chain
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional, Union
 
 import yaml
 
-from .candidate_space import CandidateSpace, method_to_candidate_space_class
+from .candidate_space import method_to_candidate_space_class
 from .constants import (
     CANDIDATE_SPACE_ARGUMENTS,
     CRITERION,

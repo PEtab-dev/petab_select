@@ -3,12 +3,14 @@ name: CI
 # trigger
 on:
   push:
-    branches:
-    - main
   pull_request:
+    branches:
+      - main
   schedule:
     # run Tuesday and Friday at 02:00 UTC
     - cron: '00 2 * * TUE,FRI'
+  workflow_dispatch:
+  merge_group:
 
 jobs:
   base:

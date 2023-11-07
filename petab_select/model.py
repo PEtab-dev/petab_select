@@ -1,11 +1,9 @@
 """The `Model` class."""
-import abc
 import warnings
 from os.path import relpath
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import numpy as np
 import petab
 import yaml
 from more_itertools import one
@@ -417,7 +415,7 @@ class Model(PetabMixin):
     def to_petab(
         self,
         output_path: TYPE_PATH = None,
-    ) -> Tuple[petab.Problem, TYPE_PATH]:
+    ) -> Dict[str, Union[petab.Problem, TYPE_PATH]]:
         """Generate a PEtab problem.
 
         Args:
