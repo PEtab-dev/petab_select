@@ -313,10 +313,8 @@ class ModelSubspace(PetabMixin):
                 new_must_estimate_all
                 or candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL
             ):
-                # Consider minimal models that have all necessary parameters
-                # estimated. As this subspace necessarily has more estimated
-                # parameters than the predecessor model, all parameters that
-                # can be fixed, will be fixed.
+                # Consider minimal models that have all necessarily-estimated
+                # parameters.
                 estimated_parameters = {
                     parameter_id: ESTIMATE
                     for parameter_id in (
@@ -405,10 +403,8 @@ class ModelSubspace(PetabMixin):
                 new_must_fix_all
                 or candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL
             ):
-                # Consider minimal models that have all necessarily fixed parameters.
-                # As this subspace necessarily has fewer estimated parameters than the
-                # predecessor model, all parameters that can be estimated, will be
-                # estimated.
+                # Consider minimal models that have all necessarily-fixed
+                # parameters.
                 estimated_parameters = {
                     parameter_id: ESTIMATE
                     for parameter_id in (
