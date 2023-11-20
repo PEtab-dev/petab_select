@@ -708,10 +708,20 @@ def models_from_yaml_list(
 
 
 def models_to_yaml_list(
-    models: List[Model],
+    models: List[Union[Model, str]],
     output_yaml: TYPE_PATH,
     relative_paths: bool = True,
 ):
+    skipped_indices = []
+    for index, model in enumerate(models):
+        if isinstance(model, Model):
+            continue
+        if model == VIRTUAL_INITIAL_MODEL:
+            continue
+        print(f"Unexpected model, skipping: {model}.")
+        skipped_indices.append(index)
+    models = [model for index, model in models if index not in skipped_indices]
+
     paths_relative_to = None
     if relative_paths:
         paths_relative_to = Path(output_yaml).parent
