@@ -38,28 +38,26 @@ class CandidateSpace(abc.ABC):
     Attributes:
         distances:
             The distances of all candidate models from the initial model.
-
-            FIXME(dilpath) change list to int? Is storage of more than one value useful?
-        predecessor_model:
-            The model used for comparison, e.g. for stepwise methods.
-        previous_predecessor_model:
-            The previous predecessor model.
-        models:
-            The current set of candidate models.
         exclusions:
             A list of model hashes. Models that match a hash in ``exclusions`` will not
             be accepted into the candidate space. The hashes of models that are accepted
             are added to ``exclusions``.
-        limit:
-            A handler to limit the number of accepted models.
-        method:
-            The model selection method of the candidate space.
         governing_method:
             Used to store the search method that governs the choice of method during
             a search. In some cases, this is always the same as the method attribute.
             An example of a difference is in the bidirectional method, where ``governing_method``
             stores the bidirectional method, whereas `method` may also store the forward or
             backward methods.
+        limit:
+            A handler to limit the number of accepted models.
+        models:
+            The current set of candidate models.
+        method:
+            The model selection method of the candidate space.
+        predecessor_model:
+            The model used for comparison, e.g. for stepwise methods.
+        previous_predecessor_model:
+            The previous predecessor model.
         retry_model_space_search_if_no_models:
             Whether a search with a candidate space should be repeated upon failure.
             Useful for the :class:`BidirectionalCandidateSpace`, which switches directions
@@ -67,12 +65,6 @@ class CandidateSpace(abc.ABC):
         summary_tsv:
             A string or :class:`pathlib.Path`. A summary of the model selection progress
             will be written to this file.
-
-    FIXME(dilpath)
-    #limited:
-    #    A descriptor that handles the limit on the number of accepted models.
-    #limit:
-    #    Models will fail `self.consider` if `len(self.models) >= limit`.
     """
 
     governing_method: Method = None
@@ -88,6 +80,7 @@ class CandidateSpace(abc.ABC):
         summary_tsv: TYPE_PATH = None,
         previous_predecessor_model: Optional[Model] = None,
     ):
+        """See class attributes for arguments."""
         self.limit = LimitHandler(
             current=self.n_accepted,
             limit=limit,
@@ -106,7 +99,15 @@ class CandidateSpace(abc.ABC):
         if self.previous_predecessor_model is None:
             self.previous_predecessor_model = self.predecessor_model
 
-    def write_summary_tsv(self, row):
+    def write_summary_tsv(self, row: List[Any]):
+        """Write the summary of the last iteration to a TSV file.
+
+        The destination is defined in ``self.summary_tsv``.
+
+        Args:
+            row:
+                The row that will be written to disk.
+        """
         if self.summary_tsv is None:
             return
 
@@ -122,12 +123,10 @@ class CandidateSpace(abc.ABC):
             writer.writerow(row)
 
     def _setup_summary_tsv(self):
+        """Setup the summary TSV file columns."""
         self.summary_tsv.resolve().parent.mkdir(parents=True, exist_ok=True)
 
-        if self.summary_tsv.exists():
-            with open(self.summary_tsv, "r", encoding="utf-8") as f:
-                last_row = f.readlines()[-1]
-        else:
+        if not self.summary_tsv.exists():
             self.write_summary_tsv(
                 [
                     'method',
@@ -140,7 +139,20 @@ class CandidateSpace(abc.ABC):
             )
 
     @classmethod
-    def read_arguments_from_yaml_dict(cls, yaml_dict):
+    def read_arguments_from_yaml_dict(
+        cls,
+        yaml_dict: Dict[str, str],
+    ) -> Dict[str, Union[str, Model]]:
+        """Parse settings that were stored in YAML.
+
+        Args:
+            yaml_dict:
+                The information that was read from the YAML file. Keys are
+                class attributes, values are the corresponding values.
+
+        Returns:
+            The settings, parsed into PEtab Select objects where possible.
+        """
         kwargs = copy.deepcopy(yaml_dict)
 
         predecessor_model = None
@@ -181,12 +193,10 @@ class CandidateSpace(abc.ABC):
         Args:
             model:
                 The candidate model.
-            predecessor_model:
-                The initial model.
 
         Returns:
-            The distance from ``predecessor_model`` to ``model``, or ``None`` if the
-            distance should not be computed.
+            The distance from ``self.predecessor_model`` to ``model``, or
+            ``None`` if the distance should not be computed.
         """
         return None
 
@@ -194,7 +204,6 @@ class CandidateSpace(abc.ABC):
         self,
         model: Model,
         distance: Union[None, float, int],
-        # keep_others: bool = True,
     ) -> None:
         """Add a candidate model to the candidate space.
 
@@ -203,11 +212,6 @@ class CandidateSpace(abc.ABC):
                 The model that will be added.
             distance:
                 The distance of the model from the predecessor model.
-
-        FIXME(dilpath)
-        #keep_others:
-        #    Whether to keep other models that were previously added to the
-        #    candidate space.
         """
         model.predecessor_model_hash = (
             self.predecessor_model.get_hash()
@@ -218,8 +222,12 @@ class CandidateSpace(abc.ABC):
         self.distances.append(distance)
         self.exclude(model)
 
-    def n_accepted(self) -> TYPE_LIMIT:
-        """Get the current number of accepted models."""
+    def n_accepted(self) -> int:
+        """Get the current number of accepted models.
+
+        Returns:
+            The number of models.
+        """
         return len(self.models)
 
     def exclude(
@@ -251,11 +259,19 @@ class CandidateSpace(abc.ABC):
         self,
         model: Model,
     ) -> bool:
-        """Whether a model is excluded."""
+        """Check whether a model is excluded.
+
+        Args:
+            model:
+                The model.
+
+        Returns:
+            ``True`` if the ``model`` is excluded, otherwise ``False``.
+        """
         return model.get_hash() in self.exclusions
 
     @abc.abstractmethod
-    def _consider_method(self, model) -> bool:
+    def _consider_method(self, model: Model) -> bool:
         """Consider whether a model should be accepted, according to a method.
 
         Args:
@@ -279,11 +295,10 @@ class CandidateSpace(abc.ABC):
             Whether it is OK to send additional models to the candidate space. For
             example, if the limit of the number of accepted models has been reached,
             then no further models should be sent.
-
-            FIXME(dilpath)
-            TODO change to return whether the model was accepted, and instead add
-            `self.continue` to determine whether additional models should be sent.
         """
+        # FIXME(dilpath)
+        # TODO change to return whether the model was accepted, and instead add
+        # `self.continue` to determine whether additional models should be sent.
         # Model was excluded by the `ModelSubspace` that called this method, so can be
         # skipped.
         if model is None:
@@ -312,6 +327,10 @@ class CandidateSpace(abc.ABC):
     def set_predecessor_model(
         self, predecessor_model: Union[Model, str, None]
     ):
+        """Set the predecessor model.
+
+        See class attributes for arguments.
+        """
         self.predecessor_model = predecessor_model
         if (
             self.predecessor_model == VIRTUAL_INITIAL_MODEL
@@ -321,34 +340,59 @@ class CandidateSpace(abc.ABC):
                 f'A virtual initial model was requested for a method ({self.method}) that does not support them.'
             )
 
-    def get_predecessor_model(self):
+    def get_predecessor_model(self) -> Union[str, Model]:
+        """Get the predecessor model."""
         return self.predecessor_model
 
-    def set_exclusions(self, exclusions: Union[List[str], None]):
-        # TODO change to List[str] for hashes?
+    def set_exclusions(self, exclusions: Union[List[str], None]) -> None:
+        """Set the exclusions, by hashes.
+
+        Args:
+            exclusions:
+                The model hashes that will be excluded.
+        """
         self.exclusions = exclusions
         if self.exclusions is None:
             self.exclusions = []
 
-    def get_exclusions(self):
+    def get_exclusions(self) -> List[str]:
+        """Get the exclusions.
+
+        Returns:
+            The hashes of the excluded models.
+        """
         return self.exclusions
 
-    def set_limit(self, limit: TYPE_LIMIT = None):
+    def set_limit(self, limit: TYPE_LIMIT = None) -> None:
+        """Set the limit on the number of accepted models.
+
+        Args:
+            limit:
+                The limit.
+        """
         if limit is not None:
             self.limit.set_limit(limit)
 
-    def get_limit(self):
+    def get_limit(self) -> TYPE_LIMIT:
+        """Get the limit on the number of accepted models."""
         return self.limit.get_limit()
 
-    def wrap_search_subspaces(self, search_subspaces: Callable[[], None]):
+    def wrap_search_subspaces(
+        self,
+        search_subspaces: Callable[[], None],
+    ) -> Callable:
         """Decorate the subspace searches of a model space.
 
         Used by candidate spaces to perform changes that alter the search.
-        See :class:`BidirectionalCandidateSpace` for an example, where it's used to switch directions.
+        See :class:`BidirectionalCandidateSpace` for an example, where it's
+        used to switch directions.
 
         Args:
             search_subspaces:
                 The method that searches the subspaces of a model space.
+
+        Returns:
+            The wrapped ``search_subspaces``.
         """
 
         def wrapper():
@@ -359,7 +403,6 @@ class CandidateSpace(abc.ABC):
     def reset(
         self,
         predecessor_model: Optional[Union[Model, str, None]] = None,
-        # FIXME change `Any` to some `TYPE_MODEL_HASH` (e.g. union of str/int/float)
         exclusions: Optional[Union[List[str], None]] = None,
         limit: TYPE_LIMIT = None,
     ) -> None:
@@ -369,9 +412,10 @@ class CandidateSpace(abc.ABC):
             predecessor_model:
                 The initial model.
             exclusions:
-                Whether to reset model exclusions.
+                Hashes of models to exclude.
             limit:
-                The new upper limit of the number of models in this candidate space.
+                The new upper limit of the number of models in this candidate
+                space.
         """
         self.set_predecessor_model(predecessor_model)
         self.reset_accepted()
@@ -397,10 +441,13 @@ class CandidateSpace(abc.ABC):
         Args:
             model:
                 The candidate model.
+            predecessor_model:
+                See class attributes.
 
         Returns:
-            The distances between the models, as a dictionary, where a key is the
-            name of the metric, and the value is the corresponding distance.
+            The distances between the models, as a dictionary, where a key is
+            the name of the metric, and the value is the corresponding
+            distance.
         """
         model0 = predecessor_model
         if model0 is None:
@@ -419,10 +466,6 @@ class CandidateSpace(abc.ABC):
         # All parameters from the PEtab problem are used in the computation.
         if model0 == VIRTUAL_INITIAL_MODEL:
             parameter_ids = list(model1.petab_parameters)
-            # FIXME need to take superset of all parameters amongst all PEtab problems
-            # in all model subspaces to get an accurate comparable distance. Currently
-            # only reasonable when working with a single PEtab problem for all models
-            # in all subspaces.
             if self.method == Method.FORWARD:
                 parameters0 = np.array([0 for _ in parameter_ids])
             elif self.method == Method.BACKWARD:
@@ -438,7 +481,17 @@ class CandidateSpace(abc.ABC):
             parameters0 = np.array(
                 model0.get_parameter_values(parameter_ids=parameter_ids)
             )
-
+            # FIXME need to take superset of all parameters amongst all PEtab problems
+            # in all model subspaces to get an accurate comparable distance. Currently
+            # only reasonable when working with a single PEtab problem for all models
+            # in all subspaces.
+            if model1.petab_yaml != model1.petab_yaml:
+                raise ValueError(
+                    'Computing the distance between different models that '
+                    'have different "base" PEtab problems is not yet '
+                    f'supported. First base PEtab problem: {model0.petab_yaml}.'
+                    f' Second base PEtab problem: {model1.petab_yaml}.'
+                )
         parameters1 = np.array(
             model1.get_parameter_values(parameter_ids=parameter_ids)
         )
@@ -455,7 +508,7 @@ class CandidateSpace(abc.ABC):
         # Change in the number of estimated parameters.
         size = np.sum(difference)
 
-        # TODO constants?
+        # TODO constants? e.g. Distance.L1 and Distance.Size
         distances = {
             'l1': l1,
             'size': size,
