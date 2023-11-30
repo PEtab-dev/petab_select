@@ -806,7 +806,7 @@ class FamosCandidateSpace(CandidateSpace):
     ) -> bool:
         """Update ``self.best_models`` with the latest ``newly_calibrated_models``
         and determine if there was a new best model. If so, return
-        ``True``. ``False`` otherwise."""
+        ``False``. ``True`` otherwise."""
 
         go_into_switch_method = True
         for newly_calibrated_model in newly_calibrated_models.values():
