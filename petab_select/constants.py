@@ -119,11 +119,11 @@ class Method(str, Enum):
     """String literals for model selection methods."""
 
     BACKWARD = 'backward'
-    BIDIRECTIONAL = 'bidirectional'
+    #BIDIRECTIONAL = 'bidirectional'
     BRUTE_FORCE = 'brute_force'
     FAMOS = 'famos'
     FORWARD = 'forward'
-    FORWARD_AND_BACKWARD = 'forward_and_backward'
+    #FORWARD_AND_BACKWARD = 'forward_and_backward'
     LATERAL = 'lateral'
     MOST_DISTANT = 'most_distant'
 
@@ -142,17 +142,17 @@ class Criterion(str, Enum):
 # Methods that move through model space by taking steps away from some model.
 STEPWISE_METHODS = [
     Method.BACKWARD,
-    Method.BIDIRECTIONAL,
+    #Method.BIDIRECTIONAL,
     Method.FORWARD,
-    Method.FORWARD_AND_BACKWARD,
+    #Method.FORWARD_AND_BACKWARD,
     Method.LATERAL,
 ]
 # Methods that require an initial model.
 INITIAL_MODEL_METHODS = [
     Method.BACKWARD,
-    Method.BIDIRECTIONAL,
+    #Method.BIDIRECTIONAL,
     Method.FORWARD,
-    Method.FORWARD_AND_BACKWARD,
+    #Method.FORWARD_AND_BACKWARD,
     Method.LATERAL,
 ]
 
@@ -160,7 +160,7 @@ INITIAL_MODEL_METHODS = [
 VIRTUAL_INITIAL_MODEL = 'virtual_initial_model'
 VIRTUAL_INITIAL_MODEL_METHODS = [
     Method.BACKWARD,
-    Method.BIDIRECTIONAL,
+    #Method.BIDIRECTIONAL,
     Method.FORWARD,
-    Method.FORWARD_AND_BACKWARD,
+    #Method.FORWARD_AND_BACKWARD,
 ]

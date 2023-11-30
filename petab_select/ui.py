@@ -134,15 +134,32 @@ def candidates(
     problem.model_space.exclude_model_hashes(
         model_hashes=excluded_model_hashes
     )
-    if do_search:
+    while do_search:
         problem.model_space.search(candidate_space, limit=limit_sent)
 
-    write_summary_tsv(
-        problem=problem,
-        candidate_space=candidate_space,
-        previous_predecessor_model=candidate_space.previous_predecessor_model,
-        predecessor_model=predecessor_model,
-    )
+        write_summary_tsv(
+            problem=problem,
+            candidate_space=candidate_space,
+            previous_predecessor_model=candidate_space.previous_predecessor_model,
+            predecessor_model=predecessor_model,
+        )
+
+        if candidate_space.models:
+            break
+
+        # No models were found. Repeat the search with the same candidate space,
+        # if the candidate space is able to switch methods.
+        # N.B.: candidate spaces that switch methods must raise `StopIteration`
+        # when they stop switching.
+        if candidate_space.governing_method == Method.FAMOS:
+            try:
+                candidate_space.update_after_calibration(
+                    calibrated_models=calibrated_models,
+                    newly_calibrated_models={},
+                    criterion=criterion,
+                )
+            except StopIteration:
+                break
 
     candidate_space.previous_predecessor_model = predecessor_model
 
