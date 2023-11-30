@@ -1239,10 +1239,8 @@ class BruteForceCandidateSpace(CandidateSpace):
 candidate_space_classes = [
     ForwardCandidateSpace,
     BackwardCandidateSpace,
-    #BidirectionalCandidateSpace,
     LateralCandidateSpace,
     BruteForceCandidateSpace,
-    #ForwardAndBackwardCandidateSpace,
     FamosCandidateSpace,
 ]
 
