@@ -48,12 +48,6 @@ MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_SUBSPACE_ID, PETAB_YAML]
 # COMPARED_MODEL_ID = 'compared_'+MODEL_ID
 YAML_FILENAME = 'yaml'
 
-# FORWARD = 'forward'
-# BACKWARD = 'backward'
-# BIDIRECTIONAL = 'bidirectional'
-# LATERAL = 'lateral'
-
-
 # DISTANCES = {
 #    FORWARD: {
 #        'l1': 1,
@@ -70,20 +64,6 @@ YAML_FILENAME = 'yaml'
 # }
 
 CRITERIA = 'criteria'
-# FIXME remove, change all uses to Enum below
-# AIC = 'AIC'
-# AICC = 'AICc'
-# BIC = 'BIC'
-# AKAIKE_INFORMATION_CRITERION = AIC
-# CORRECTED_AKAIKE_INFORMATION_CRITERION = AICC
-# BAYESIAN_INFORMATION_CRITERION = BIC
-# LH = 'LH'
-# LLH = 'LLH'
-# NLLH = 'NLLH'
-# LIKELIHOOD = LH
-# LOG_LIKELIHOOD = LLH
-# NEGATIVE_LOG_LIKELIHOOD = NLLH
-
 
 PARAMETERS = 'parameters'
 # PARAMETER_ESTIMATE = 'parameter_estimate'
@@ -119,11 +99,9 @@ class Method(str, Enum):
     """String literals for model selection methods."""
 
     BACKWARD = 'backward'
-    #BIDIRECTIONAL = 'bidirectional'
     BRUTE_FORCE = 'brute_force'
     FAMOS = 'famos'
     FORWARD = 'forward'
-    #FORWARD_AND_BACKWARD = 'forward_and_backward'
     LATERAL = 'lateral'
     MOST_DISTANT = 'most_distant'
 
@@ -142,17 +120,13 @@ class Criterion(str, Enum):
 # Methods that move through model space by taking steps away from some model.
 STEPWISE_METHODS = [
     Method.BACKWARD,
-    #Method.BIDIRECTIONAL,
     Method.FORWARD,
-    #Method.FORWARD_AND_BACKWARD,
     Method.LATERAL,
 ]
 # Methods that require an initial model.
 INITIAL_MODEL_METHODS = [
     Method.BACKWARD,
-    #Method.BIDIRECTIONAL,
     Method.FORWARD,
-    #Method.FORWARD_AND_BACKWARD,
     Method.LATERAL,
 ]
 
@@ -160,7 +134,5 @@ INITIAL_MODEL_METHODS = [
 VIRTUAL_INITIAL_MODEL = 'virtual_initial_model'
 VIRTUAL_INITIAL_MODEL_METHODS = [
     Method.BACKWARD,
-    #Method.BIDIRECTIONAL,
     Method.FORWARD,
-    #Method.FORWARD_AND_BACKWARD,
 ]
