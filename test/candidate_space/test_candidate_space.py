@@ -5,9 +5,12 @@ import pytest
 from more_itertools import one
 
 import petab_select
-from petab_select.candidate_space import (  # BackwardCandidateSpace,; BruteForceCandidateSpace,; ForwardCandidateSpace,; ForwardAndBackwardCandidateSpace,; LateralCandidateSpace,
-    BidirectionalCandidateSpace,
-)
+# from petab_select.candidate_space import (
+#    BackwardCandidateSpace,
+#    BruteForceCandidateSpace,
+#    ForwardCandidateSpace,
+#    LateralCandidateSpace,
+# )
 from petab_select.constants import (
     ESTIMATE,
     MODEL_SUBSPACE_ID,
