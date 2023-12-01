@@ -5,6 +5,7 @@ import pytest
 from more_itertools import one
 
 import petab_select
+
 # from petab_select.candidate_space import (
 #    BackwardCandidateSpace,
 #    BruteForceCandidateSpace,
