@@ -791,7 +791,7 @@ class FamosCandidateSpace(CandidateSpace):
             logging.info("Switching method")
             self.switch_method(calibrated_models=calibrated_models)
             self.switch_inner_candidate_space(
-                calibrated_models=calibrated_models,
+                exclusions=list(calibrated_models),
             )
             logging.info(
                 "Method switched to ", self.inner_candidate_space.method
@@ -1021,10 +1021,14 @@ class FamosCandidateSpace(CandidateSpace):
 
     def switch_inner_candidate_space(
         self,
-        calibrated_models: Dict[str, Model],
+        exclusions: List[str],
     ):
-        """Switch ``self.inner_candidate_space`` to the candidate space of
-        the current self.method."""
+        """Switch the inner candidate space to match the current method.
+
+        Args:
+            exclusions:
+                Hashes of excluded models.
+        """
 
         # if self.method != Method.MOST_DISTANT:
         self.inner_candidate_space = self.inner_candidate_spaces[self.method]
@@ -1032,7 +1036,7 @@ class FamosCandidateSpace(CandidateSpace):
         # calibrated models
         self.inner_candidate_space.reset(
             predecessor_model=self.predecessor_model,
-            exclusions=calibrated_models,
+            exclusions=exclusions,
         )
 
     def jump_to_most_distant(
