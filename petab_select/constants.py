@@ -1,4 +1,5 @@
 """Constants for the PEtab Select package."""
+import sys
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Literal, Union
@@ -164,3 +165,12 @@ VIRTUAL_INITIAL_MODEL_METHODS = [
     Method.FORWARD,
     Method.FORWARD_AND_BACKWARD,
 ]
+
+
+__all__ = [
+    x
+    for x in dir(sys.modules[__name__])
+    if not x.startswith('_')
+    and x not in ('sys', "Enum", "Path", "Dict", "List", "Literal", "Union")
+]
+print(__all__)

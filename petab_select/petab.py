@@ -7,6 +7,10 @@ from petab.C import ESTIMATE, NOMINAL_VALUE
 
 from .constants import PETAB_ESTIMATE_FALSE, TYPE_PARAMETER_DICT, TYPE_PATH
 
+__all__ = [
+    'PetabMixin',
+]
+
 
 class PetabMixin:
     """Useful things for classes that contain a PEtab problem.

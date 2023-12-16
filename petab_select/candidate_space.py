@@ -28,6 +28,17 @@ from .constants import (
 from .handlers import TYPE_LIMIT, LimitHandler
 from .model import Model, default_compare
 
+__all__ = [
+    'BackwardCandidateSpace',
+    'BidirectionalCandidateSpace',
+    'BruteForceCandidateSpace',
+    'CandidateSpace',
+    'FamosCandidateSpace',
+    'ForwardAndBackwardCandidateSpace',
+    'ForwardCandidateSpace',
+    'LateralCandidateSpace',
+]
+
 
 class CandidateSpace(abc.ABC):
     """A base class for collecting candidate models.

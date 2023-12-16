@@ -9,7 +9,12 @@ import petab_select
 
 from .constants import PETAB_PROBLEM, Criterion  # LH,; LLH,; NLLH,
 
-# from .model import Model
+__all__ = [
+    'calculate_aic',
+    'calculate_aicc',
+    'calculate_bic',
+    'CriterionComputer',
+]
 
 
 # use as attribute e.g. `Model.criterion_computer`?

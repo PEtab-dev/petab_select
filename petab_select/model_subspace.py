@@ -26,6 +26,10 @@ from .misc import parameter_string_to_value
 from .model import Model
 from .petab import PetabMixin
 
+__all__ = [
+    'ModelSubspace',
+]
+
 
 class ModelSubspace(PetabMixin):
     """Efficient representation of exponentially large model subspaces.
