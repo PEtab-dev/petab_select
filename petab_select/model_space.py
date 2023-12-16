@@ -1,6 +1,7 @@
 """The `ModelSpace` class and related methods."""
 import itertools
 import logging
+import warnings
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Any, Iterable, List, Optional, TextIO, Union, get_args
@@ -252,7 +253,7 @@ class ModelSpace:
 
     def __len__(self):
         """Get the number of models in this space."""
-        subspace_coumts = [len(s) for s in self.model_subspaces]
+        subspace_counts = [len(s) for s in self.model_subspaces]
         total_count = sum(subspace_counts)
         return total_count
 

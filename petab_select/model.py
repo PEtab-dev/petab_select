@@ -252,8 +252,9 @@ class Model(PetabMixin):
         for the criterion.
 
         Args:
-            id:
-                The ID of the criterion (e.g. ``petab_select.constants.Criterion.AIC``).
+            criterion:
+                The criterion to compute
+                (e.g. :obj:`petab_select.constants.Criterion.AIC`).
 
         Returns:
             The criterion value.
