@@ -222,6 +222,7 @@ class Model(PetabMixin):
         self,
         criterion: Criterion,
         compute: bool = True,
+        raise_on_failure: bool = True,
     ) -> Union[TYPE_CRITERION, None]:
         """Get a criterion value for the model.
 
@@ -233,34 +234,53 @@ class Model(PetabMixin):
                 attributes. For example, if the ``'AIC'`` criterion is requested, this
                 can be computed from a predetermined model likelihood and its
                 number of estimated parameters.
+            raise_on_failure:
+                Whether to raise a `ValueError` if the criterion could not be
+                computed. If `False`, `None` is returned.
 
         Returns:
             The criterion value, or `None` if it is not available.
             TODO check for previous use of this method before `.get` was used
         """
         if criterion not in self.criteria and compute:
-            self.compute_criterion(criterion=criterion)
+            self.compute_criterion(
+                criterion=criterion,
+                raise_on_failure=raise_on_failure,
+            )
             # value = self.criterion_computer(criterion=id)
             # self.set_criterion(id=id, value=value)
 
         return self.criteria.get(criterion, None)
 
-    def compute_criterion(self, criterion: Criterion) -> TYPE_CRITERION:
+    def compute_criterion(
+        self,
+        criterion: Criterion,
+        raise_on_failure: bool = True,
+    ) -> TYPE_CRITERION:
         """Compute a criterion value for the model.
 
         The value will also be stored, which will overwrite any previously stored value
         for the criterion.
 
         Args:
-            id:
-                The ID of the criterion (e.g. ``petab_select.constants.Criterion.AIC``).
+            criterion:
+                The ID of the criterion (e.g. :obj:`petab_select.constants.Criterion.AIC`).
+            raise_on_failure:
+                Whether to raise a `ValueError` if the criterion could not be
+                computed. If `False`, `None` is returned.
 
         Returns:
             The criterion value.
         """
-        criterion_value = self.criterion_computer(criterion)
-        self.set_criterion(criterion, criterion_value)
-        return criterion_value
+        try:
+            criterion_value = self.criterion_computer(criterion)
+            self.set_criterion(criterion, criterion_value)
+            result = criterion_value
+        except ValueError:
+            if raise_on_failure:
+                raise
+            result = None
+        return result
 
     def set_estimated_parameters(
         self,
