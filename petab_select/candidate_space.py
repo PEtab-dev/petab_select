@@ -30,11 +30,9 @@ from .model import Model, default_compare
 
 __all__ = [
     'BackwardCandidateSpace',
-    'BidirectionalCandidateSpace',
     'BruteForceCandidateSpace',
     'CandidateSpace',
     'FamosCandidateSpace',
-    'ForwardAndBackwardCandidateSpace',
     'ForwardCandidateSpace',
     'LateralCandidateSpace',
 ]
