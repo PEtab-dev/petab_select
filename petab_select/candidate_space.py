@@ -6,7 +6,7 @@ import csv
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Type, Union
 
 import numpy as np
 from more_itertools import one
@@ -238,7 +238,7 @@ class CandidateSpace(abc.ABC):
         else:
             self.exclusions.append(model.get_hash())
 
-    def exclude_hashes(self, hashes: List[str]) -> None:
+    def exclude_hashes(self, hashes: Sequence[str]) -> None:
         """Exclude models from future consideration, by hash.
 
         Args:
