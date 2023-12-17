@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -84,10 +85,29 @@ def candidates(
     candidate_space.exclude_hashes(calibrated_models)
 
     # Set the predecessor model to the previous predecessor model.
+    predecessor_model = candidate_space.previous_predecessor_model
+
+    # If the predecessor model has not yet been calibrated, then calibrate it.
+    if (
+        predecessor_model.get_criterion(
+            criterion,
+            raise_on_failure=False,
+        )
+        is None
+    ):
+        candidate_space.models = [copy.deepcopy(predecessor_model)]
+        # Dummy zero likelihood, which the predecessor model will
+        # improve on after it's actually calibrated.
+        predecessor_model.set_criterion(Criterion.LH, 0.0)
+        return candidate_space
+
+    # Exclude the calibrated predecessor model.
+    if not candidate_space.excluded(predecessor_model):
+        candidate_space.exclude(predecessor_model)
+
     # Set the new predecessor_model from the initial model or
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
-    predecessor_model = candidate_space.previous_predecessor_model
     if newly_calibrated_models:
         predecessor_model = problem.get_best(
             newly_calibrated_models.values(),
@@ -142,15 +162,32 @@ def candidates(
     problem.model_space.exclude_model_hashes(
         model_hashes=excluded_model_hashes
     )
-    if do_search:
+    while do_search:
         problem.model_space.search(candidate_space, limit=limit_sent)
 
-    write_summary_tsv(
-        problem=problem,
-        candidate_space=candidate_space,
-        previous_predecessor_model=candidate_space.previous_predecessor_model,
-        predecessor_model=predecessor_model,
-    )
+        write_summary_tsv(
+            problem=problem,
+            candidate_space=candidate_space,
+            previous_predecessor_model=candidate_space.previous_predecessor_model,
+            predecessor_model=predecessor_model,
+        )
+
+        if candidate_space.models:
+            break
+
+        # No models were found. Repeat the search with the same candidate space,
+        # if the candidate space is able to switch methods.
+        # N.B.: candidate spaces that switch methods must raise `StopIteration`
+        # when they stop switching.
+        if candidate_space.governing_method == Method.FAMOS:
+            try:
+                candidate_space.update_after_calibration(
+                    calibrated_models=calibrated_models,
+                    newly_calibrated_models={},
+                    criterion=criterion,
+                )
+            except StopIteration:
+                break
 
     candidate_space.previous_predecessor_model = predecessor_model
 
