@@ -80,21 +80,17 @@ class CandidateSpace(abc.ABC):
     #    Models will fail `self.consider` if `len(self.models) >= limit`.
     """
 
-    governing_method: Method = None
-
     def __init__(
         self,
+        method: Method,
         # TODO add MODEL_TYPE = Union[str, Model], str for VIRTUAL_INITIAL_MODEL
         predecessor_model: Optional[Model] = None,
         exclusions: Optional[List[Any]] = None,
         limit: TYPE_LIMIT = np.inf,
         summary_tsv: TYPE_PATH = None,
         previous_predecessor_model: Optional[Model] = None,
-        method: Method = None,
     ):
         self.method = method
-        if self.method is None:
-            self.method = self.governing_method
 
         self.limit = LimitHandler(
             current=self.n_accepted,
@@ -129,10 +125,7 @@ class CandidateSpace(abc.ABC):
     def _setup_summary_tsv(self):
         self.summary_tsv.resolve().parent.mkdir(parents=True, exist_ok=True)
 
-        if self.summary_tsv.exists():
-            with open(self.summary_tsv, "r", encoding="utf-8") as f:
-                last_row = f.readlines()[-1]
-        else:
+        if not self.summary_tsv.exists():
             self.write_summary_tsv(
                 [
                     'method',
@@ -496,7 +489,6 @@ class ForwardCandidateSpace(CandidateSpace):
             Defaults to no maximum (``None``).
     """
 
-    governing_method = Method.FORWARD
     direction = 1
 
     def __init__(
@@ -512,7 +504,12 @@ class ForwardCandidateSpace(CandidateSpace):
         self.max_steps = max_steps
         if predecessor_model is None:
             predecessor_model = VIRTUAL_INITIAL_MODEL
-        super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
+        super().__init__(
+            method=Method.FORWARD if self.direction == 1 else Method.BACKWARD,
+            *args,
+            predecessor_model=predecessor_model,
+            **kwargs,
+        )
 
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
@@ -561,7 +558,6 @@ class ForwardCandidateSpace(CandidateSpace):
 class BackwardCandidateSpace(ForwardCandidateSpace):
     """The backward method class."""
 
-    governing_method = Method.BACKWARD
     direction = -1
 
 
@@ -600,7 +596,6 @@ class FamosCandidateSpace(CandidateSpace):
             be applied after one lateral move.
     """
 
-    governing_method = Method.FAMOS
     default_method_scheme = {
         (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
         (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
@@ -719,9 +714,9 @@ class FamosCandidateSpace(CandidateSpace):
         ]
 
         super().__init__(
+            method=self.method,
             *args,
             predecessor_model=predecessor_model,
-            method=self.method,
             **kwargs,
         )
 
@@ -1175,8 +1170,6 @@ class FamosCandidateSpace(CandidateSpace):
 class LateralCandidateSpace(CandidateSpace):
     """Find models with the same number of estimated parameters."""
 
-    governing_method = Method.LATERAL
-
     def __init__(
         self,
         *args,
@@ -1190,6 +1183,7 @@ class LateralCandidateSpace(CandidateSpace):
                 Maximal allowed number of swap moves. If 0 then there is no maximum.
         """
         super().__init__(
+            method=Method.LATERAL,
             *args,
             predecessor_model=predecessor_model,
             **kwargs,
@@ -1232,9 +1226,12 @@ class LateralCandidateSpace(CandidateSpace):
 class BruteForceCandidateSpace(CandidateSpace):
     """The brute-force method class."""
 
-    governing_method = Method.BRUTE_FORCE
-
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        method=Method.BRUTE_FORCE,
+        *args,
+        **kwargs,
+    ):
         # if args or kwargs:
         #    # FIXME remove?
         #    # FIXME at least support limit
@@ -1248,13 +1245,13 @@ class BruteForceCandidateSpace(CandidateSpace):
         return True
 
 
-candidate_space_classes = [
-    ForwardCandidateSpace,
-    BackwardCandidateSpace,
-    LateralCandidateSpace,
-    BruteForceCandidateSpace,
-    FamosCandidateSpace,
-]
+candidate_space_classes = {
+    Method.FORWARD: ForwardCandidateSpace,
+    Method.BACKWARD: BackwardCandidateSpace,
+    Method.LATERAL: LateralCandidateSpace,
+    Method.BRUTE_FORCE: BruteForceCandidateSpace,
+    Method.FAMOS: FamosCandidateSpace,
+}
 
 
 def method_to_candidate_space_class(method: Method) -> Type[CandidateSpace]:
@@ -1268,13 +1265,13 @@ def method_to_candidate_space_class(method: Method) -> Type[CandidateSpace]:
     Returns:
         The candidate space.
     """
-    for candidate_space_class in candidate_space_classes:
-        if candidate_space_class.governing_method == method:
-            return candidate_space_class
-    raise NotImplementedError(
-        f'The provided method `{method}` does not correspond to an implemented '
-        'candidate space.'
-    )
+    candidate_space_class = candidate_space_classes.get(method, None)
+    if candidate_space_class is None:
+        raise NotImplementedError(
+            f'The provided method `{method}` does not correspond to an '
+            'implemented candidate space.'
+        )
+    return candidate_space_class
 
 
 '''
