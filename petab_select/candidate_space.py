@@ -69,10 +69,6 @@ class CandidateSpace(abc.ABC):
             An example of a difference is in the bidirectional method, where ``governing_method``
             stores the bidirectional method, whereas `method` may also store the forward or
             backward methods.
-        retry_model_space_search_if_no_models:
-            Whether a search with a candidate space should be repeated upon failure.
-            Useful for the :class:`BidirectionalCandidateSpace`, which switches directions
-            upon failure.
         summary_tsv:
             A string or :class:`pathlib.Path`. A summary of the model selection progress
             will be written to this file.
@@ -85,8 +81,6 @@ class CandidateSpace(abc.ABC):
     """
 
     governing_method: Method = None
-    method: Method = None
-    retry_model_space_search_if_no_models: bool = False
 
     def __init__(
         self,
@@ -96,14 +90,12 @@ class CandidateSpace(abc.ABC):
         limit: TYPE_LIMIT = np.inf,
         summary_tsv: TYPE_PATH = None,
         previous_predecessor_model: Optional[Model] = None,
+        method: Method = None,
     ):
         self.limit = LimitHandler(
             current=self.n_accepted,
             limit=limit,
         )
-        # Each candidate class specifies this as a class attribute.
-        if self.governing_method is None:
-            self.governing_method = self.method
         self.reset(predecessor_model=predecessor_model, exclusions=exclusions)
 
         self.summary_tsv = summary_tsv
@@ -114,6 +106,10 @@ class CandidateSpace(abc.ABC):
         self.previous_predecessor_model = previous_predecessor_model
         if self.previous_predecessor_model is None:
             self.previous_predecessor_model = self.predecessor_model
+
+        self.method = method
+        if self.method is None:
+            self.method = self.governing_method
 
     def write_summary_tsv(self, row):
         if self.summary_tsv is None:
@@ -500,7 +496,7 @@ class ForwardCandidateSpace(CandidateSpace):
             Defaults to no maximum (``None``).
     """
 
-    method = Method.FORWARD
+    governing_method = Method.FORWARD
     direction = 1
 
     def __init__(
@@ -565,7 +561,7 @@ class ForwardCandidateSpace(CandidateSpace):
 class BackwardCandidateSpace(ForwardCandidateSpace):
     """The backward method class."""
 
-    method = Method.BACKWARD
+    governing_method = Method.BACKWARD
     direction = -1
 
 
@@ -604,7 +600,7 @@ class FamosCandidateSpace(CandidateSpace):
             be applied after one lateral move.
     """
 
-    method = Method.FAMOS
+    governing_method = Method.FAMOS
     default_method_scheme = {
         (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
         (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
@@ -722,9 +718,12 @@ class FamosCandidateSpace(CandidateSpace):
             self.initial_method
         ]
 
-        super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
-
-        self.governing_method = Method.FAMOS
+        super().__init__(
+            *args,
+            predecessor_model=predecessor_model,
+            method=self.method,
+            **kwargs,
+        )
 
         self.n_reattempts = n_reattempts
 
@@ -1176,7 +1175,7 @@ class FamosCandidateSpace(CandidateSpace):
 class LateralCandidateSpace(CandidateSpace):
     """Find models with the same number of estimated parameters."""
 
-    method = Method.LATERAL
+    governing_method = Method.LATERAL
 
     def __init__(
         self,
@@ -1233,7 +1232,7 @@ class LateralCandidateSpace(CandidateSpace):
 class BruteForceCandidateSpace(CandidateSpace):
     """The brute-force method class."""
 
-    method = Method.BRUTE_FORCE
+    governing_method = Method.BRUTE_FORCE
 
     def __init__(self, *args, **kwargs):
         # if args or kwargs:
@@ -1259,21 +1258,22 @@ candidate_space_classes = [
 
 
 def method_to_candidate_space_class(method: Method) -> Type[CandidateSpace]:
-    """Instantiate a candidate space given its method name.
+    """Get a candidate space class, given its method name.
 
     Args:
         method:
-            The name of the method corresponding to one of the implemented candidate
-            spaces.
+            The name of the method corresponding to one of the implemented
+            candidate spaces.
 
     Returns:
         The candidate space.
     """
     for candidate_space_class in candidate_space_classes:
-        if candidate_space_class.method == method:
+        if candidate_space_class.governing_method == method:
             return candidate_space_class
     raise NotImplementedError(
-        f'The provided method name {method} does not correspond to an implemented candidate space.'
+        f'The provided method `{method}` does not correspond to an implemented '
+        'candidate space.'
     )
 
 
