@@ -92,6 +92,10 @@ class CandidateSpace(abc.ABC):
         previous_predecessor_model: Optional[Model] = None,
         method: Method = None,
     ):
+        self.method = method
+        if self.method is None:
+            self.method = self.governing_method
+
         self.limit = LimitHandler(
             current=self.n_accepted,
             limit=limit,
@@ -106,10 +110,6 @@ class CandidateSpace(abc.ABC):
         self.previous_predecessor_model = previous_predecessor_model
         if self.previous_predecessor_model is None:
             self.previous_predecessor_model = self.predecessor_model
-
-        self.method = method
-        if self.method is None:
-            self.method = self.governing_method
 
     def write_summary_tsv(self, row):
         if self.summary_tsv is None:
