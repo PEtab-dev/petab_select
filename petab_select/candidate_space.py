@@ -1226,12 +1226,7 @@ class LateralCandidateSpace(CandidateSpace):
 class BruteForceCandidateSpace(CandidateSpace):
     """The brute-force method class."""
 
-    def __init__(
-        self,
-        method=Method.BRUTE_FORCE,
-        *args,
-        **kwargs,
-    ):
+    def __init__(self, *args, **kwargs):
         # if args or kwargs:
         #    # FIXME remove?
         #    # FIXME at least support limit
@@ -1239,7 +1234,11 @@ class BruteForceCandidateSpace(CandidateSpace):
         #        'Arguments were provided but will be ignored, because of the '
         #        'brute force candidate space.'
         #    )
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            method=Method.BRUTE_FORCE,
+            *args,
+            **kwargs,
+        )
 
     def _consider_method(self, model):
         return True
