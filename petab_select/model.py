@@ -36,6 +36,13 @@ from .misc import (
 )
 from .petab import PetabMixin
 
+__all__ = [
+    'Model',
+    'default_compare',
+    'models_from_yaml_list',
+    'models_to_yaml_list',
+]
+
 
 class Model(PetabMixin):
     """A (possibly uncalibrated) model.
@@ -264,7 +271,8 @@ class Model(PetabMixin):
 
         Args:
             criterion:
-                The ID of the criterion (e.g. :obj:`petab_select.constants.Criterion.AIC`).
+                The ID of the criterion
+                (e.g. :obj:`petab_select.constants.Criterion.AIC`).
             raise_on_failure:
                 Whether to raise a `ValueError` if the criterion could not be
                 computed. If `False`, `None` is returned.
