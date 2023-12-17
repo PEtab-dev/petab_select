@@ -20,6 +20,10 @@ from .constants import (
 from .model import Model, default_compare
 from .model_space import ModelSpace
 
+__all__ = [
+    'Problem',
+]
+
 
 class Problem(abc.ABC):
     """Handle everything related to the model selection problem.

@@ -36,6 +36,13 @@ from .misc import (
 )
 from .petab import PetabMixin
 
+__all__ = [
+    'Model',
+    'default_compare',
+    'models_from_yaml_list',
+    'models_to_yaml_list',
+]
+
 
 class Model(PetabMixin):
     """A (possibly uncalibrated) model.
