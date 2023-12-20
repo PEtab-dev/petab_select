@@ -3,6 +3,8 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import inspect
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -53,3 +55,22 @@ autodoc_default_options = {
 
 html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
+
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    """Exclude some objects from the documentation."""
+    if inspect.isbuiltin(obj):
+        return True
+
+    # Skip inherited members from builtins
+    #  (skips, for example, all the int/str-derived methods of enums
+    if (
+        objclass := getattr(obj, "__objclass__", None)
+    ) and objclass.__module__ == "builtins":
+        return True
+
+    return None
+
+
+def setup(app: "sphinx.application.Sphinx"):
+    app.connect("autodoc-skip-member", autodoc_skip_member, priority=0)
