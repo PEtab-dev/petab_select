@@ -69,10 +69,6 @@ class CandidateSpace(abc.ABC):
             An example of a difference is in the bidirectional method, where ``governing_method``
             stores the bidirectional method, whereas `method` may also store the forward or
             backward methods.
-        retry_model_space_search_if_no_models:
-            Whether a search with a candidate space should be repeated upon failure.
-            Useful for the :class:`BidirectionalCandidateSpace`, which switches directions
-            upon failure.
         summary_tsv:
             A string or :class:`pathlib.Path`. A summary of the model selection progress
             will be written to this file.
@@ -84,12 +80,9 @@ class CandidateSpace(abc.ABC):
     #    Models will fail `self.consider` if `len(self.models) >= limit`.
     """
 
-    governing_method: Method = None
-    method: Method = None
-    retry_model_space_search_if_no_models: bool = False
-
     def __init__(
         self,
+        method: Method,
         # TODO add MODEL_TYPE = Union[str, Model], str for VIRTUAL_INITIAL_MODEL
         predecessor_model: Optional[Model] = None,
         exclusions: Optional[List[Any]] = None,
@@ -97,13 +90,12 @@ class CandidateSpace(abc.ABC):
         summary_tsv: TYPE_PATH = None,
         previous_predecessor_model: Optional[Model] = None,
     ):
+        self.method = method
+
         self.limit = LimitHandler(
             current=self.n_accepted,
             limit=limit,
         )
-        # Each candidate class specifies this as a class attribute.
-        if self.governing_method is None:
-            self.governing_method = self.method
         self.reset(predecessor_model=predecessor_model, exclusions=exclusions)
 
         self.summary_tsv = summary_tsv
@@ -133,10 +125,7 @@ class CandidateSpace(abc.ABC):
     def _setup_summary_tsv(self):
         self.summary_tsv.resolve().parent.mkdir(parents=True, exist_ok=True)
 
-        if self.summary_tsv.exists():
-            with open(self.summary_tsv, "r", encoding="utf-8") as f:
-                last_row = f.readlines()[-1]
-        else:
+        if not self.summary_tsv.exists():
             self.write_summary_tsv(
                 [
                     'method',
@@ -500,7 +489,6 @@ class ForwardCandidateSpace(CandidateSpace):
             Defaults to no maximum (``None``).
     """
 
-    method = Method.FORWARD
     direction = 1
 
     def __init__(
@@ -516,7 +504,12 @@ class ForwardCandidateSpace(CandidateSpace):
         self.max_steps = max_steps
         if predecessor_model is None:
             predecessor_model = VIRTUAL_INITIAL_MODEL
-        super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
+        super().__init__(
+            method=Method.FORWARD if self.direction == 1 else Method.BACKWARD,
+            *args,
+            predecessor_model=predecessor_model,
+            **kwargs,
+        )
 
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
@@ -565,7 +558,6 @@ class ForwardCandidateSpace(CandidateSpace):
 class BackwardCandidateSpace(ForwardCandidateSpace):
     """The backward method class."""
 
-    method = Method.BACKWARD
     direction = -1
 
 
@@ -604,7 +596,6 @@ class FamosCandidateSpace(CandidateSpace):
             be applied after one lateral move.
     """
 
-    method = Method.FAMOS
     default_method_scheme = {
         (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
         (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
@@ -722,9 +713,12 @@ class FamosCandidateSpace(CandidateSpace):
             self.initial_method
         ]
 
-        super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
-
-        self.governing_method = Method.FAMOS
+        super().__init__(
+            method=self.method,
+            *args,
+            predecessor_model=predecessor_model,
+            **kwargs,
+        )
 
         self.n_reattempts = n_reattempts
 
@@ -1176,8 +1170,6 @@ class FamosCandidateSpace(CandidateSpace):
 class LateralCandidateSpace(CandidateSpace):
     """Find models with the same number of estimated parameters."""
 
-    method = Method.LATERAL
-
     def __init__(
         self,
         *args,
@@ -1191,6 +1183,7 @@ class LateralCandidateSpace(CandidateSpace):
                 Maximal allowed number of swap moves. If 0 then there is no maximum.
         """
         super().__init__(
+            method=Method.LATERAL,
             *args,
             predecessor_model=predecessor_model,
             **kwargs,
@@ -1233,8 +1226,6 @@ class LateralCandidateSpace(CandidateSpace):
 class BruteForceCandidateSpace(CandidateSpace):
     """The brute-force method class."""
 
-    method = Method.BRUTE_FORCE
-
     def __init__(self, *args, **kwargs):
         # if args or kwargs:
         #    # FIXME remove?
@@ -1243,38 +1234,43 @@ class BruteForceCandidateSpace(CandidateSpace):
         #        'Arguments were provided but will be ignored, because of the '
         #        'brute force candidate space.'
         #    )
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            method=Method.BRUTE_FORCE,
+            *args,
+            **kwargs,
+        )
 
     def _consider_method(self, model):
         return True
 
 
-candidate_space_classes = [
-    ForwardCandidateSpace,
-    BackwardCandidateSpace,
-    LateralCandidateSpace,
-    BruteForceCandidateSpace,
-    FamosCandidateSpace,
-]
+candidate_space_classes = {
+    Method.FORWARD: ForwardCandidateSpace,
+    Method.BACKWARD: BackwardCandidateSpace,
+    Method.LATERAL: LateralCandidateSpace,
+    Method.BRUTE_FORCE: BruteForceCandidateSpace,
+    Method.FAMOS: FamosCandidateSpace,
+}
 
 
 def method_to_candidate_space_class(method: Method) -> Type[CandidateSpace]:
-    """Instantiate a candidate space given its method name.
+    """Get a candidate space class, given its method name.
 
     Args:
         method:
-            The name of the method corresponding to one of the implemented candidate
-            spaces.
+            The name of the method corresponding to one of the implemented
+            candidate spaces.
 
     Returns:
         The candidate space.
     """
-    for candidate_space_class in candidate_space_classes:
-        if candidate_space_class.method == method:
-            return candidate_space_class
-    raise NotImplementedError(
-        f'The provided method name {method} does not correspond to an implemented candidate space.'
-    )
+    candidate_space_class = candidate_space_classes.get(method, None)
+    if candidate_space_class is None:
+        raise NotImplementedError(
+            f'The provided method `{method}` does not correspond to an '
+            'implemented candidate space.'
+        )
+    return candidate_space_class
 
 
 '''

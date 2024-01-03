@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import petab
 
-from .candidate_space import CandidateSpace
+from .candidate_space import CandidateSpace, FamosCandidateSpace
 from .constants import INITIAL_MODEL_METHODS, TYPE_PATH, Criterion, Method
 from .model import Model, default_compare
 from .problem import Problem
@@ -137,7 +137,7 @@ def candidates(
         # Else, in case we jumped to most distant in this iteration, go into
         # calibration with only the model we've jumped to.
         if (
-            candidate_space.governing_method == Method.FAMOS
+            isinstance(candidate_space, FamosCandidateSpace)
             and candidate_space.jumped_to_most_distant
         ):
             return candidate_space
@@ -179,7 +179,7 @@ def candidates(
         # if the candidate space is able to switch methods.
         # N.B.: candidate spaces that switch methods must raise `StopIteration`
         # when they stop switching.
-        if candidate_space.governing_method == Method.FAMOS:
+        if isinstance(candidate_space, FamosCandidateSpace):
             try:
                 candidate_space.update_after_calibration(
                     calibrated_models=calibrated_models,
@@ -310,7 +310,7 @@ def write_summary_tsv(
     # FIXME remove once MostDistantCandidateSpace exists...
     method = candidate_space.method
     if (
-        candidate_space.governing_method == Method.FAMOS
+        isinstance(candidate_space, FamosCandidateSpace)
         and isinstance(candidate_space.predecessor_model, Model)
         and candidate_space.predecessor_model.predecessor_model_hash is None
     ):
