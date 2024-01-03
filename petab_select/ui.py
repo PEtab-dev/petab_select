@@ -6,7 +6,13 @@ import numpy as np
 import petab
 
 from .candidate_space import CandidateSpace, FamosCandidateSpace
-from .constants import INITIAL_MODEL_METHODS, TYPE_PATH, Criterion, Method
+from .constants import (
+    INITIAL_MODEL_METHODS,
+    TYPE_PATH,
+    VIRTUAL_INITIAL_MODEL,
+    Criterion,
+    Method,
+)
 from .model import Model, default_compare
 from .problem import Problem
 
@@ -88,22 +94,23 @@ def candidates(
     predecessor_model = candidate_space.previous_predecessor_model
 
     # If the predecessor model has not yet been calibrated, then calibrate it.
-    if (
-        predecessor_model.get_criterion(
-            criterion,
-            raise_on_failure=False,
-        )
-        is None
-    ):
-        candidate_space.models = [copy.deepcopy(predecessor_model)]
-        # Dummy zero likelihood, which the predecessor model will
-        # improve on after it's actually calibrated.
-        predecessor_model.set_criterion(Criterion.LH, 0.0)
-        return candidate_space
+    if predecessor_model != VIRTUAL_INITIAL_MODEL:
+        if (
+            predecessor_model.get_criterion(
+                criterion,
+                raise_on_failure=False,
+            )
+            is None
+        ):
+            candidate_space.models = [copy.deepcopy(predecessor_model)]
+            # Dummy zero likelihood, which the predecessor model will
+            # improve on after it's actually calibrated.
+            predecessor_model.set_criterion(Criterion.LH, 0.0)
+            return candidate_space
 
-    # Exclude the calibrated predecessor model.
-    if not candidate_space.excluded(predecessor_model):
-        candidate_space.exclude(predecessor_model)
+        # Exclude the calibrated predecessor model.
+        if not candidate_space.excluded(predecessor_model):
+            candidate_space.exclude(predecessor_model)
 
     # Set the new predecessor_model from the initial model or
     # by calling ui.best to find the best model to jump to if
