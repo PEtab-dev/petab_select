@@ -474,7 +474,7 @@ class Model(PetabMixin):
             if parameter_value == ESTIMATE:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 1
 
-                if set_all_estimated_parameters:
+                if set_estimated_parameters:
                     if parameter_id not in self.estimated_parameters:
                         raise ValueError(
                             "Not all estimated parameters are available "
