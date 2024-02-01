@@ -100,7 +100,7 @@ setup(
             'nbsphinx==0.9.1',
             'nbconvert<7.5.0',
             'ipython>=7.21.0',
-            'readthedocs-sphinx-ext @ git+https://github.com/readthedocs/readthedocs-sphinx-ext',
+            'readthedocs-sphinx-ext>=2.2.5',
             'sphinx-autodoc-typehints',
         ],
     },
