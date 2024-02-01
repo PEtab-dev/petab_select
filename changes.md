@@ -1,5 +1,8 @@
 # Changes
 
+## 0.1.11
+- estimated parameters are now set as the nominal values in exported PEtab problems
+
 ## 0.1.10
 - added `Model.set_estimated_parameters`
   - now expected that `Model.estimated_parameters` has untransformed values
