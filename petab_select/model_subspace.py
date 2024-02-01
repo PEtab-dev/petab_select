@@ -1,27 +1,20 @@
 import math
 import warnings
-from itertools import chain, product
+from itertools import product
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-import petab
-from more_itertools import one, powerset
-from petab.C import NOMINAL_VALUE
+from more_itertools import powerset
 
 from .candidate_space import CandidateSpace
 from .constants import (
-    CODE_DELIMITER,
     ESTIMATE,
     MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS,
-    MODEL_SUBSPACE_ID,
     PARAMETER_VALUE_DELIMITER,
-    PETAB_ESTIMATE_FALSE,
-    PETAB_ESTIMATE_TRUE,
     PETAB_YAML,
     STEPWISE_METHODS,
-    TYPE_PARAMETER,
     TYPE_PARAMETER_DICT,
     TYPE_PARAMETER_OPTIONS,
     TYPE_PARAMETER_OPTIONS_DICT,
@@ -32,6 +25,10 @@ from .constants import (
 from .misc import parameter_string_to_value
 from .model import Model
 from .petab import PetabMixin
+
+__all__ = [
+    'ModelSubspace',
+]
 
 
 class ModelSubspace(PetabMixin):
@@ -45,13 +42,17 @@ class ModelSubspace(PetabMixin):
         parameters:
             The key is the ID of the parameter. The value is a list of values
             that the parameter can take (including `ESTIMATE`).
-        #history:
-        #    A history of all models that have been accepted by the candidate
-        #    space. Models are represented as indices (see e.g.
-        #    `ModelSubspace.parameters_to_indices`).
         exclusions:
             Hashes of models that have been previously submitted to a candidate space
-            for consideration (`CandidateSpace.consider`).
+            for consideration (:meth:`CandidateSpace.consider`).
+    """
+
+    """
+    FIXME(dilpath)
+    #history:
+    #    A history of all models that have been accepted by the candidate
+    #    space. Models are represented as indices (see e.g.
+    #    `ModelSubspace.parameters_to_indices`).
     """
 
     def __init__(
@@ -100,7 +101,7 @@ class ModelSubspace(PetabMixin):
                 '(e.g. forward or backward). '
                 f'This model subspace: `{self.model_subspace_id}`. '
                 'This model subspace PEtab YAML: '
-                f'`{self.petab_yaml}`.'
+                f'`{self.petab_yaml}`. '
                 'The candidate space PEtab YAML: '
                 f'`{candidate_space.predecessor_model.petab_yaml}`. '
             )
@@ -110,7 +111,7 @@ class ModelSubspace(PetabMixin):
     def get_models(self, estimated_parameters: List[str]) -> Iterator[Model]:
         """Get models in the subspace by estimated parameters.
 
-        All models that have the provided `estimated_parameters` are returned.
+        All models that have the provided ``estimated_parameters`` are returned.
 
         Args:
             estimated_parameters:
@@ -119,10 +120,12 @@ class ModelSubspace(PetabMixin):
                 in the subset of PEtab parameters that exist in the model
                 subspace definition. Parameters in the PEtab problem but not
                 the model subspace definition should not be included here.
+
+                FIXME(dilpath)
                 TODO support the full set of PEtab parameters? Then would need
-                     to turn off estimation for parameters that are not
-                     provided in `estimated_parameters` -- maybe unexpected for
-                     users.
+                to turn off estimation for parameters that are not
+                provided in `estimated_parameters` -- maybe unexpected for
+                users.
 
         Returns:
             A list of models.
@@ -185,7 +188,7 @@ class ModelSubspace(PetabMixin):
         """Search for candidate models in this model subspace.
 
         Nothing is returned, as the result is managed by the
-        `candidate_space`.
+        ``candidate_space``.
 
         Args:
             candidate_space:
@@ -233,8 +236,10 @@ class ModelSubspace(PetabMixin):
         if candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL:
             if candidate_space.method == Method.FORWARD:
                 old_estimated_all = set()
+                old_fixed_all = set(self.parameters)
             elif candidate_space.method == Method.BACKWARD:
                 old_estimated_all = set(self.parameters)
+                old_fixed_all = set()
             else:
                 # Should already be handled elsewhere (e.g.
                 # `self.check_compatibility_stepwise_method`).
@@ -243,10 +248,16 @@ class ModelSubspace(PetabMixin):
                 )
         else:
             old_estimated_all = set()
+            old_fixed_all = set()
             if isinstance(candidate_space.predecessor_model, Model):
                 old_estimated_all = (
                     candidate_space.predecessor_model.get_estimated_parameter_ids_all()
                 )
+                old_fixed_all = [
+                    parameter_id
+                    for parameter_id in self.parameters_all
+                    if parameter_id not in old_estimated_all
+                ]
 
         # Parameters that are fixed in the candidate space
         # predecessor model but are necessarily estimated in this subspace.
@@ -265,6 +276,7 @@ class ModelSubspace(PetabMixin):
 
         # Parameters related to minimal changes compared to the predecessor model.
         old_estimated = set(old_estimated_all).intersection(self.can_estimate)
+        old_fixed = set(old_fixed_all).intersection(self.can_fix)
         new_must_estimate = set(new_must_estimate_all).intersection(
             self.parameters
         )
@@ -305,14 +317,14 @@ class ModelSubspace(PetabMixin):
                 new_must_estimate_all
                 or candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL
             ):
-                # Consider minimal models that have all necessary parameters
-                # estimated. As this subspace necessarily has more estimated
-                # parameters than the predecessor model, all parameters that
-                # can be fixed, will be fixed.
+                # Consider minimal models that have all necessarily-estimated
+                # parameters.
                 estimated_parameters = {
                     parameter_id: ESTIMATE
-                    for parameter_id in set(self.parameters).difference(
-                        self.can_fix
+                    for parameter_id in (
+                        set(self.parameters)
+                        .difference(self.can_fix)
+                        .union(old_estimated)
                     )
                 }
                 models = self.get_models(
@@ -395,14 +407,14 @@ class ModelSubspace(PetabMixin):
                 new_must_fix_all
                 or candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL
             ):
-                # Consider minimal models that have all necessarily fixed parameters.
-                # As this subspace necessarily has fewer estimated parameters than the
-                # predecessor model, all parameters that can be estimated, will be
-                # estimated.
+                # Consider minimal models that have all necessarily-fixed
+                # parameters.
                 estimated_parameters = {
                     parameter_id: ESTIMATE
-                    for parameter_id in set(self.parameters).difference(
-                        self.must_fix
+                    for parameter_id in (
+                        set(self.parameters)
+                        .difference(self.must_fix)
+                        .difference(old_fixed)
                     )
                 }
                 models = self.get_models(
@@ -642,8 +654,8 @@ class ModelSubspace(PetabMixin):
     def exclude_models(self, models: Iterable[Model]) -> None:
         """Exclude models from the model subspace.
 
-        Models are excluded in `ModelSubspace.indices_to_model`, which contains the
-        only call to `Model.__init__` in the `ModelSubspace` class.
+        Models are excluded in :meth:`ModelSubspace.indices_to_model`, which contains the
+        only call to :meth:`Model.__init__` in the :class:`ModelSubspace` class.
 
         Args:
             models:
@@ -683,7 +695,7 @@ class ModelSubspace(PetabMixin):
         definition: Union[Dict[str, str], pd.Series],
         parent_path: TYPE_PATH = None,
     ) -> 'ModelSubspace':
-        """Create a `ModelSubspace` from a definition.
+        """Create a :class:`ModelSubspace` from a definition.
 
         Args:
             model_subspace_id:
@@ -718,13 +730,13 @@ class ModelSubspace(PetabMixin):
 
         Args:
             indices:
-                The indices of the lists in the values of the `ModelSubspace.parameters`
+                The indices of the lists in the values of the ``ModelSubspace.parameters``
                 dictionary, ordered by the keys of this dictionary.
 
         Returns:
             A model with the PEtab problem of this subspace and the parameterization
             that corresponds to the indices.
-            `None`, if the model is excluded from the subspace.
+            ``None``, if the model is excluded from the subspace.
         """
         model = Model(
             petab_yaml=self.petab_yaml,
@@ -745,7 +757,7 @@ class ModelSubspace(PetabMixin):
 
         Args:
             indices:
-                See `ModelSubspace.indices_to_model`.
+                See :meth:`ModelSubspace.indices_to_model`.
 
         Returns:
             The parameterization that corresponds to the indices.
@@ -796,7 +808,7 @@ class ModelSubspace(PetabMixin):
 
         Returns:
             A model with the PEtab problem of this subspace and the parameterization.
-            `None`, if the model is excluded from the subspace.
+            ``None``, if the model is excluded from the subspace.
         """
         indices = self.parameters_to_indices(parameters)
         model = self.indices_to_model(indices)

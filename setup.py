@@ -88,17 +88,20 @@ setup(
             'pypesto > 0.2.13',
             # 'pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@develop#egg=pypesto',
         ],
-        #'reports': ['Jinja2'],
-        #'combine': ['python-libcombine>=0.2.6'],
-        #'doc': [
-        #    'sphinx>=3.5.3',
-        #    'sphinxcontrib-napoleon>=0.7',
-        #    'sphinx-markdown-tables>=0.0.15',
-        #    'sphinx-rtd-theme>=0.5.1',
-        #    'recommonmark>=0.7.1',
-        #    'nbsphinx>=0.8.2',
-        #    'm2r>=0.2.1',
-        #    'ipython>=7.21.0',
-        # ]
+        'doc': [
+            'sphinx>=3.5.3,<7',
+            'sphinxcontrib-napoleon>=0.7',
+            'sphinx-markdown-tables>=0.0.15',
+            'sphinx-rtd-theme>=0.5.1',
+            'recommonmark>=0.7.1',
+            # pin until ubuntu comes with newer pandoc:
+            # /home/docs/checkouts/readthedocs.org/user_builds/petab-select/envs/63/lib/python3.11/site-packages/nbsphinx/__init__.py:1058: RuntimeWarning: You are using an unsupported version of pandoc (2.9.2.1).
+            # Your version must be at least (2.14.2) but less than (4.0.0).
+            'nbsphinx==0.9.1',
+            'nbconvert<7.5.0',
+            'ipython>=7.21.0',
+            'readthedocs-sphinx-ext @ git+https://github.com/readthedocs/readthedocs-sphinx-ext',
+            'sphinx-autodoc-typehints',
+        ],
     },
 )
