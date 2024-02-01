@@ -31,7 +31,7 @@ def hashify(x: Any) -> str:
 
 def hash_parameter_dict(dict_: TYPE_PARAMETER_DICT):
     """Hash a dictionary of parameter values."""
-    value = tuple(zip(dict_.keys(), dict_.values()))
+    value = tuple((k, dict_[k]) for k in sorted(dict_))
     return hashify(value)
 
 
