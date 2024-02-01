@@ -443,6 +443,7 @@ class Model(PetabMixin):
     def to_petab(
         self,
         output_path: TYPE_PATH = None,
+        set_estimated_parameters: Optional[bool] = None,
     ) -> Dict[str, Union[petab.Problem, TYPE_PATH]]:
         """Generate a PEtab problem.
 
@@ -450,6 +451,10 @@ class Model(PetabMixin):
             output_path:
                 The directory where PEtab files will be written to disk. If not
                 specified, the PEtab files will not be written to disk.
+            set_estimated_parameters:
+                Whether to set the nominal value of estimated parameters to their
+                estimates. If parameter estimates are available, this
+                will default to `True`.
 
         Returns:
             A 2-tuple. The first value is a PEtab problem that can be used
@@ -460,10 +465,28 @@ class Model(PetabMixin):
         """
         # TODO could use `copy.deepcopy(self.petab_problem)` from PetabMixin?
         petab_problem = petab.Problem.from_yaml(str(self.petab_yaml))
+
+        if set_estimated_parameters is None and self.estimated_parameters:
+            set_estimated_parameters = True
+
         for parameter_id, parameter_value in self.parameters.items():
             # If the parameter is to be estimated.
             if parameter_value == ESTIMATE:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 1
+
+                if set_estimated_parameters:
+                    if parameter_id not in self.estimated_parameters:
+                        raise ValueError(
+                            "Not all estimated parameters are available "
+                            "in `model.estimated_parameters`. Hence, the "
+                            "estimated parameter vector cannot be set as "
+                            "the nominal value in the PEtab problem. "
+                            "Try calling this method with "
+                            "`set_estimated_parameters=False`."
+                        )
+                    petab_problem.parameter_df.loc[
+                        parameter_id, NOMINAL_VALUE
+                    ] = self.estimated_parameters[parameter_id]
             # Else the parameter is to be fixed.
             else:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 0
