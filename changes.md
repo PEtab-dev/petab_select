@@ -1,5 +1,8 @@
 # Changes
 
+## 0.1.12
+- fixed bug in last version: non-FAMoS methods do not terminate
+
 ## 0.1.11
 - fixed bug in stepwise moves when working with multiple subspaces (#65)
 - fixed bug in FAMoS switching (#68)

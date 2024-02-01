@@ -193,8 +193,13 @@ def candidates(
                     newly_calibrated_models={},
                     criterion=criterion,
                 )
+                continue
             except StopIteration:
                 break
+
+        # No models were found, and the method doesn't switch, so no further
+        # models can be found.
+        break
 
     candidate_space.previous_predecessor_model = predecessor_model
 
