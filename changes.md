@@ -1,5 +1,8 @@
 # Changes
 
+## 0.1.13
+- fixed bug when no predecessor model is provided, introduced in 0.1.11 (#83)
+
 ## 0.1.12
 - fixed bug in last version: non-FAMoS methods do not terminate
 
