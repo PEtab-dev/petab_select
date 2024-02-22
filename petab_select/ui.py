@@ -94,7 +94,10 @@ def candidates(
     predecessor_model = candidate_space.previous_predecessor_model
 
     # If the predecessor model has not yet been calibrated, then calibrate it.
-    if predecessor_model != VIRTUAL_INITIAL_MODEL:
+    if (
+        predecessor_model is not None
+        and predecessor_model != VIRTUAL_INITIAL_MODEL
+    ):
         if (
             predecessor_model.get_criterion(
                 criterion,
