@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import petab
+from more_itertools import one
 from petab.C import ESTIMATE, NOMINAL_VALUE
 
 from .constants import PETAB_ESTIMATE_FALSE, TYPE_PARAMETER_DICT, TYPE_PATH
@@ -11,6 +12,16 @@ class PetabMixin:
     """Useful things for classes that contain a PEtab problem.
 
     All attributes/methods are prefixed with `petab_`.
+
+    Attributes:
+        petab_yaml:
+            The location of the PEtab problem YAML file.
+        petab_problem:
+            The PEtab problem.
+        petab_parameters:
+            The parameters from the PEtab parameters table, where keys are
+            parameter IDs, and values are either :obj:`ESTIMATE` if the
+            parameter is set to be estimated, else the nominal value.
     """
 
     def __init__(
@@ -47,6 +58,11 @@ class PetabMixin:
 
     @property
     def petab_parameter_ids_estimated(self) -> List[str]:
+        """Get the IDs of all estimated parameters.
+
+        Returns:
+            The parameter IDs.
+        """
         return [
             parameter_id
             for parameter_id, parameter_value in self.petab_parameters.items()
@@ -55,6 +71,11 @@ class PetabMixin:
 
     @property
     def petab_parameter_ids_fixed(self) -> List[str]:
+        """Get the IDs of all fixed parameters.
+
+        Returns:
+            The parameter IDs.
+        """
         estimated = self.petab_parameter_ids_estimated
         return [
             parameter_id
@@ -64,6 +85,7 @@ class PetabMixin:
 
     @property
     def petab_parameters_singular(self) -> TYPE_PARAMETER_DICT:
+        """TODO deprecate and remove?"""
         return {
             parameter_id: one(parameter_value)
             for parameter_id, parameter_value in self.petab_parameters

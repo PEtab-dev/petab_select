@@ -1,6 +1,8 @@
 """Model selection extension for PEtab."""
 
 from . import plot
+import sys
+
 from .candidate_space import *
 from .constants import *
 from .criteria import *
@@ -10,3 +12,9 @@ from .model_space import *
 from .model_subspace import *
 from .problem import *
 from .ui import *
+
+__all__ = [
+    x
+    for x in dir(sys.modules[__name__])
+    if not x.startswith('_') and x != 'sys'
+]

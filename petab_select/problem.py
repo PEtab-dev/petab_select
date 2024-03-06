@@ -1,7 +1,6 @@
 """The model selection problem class."""
 import abc
 from functools import partial
-from itertools import chain
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional, Union
 
@@ -21,6 +20,10 @@ from .constants import (
 from .model import Model, default_compare
 from .model_space import ModelSpace
 
+__all__ = [
+    'Problem',
+]
+
 
 class Problem(abc.ABC):
     """Handle everything related to the model selection problem.
@@ -30,12 +33,13 @@ class Problem(abc.ABC):
             The model space.
         calibrated_models:
             Calibrated models. Will be used to augment the model selection problem (e.g.
-            by excluding them from the model space). FIXME refactor out
+            by excluding them from the model space).
+            FIXME(dilpath) refactor out
         candidate_space_arguments:
             Custom options that are used to construct the candidate space.
         compare:
             A method that compares models by selection criterion. See
-            `petab_select.model.default_compare` for an example.
+            :func:`petab_select.model.default_compare` for an example.
         criterion:
             The criterion used to compare models.
         method:
@@ -45,16 +49,19 @@ class Problem(abc.ABC):
         yaml_path:
             The location of the selection problem YAML file. Used for relative
             paths that exist in e.g. the model space files.
-            TODO should the relative paths be relative to the YAML or the
-            file that contains them?
 
+            TODO should the relative paths be relative to the YAML or the file that contains them?
+
+    """
+
+    """
+    FIXME(dilpath)
     Unsaved attributes:
         candidate_space:
             The candidate space that will be used.
             Reason for not saving:
-                Essentially reproducible from `Problem.method` and
-                `Problem.calibrated_models`.
-            FIXME now needs to be saved, due to FAMoS changes
+                Essentially reproducible from :attr:`Problem.method` and
+                :attr:`Problem.calibrated_models`.
     """
 
     def __init__(
@@ -65,13 +72,13 @@ class Problem(abc.ABC):
         criterion: Criterion = None,
         method: str = None,
         version: str = None,
-        yaml_path: str = None,
+        yaml_path: Union[Path, str] = None,
     ):
         self.model_space = model_space
         self.criterion = criterion
         self.method = method
         self.version = version
-        self.yaml_path = yaml_path
+        self.yaml_path = Path(yaml_path)
 
         self.candidate_space_arguments = candidate_space_arguments
         if self.candidate_space_arguments is None:
@@ -91,7 +98,8 @@ class Problem(abc.ABC):
 
         Returns:
             The path to the resource.
-
+        """
+        """
         TODO:
             Unused?
         """
@@ -118,7 +126,7 @@ class Problem(abc.ABC):
         """Exclude models from the model space, by model hashes.
 
         Args:
-            models:
+            model_hashes:
                 The model hashes.
         """
         self.model_space.exclude_model_hashes(model_hashes)
@@ -201,7 +209,7 @@ class Problem(abc.ABC):
                 The best model will be taken from these models.
             criterion:
                 The criterion by which models will be compared. Defaults to
-                `self.criterion` (e.g. as defined in the PEtab Select problem YAML
+                ``self.criterion`` (e.g. as defined in the PEtab Select problem YAML
                 file).
             compute_criterion:
                 Whether to try computing criterion values, if sufficient
@@ -236,11 +244,11 @@ class Problem(abc.ABC):
         *args,
         method: Method = None,
         **kwargs,
-    ) -> None:
+    ) -> CandidateSpace:
         """Construct a new candidate space.
 
         Args:
-            *args, **kwargs:
+            args, kwargs:
                 Arguments are passed to the candidate space constructor.
             method:
                 The model selection method.

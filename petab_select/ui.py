@@ -1,27 +1,33 @@
-import csv
-import os.path
+import copy
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import petab
 
-from .candidate_space import CandidateSpace
+from .candidate_space import CandidateSpace, FamosCandidateSpace
 from .constants import (
-    ESTIMATE,
     INITIAL_MODEL_METHODS,
     TYPE_PATH,
+    VIRTUAL_INITIAL_MODEL,
     Criterion,
     Method,
 )
 from .model import Model, default_compare
 from .problem import Problem
 
+__all__ = [
+    'candidates',
+    'model_to_petab',
+    'models_to_petab',
+    'best',
+    'write_summary_tsv',
+]
+
 
 def candidates(
     problem: Problem,
     candidate_space: Optional[CandidateSpace] = None,
-    previous_predecessor_model: Optional[Model] = None,
     limit: Union[float, int] = np.inf,
     limit_sent: Union[float, int] = np.inf,
     calibrated_models: Optional[Dict[str, Model]] = None,
@@ -32,8 +38,8 @@ def candidates(
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
-    A predecessor model is chosen from `newly_calibrated_models` if available,
-    otherwise from `calibrated_models`, and is used for applicable methods.
+    A predecessor model is chosen from ``newly_calibrated_models`` if available,
+    otherwise from ``calibrated_models``, and is used for applicable methods.
 
     Args:
         problem:
@@ -41,10 +47,6 @@ def candidates(
         candidate_space:
             The candidate space. Defaults to a new candidate space based on the method
             defined in the problem.
-        previous_predecessor_model:
-            The previous predecessor model for a compatible method. This is
-            used as the predecessor model for the current iteration, if a
-            better model doesn't exist in the candidate space models.
         limit:
             The maximum number of models to add to the candidate space.
         limit_sent:
@@ -68,6 +70,7 @@ def candidates(
     Returns:
         The candidate space, which contains the candidate models.
     """
+    do_search = True
     # FIXME might be difficult for a CLI tool to specify a specific predecessor
     #       model if their candidate space has models. Need a way to empty
     #       the candidate space of models... might be difficult with pickled
@@ -88,10 +91,33 @@ def candidates(
     candidate_space.exclude_hashes(calibrated_models)
 
     # Set the predecessor model to the previous predecessor model.
+    predecessor_model = candidate_space.previous_predecessor_model
+
+    # If the predecessor model has not yet been calibrated, then calibrate it.
+    if (
+        predecessor_model is not None
+        and predecessor_model != VIRTUAL_INITIAL_MODEL
+    ):
+        if (
+            predecessor_model.get_criterion(
+                criterion,
+                raise_on_failure=False,
+            )
+            is None
+        ):
+            candidate_space.models = [copy.deepcopy(predecessor_model)]
+            # Dummy zero likelihood, which the predecessor model will
+            # improve on after it's actually calibrated.
+            predecessor_model.set_criterion(Criterion.LH, 0.0)
+            return candidate_space
+
+        # Exclude the calibrated predecessor model.
+        if not candidate_space.excluded(predecessor_model):
+            candidate_space.exclude(predecessor_model)
+
     # Set the new predecessor_model from the initial model or
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
-    predecessor_model = previous_predecessor_model
     if newly_calibrated_models:
         predecessor_model = problem.get_best(
             newly_calibrated_models.values(),
@@ -102,22 +128,26 @@ def candidates(
         # If FAMoS jumped this will not be useful, since the jumped-to model
         # can be expected to be worse than the jumped-from model, in general.
         if not default_compare(
-            model0=previous_predecessor_model,
+            model0=candidate_space.previous_predecessor_model,
             model1=predecessor_model,
             criterion=criterion,
         ):
-            predecessor_model = previous_predecessor_model
+            predecessor_model = candidate_space.previous_predecessor_model
 
-        candidate_space.update_after_calibration(
-            calibrated_models=calibrated_models,
-            newly_calibrated_models=newly_calibrated_models,
-            criterion=criterion,
-        )
+        try:
+            candidate_space.update_after_calibration(
+                calibrated_models=calibrated_models,
+                newly_calibrated_models=newly_calibrated_models,
+                criterion=criterion,
+            )
+        except StopIteration:
+            do_search = False
+
         # If candidate space not Famos then ignored.
         # Else, in case we jumped to most distant in this iteration, go into
         # calibration with only the model we've jumped to.
         if (
-            candidate_space.governing_method == Method.FAMOS
+            isinstance(candidate_space, FamosCandidateSpace)
             and candidate_space.jumped_to_most_distant
         ):
             return candidate_space
@@ -142,14 +172,39 @@ def candidates(
     problem.model_space.exclude_model_hashes(
         model_hashes=excluded_model_hashes
     )
-    problem.model_space.search(candidate_space, limit=limit_sent)
+    while do_search:
+        problem.model_space.search(candidate_space, limit=limit_sent)
 
-    write_summary_tsv(
-        problem=problem,
-        candidate_space=candidate_space,
-        previous_predecessor_model=previous_predecessor_model,
-        predecessor_model=predecessor_model,
-    )
+        write_summary_tsv(
+            problem=problem,
+            candidate_space=candidate_space,
+            previous_predecessor_model=candidate_space.previous_predecessor_model,
+            predecessor_model=predecessor_model,
+        )
+
+        if candidate_space.models:
+            break
+
+        # No models were found. Repeat the search with the same candidate space,
+        # if the candidate space is able to switch methods.
+        # N.B.: candidate spaces that switch methods must raise `StopIteration`
+        # when they stop switching.
+        if isinstance(candidate_space, FamosCandidateSpace):
+            try:
+                candidate_space.update_after_calibration(
+                    calibrated_models=calibrated_models,
+                    newly_calibrated_models={},
+                    criterion=criterion,
+                )
+                continue
+            except StopIteration:
+                break
+
+        # No models were found, and the method doesn't switch, so no further
+        # models can be found.
+        break
+
+    candidate_space.previous_predecessor_model = predecessor_model
 
     return candidate_space
 
@@ -260,15 +315,17 @@ def write_summary_tsv(
             candidate_model.get_estimated_parameter_ids_all()
         )
         diff_candidates_parameter_ids.append(
-            candidate_parameter_ids.symmetric_difference(
-                predecessor_parameter_ids
+            list(
+                candidate_parameter_ids.symmetric_difference(
+                    predecessor_parameter_ids
+                )
             )
         )
 
     # FIXME remove once MostDistantCandidateSpace exists...
     method = candidate_space.method
     if (
-        candidate_space.governing_method == Method.FAMOS
+        isinstance(candidate_space, FamosCandidateSpace)
         and isinstance(candidate_space.predecessor_model, Model)
         and candidate_space.predecessor_model.predecessor_model_hash is None
     ):
@@ -280,9 +337,12 @@ def write_summary_tsv(
         [
             method,
             len(candidate_space.models),
-            diff_parameter_ids,
+            sorted(diff_parameter_ids),
             predecessor_criterion,
-            predecessor_parameter_ids,
-            diff_candidates_parameter_ids,
+            sorted(predecessor_parameter_ids),
+            sorted(
+                diff_candidates_parameter_ids,
+                key=lambda x: [x[i] for i in range(len(x))],
+            ),
         ]
     )

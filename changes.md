@@ -1,5 +1,47 @@
 # Changes
 
+## 0.1.13
+- fixed bug when no predecessor model is provided, introduced in 0.1.11 (#83)
+
+## 0.1.12
+- fixed bug in last version: non-FAMoS methods do not terminate
+
+## 0.1.11
+- fixed bug in stepwise moves when working with multiple subspaces (#65)
+- fixed bug in FAMoS switching (#68)
+- removed `BidirectionalCandidateSpace` and `ForwardAndBackwardCandidateSpace` (#68)
+- set estimated parameters as the nominal values in exported PEtab problems (#77)
+- many CI, doc, and code quality improvements by @dweindl (#57, #58, #59, #60, #61, #63, #69, #70, #71, #72, #74)
+- fixed bug in model hash reproducibility (#78)
+- refactored `governing_method` out of `CandidateSpace` (#73)
+- fixed bug related to attempted calibration of virtual models (#75)
+
+## 0.1.10
+- added `Model.set_estimated_parameters`
+  - now expected that `Model.estimated_parameters` has untransformed values
+
+## 0.1.9
+- improved reproducibility of test case 0009
+  - new predecessor model
+
+## 0.1.8
+- improved reproducibility of `summary.tsv` files
+    - sorted parameter IDs
+    - store the previous predecessor model in the state and candidate space
+
+## 0.1.7
+The FAMoS implementation raised an unhandled `StopIteration` when the method switching scheme terminated. When using FAMoS via the UI, this is now handled. Expect an extra line in the summary file produced by the UI, with `# candidates=0`.
+
+## 0.1.6
+- The predecessor model in test case 0009 is now specified in the PEtab problem YAML, so is used automatically. A dummy negative log-likelihood value of `inf` was specified for the predecessor model, to enable comparison to calibrated models, without having to calibrate the predecessor model.
+- All criterion values are now cast to float, for the `inf` in the predecessor model in test case 0009
+
+## 0.1.5
+Bugfix: criterion values are now explicitly type-cast to float (#39)
+
+## 0.1.4
+Bugfix: summary TSV now supports string-valued predecessor models (#37)
+
 ## 0.1.3
 New test case: 0009 (Blasi)
 

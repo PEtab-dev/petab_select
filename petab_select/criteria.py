@@ -1,26 +1,28 @@
 """Implementations of model selection criteria."""
 
-import math
-
+import numpy as np
 import petab
-from petab.C import OBJECTIVE, OBJECTIVE_PRIOR_PARAMETERS, OBJECTIVE_PRIOR_TYPE
+from petab.C import OBJECTIVE_PRIOR_PARAMETERS, OBJECTIVE_PRIOR_TYPE
 
-from .constants import (  # LH,; LLH,; NLLH,
-    PETAB_PROBLEM,
-    TYPE_CRITERION,
-    Criterion,
-)
+import petab_select
 
-# from .model import Model
+from .constants import PETAB_PROBLEM, Criterion  # LH,; LLH,; NLLH,
+
+__all__ = [
+    'calculate_aic',
+    'calculate_aicc',
+    'calculate_bic',
+    'CriterionComputer',
+]
 
 
 # use as attribute e.g. `Model.criterion_computer`?
 class CriterionComputer:
-    """Compute various criterion."""
+    """Compute various criteria."""
 
     def __init__(
         self,
-        model: 'petab_select.Model',
+        model: 'petab_select.model.Model',
     ):
         self.model = model
         self._petab_problem = None
@@ -29,7 +31,7 @@ class CriterionComputer:
     def petab_problem(self) -> petab.Problem:
         """The PEtab problem that corresponds to the model.
 
-        Implemented as a property such that the `petab.Problem` object
+        Implemented as a property such that the :class:`petab.Problem` object
         is only constructed if explicitly requested.
 
         Improves speed of operations on models by a lot. For example, analysis of models
@@ -90,7 +92,7 @@ class CriterionComputer:
         """Get the log-likelihood."""
         llh = self.model.get_criterion(Criterion.LLH, compute=False)
         if llh is None:
-            llh = math.log(self.get_lh())
+            llh = np.log(self.get_lh())
         return llh
 
     def get_lh(self) -> float:
@@ -102,9 +104,9 @@ class CriterionComputer:
         if lh is not None:
             return lh
         elif llh is not None:
-            return math.exp(llh)
+            return np.exp(llh)
         elif nllh is not None:
-            return math.exp(-1 * nllh)
+            return np.exp(-1 * nllh)
 
         raise ValueError(
             'Please supply the likelihood (LH) or a compatible transformation. Compatible transformations: log(LH), -log(LH).'
@@ -205,9 +207,11 @@ def calculate_aicc(
     Returns:
         The AICc value.
     """
-    return calculate_aic(n_estimated, nllh) + 2 * n_estimated * (
-        n_estimated + 1
-    ) / (n_measurements + n_priors - n_estimated - 1)
+    return calculate_aic(
+        nllh=nllh, n_estimated=n_estimated
+    ) + 2 * n_estimated * (n_estimated + 1) / (
+        n_measurements + n_priors - n_estimated - 1
+    )
 
 
 def calculate_bic(
@@ -232,4 +236,4 @@ def calculate_bic(
     Returns:
         The BIC value.
     """
-    return n_estimated * math.log(n_measurements + n_priors) + 2 * nllh
+    return n_estimated * np.log(n_measurements + n_priors) + 2 * nllh
