@@ -1,8 +1,8 @@
 """The `Model` class."""
+import string
 import warnings
 from os.path import relpath
 from pathlib import Path
-import string
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import petab
@@ -744,9 +744,14 @@ def models_to_yaml_list(
 
 
 def unhash_model(model_hash: str):
-    model_subspace_id, hashed_model_subspace_indices = model_hash.split(MODEL_HASH_DELIMITER)
+    model_subspace_id, hashed_model_subspace_indices = model_hash.split(
+        MODEL_HASH_DELIMITER
+    )
 
-    if HASHED_MODEL_SUBSPACE_INDICES_DELIMITER in hashed_model_subspace_indices:
+    if (
+        HASHED_MODEL_SUBSPACE_INDICES_DELIMITER
+        in hashed_model_subspace_indices
+    ):
         model_subspace_indices = [
             int[s]
             for s in hashed_model_subspace_indices.split(
@@ -773,5 +778,9 @@ def hash_model(model: Model):
             str(i) for i in model.model_subspace_indices
         )
 
-    model_hash = model.model_subspace_id + MODEL_HASH_DELIMITER + hashed_model_subspace_indices
+    model_hash = (
+        model.model_subspace_id
+        + MODEL_HASH_DELIMITER
+        + hashed_model_subspace_indices
+    )
     return model_hash

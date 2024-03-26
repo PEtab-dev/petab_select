@@ -241,7 +241,9 @@ class Problem(abc.ABC):
 
     def model_hash_to_model(self, model_hash: str):
         model_subspace_id, model_subspace_indices = unhash_model(model_hash)
-        model = self.model_space.model_subspaces[model_subspace_id].indices_to_model(
+        model = self.model_space.model_subspaces[
+            model_subspace_id
+        ].indices_to_model(
             indices=model_subspace_indices,
         )
         return model
