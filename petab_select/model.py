@@ -2,6 +2,7 @@
 import warnings
 from os.path import relpath
 from pathlib import Path
+import string
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import petab
@@ -12,10 +13,13 @@ from petab.C import ESTIMATE, NOMINAL_VALUE
 from .constants import (
     CRITERIA,
     ESTIMATED_PARAMETERS,
+    HASHED_MODEL_SUBSPACE_INDICES_DELIMITER,
     MODEL_HASH,
+    MODEL_HASH_DELIMITER,
     MODEL_ID,
     MODEL_SUBSPACE_ID,
     MODEL_SUBSPACE_INDICES,
+    MODEL_SUBSPACE_INDICES_HASH_MAP,
     PARAMETERS,
     PETAB_ESTIMATE_TRUE,
     PETAB_PROBLEM,
@@ -58,14 +62,6 @@ class Model(PetabMixin):
             Functions to convert attributes from :class:`Model` to YAML.
         criteria:
             The criteria values of the calibrated model (e.g. AIC).
-        hash_attributes:
-            This attribute is currently not used.
-            Attributes that will be used to calculate the hash of the
-            :class:`Model` instance. NB: this hash is used during pairwise comparison
-            to determine whether any two :class:`Model` instances are unique. The
-            model instances are compared by their parameter estimation
-            problems, as opposed to parameter estimation results, which may
-            differ due to e.g. floating-point arithmetic.
         model_id:
             The model ID.
         petab_yaml:
@@ -129,28 +125,6 @@ class Model(PetabMixin):
             criterion_id.value: float(criterion_value)
             for criterion_id, criterion_value in x.items()
         },
-    }
-    hash_attributes = {
-        # MODEL_ID: lambda x: hash(x),  # possible circular dependency on hash
-        # MODEL_SUBSPACE_ID: lambda x: hash(x),
-        # MODEL_SUBSPACE_INDICES: hash_list,
-        # TODO replace `YAML` with `PETAB_PROBLEM_HASH`, as YAML could refer to
-        #      different problems if used on different filesystems or sometimes
-        #      absolute and other times relative. Better to check whether the
-        #      PEtab problem itself is unique.
-        # TODO replace `PARAMETERS` with `PARAMETERS_ALL`, which should be al
-        #      parameters in the PEtab problem. This avoids treating the PEtab problem
-        #      differently to the model (in a subspace with the PEtab problem) that has
-        #      all nominal values defined in the subspace.
-        # TODO add `estimated_parameters`? Needs to be clarified whether this hash
-        #      should be unique amongst only not-yet-calibrated models, or may also
-        #      return the same value between differently parameterized models that ended
-        #      up being calibrated to be the same... probably should be the former.
-        #      Currently, the hash is stored, hence will "persist" after calibration
-        #      if the same `Model` instance is used.
-        # PETAB_YAML: lambda x: hash(x),
-        PETAB_YAML: hash_str,
-        PARAMETERS: hash_parameter_dict,
     }
 
     def __init__(
@@ -523,12 +497,7 @@ class Model(PetabMixin):
             The hash.
         """
         if self.model_hash is None:
-            self.model_hash = hash_list(
-                [
-                    method(getattr(self, attribute))
-                    for attribute, method in Model.hash_attributes.items()
-                ]
-            )
+            self.model_hash = hash_model(model=self)
         return self.model_hash
 
     def __hash__(self) -> None:
@@ -772,3 +741,37 @@ def models_to_yaml_list(
     model_dicts = None if not model_dicts else model_dicts
     with open(output_yaml, 'w') as f:
         yaml.dump(model_dicts, f)
+
+
+def unhash_model(model_hash: str):
+    model_subspace_id, hashed_model_subspace_indices = model_hash.split(MODEL_HASH_DELIMITER)
+
+    if HASHED_MODEL_SUBSPACE_INDICES_DELIMITER in hashed_model_subspace_indices:
+        model_subspace_indices = [
+            int[s]
+            for s in hashed_model_subspace_indices.split(
+                HASHED_MODEL_SUBSPACE_INDICES_DELIMITER
+            )
+        ]
+    else:
+        model_subspace_indices = [
+            MODEL_SUBSPACE_INDICES_HASH_MAP.index(s)
+            for s in hashed_model_subspace_indices
+        ]
+
+    return model_subspace_id, model_subspace_indices
+
+
+def hash_model(model: Model):
+    try:
+        hashed_model_subspace_indices = ''.join(
+            MODEL_SUBSPACE_INDICES_HASH_MAP[index]
+            for index in model.model_subspace_indices
+        )
+    except:
+        hashed_model_subspace_indices = '_'.join(
+            str(i) for i in model.model_subspace_indices
+        )
+
+    model_hash = model.model_subspace_id + MODEL_HASH_DELIMITER + hashed_model_subspace_indices
+    return model_hash

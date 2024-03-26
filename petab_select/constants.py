@@ -2,6 +2,7 @@
 import sys
 from enum import Enum
 from pathlib import Path
+import string
 from typing import Dict, List, Literal, Union
 
 # Zero-indexed column/row indices
@@ -32,6 +33,12 @@ MODEL_SUBSPACE_INDICES = 'model_subspace_indices'
 MODEL_CODE = 'model_code'
 MODEL_HASH = 'model_hash'
 MODEL_HASHES = 'model_hashes'
+MODEL_SUBSPACE_INDICES_HASH_MAP = (  # [0-9]+[A-Z]+[a-z]
+    ''.join(str(i) for i in range(10))
+    + string.ascii_uppercase + string.ascii_lowercase
+)
+MODEL_HASH_DELIMITER = '.'
+HASHED_MODEL_SUBSPACE_INDICES_DELIMITER = '-'
 # If `predecessor_model_hash` is defined for a model, it is the ID of the model that the
 # current model was/is to be compared to. This is part of the result and is
 # only (optionally) set by the PEtab calibration tool. It is not defined by the

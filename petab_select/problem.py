@@ -17,7 +17,7 @@ from .constants import (
     Criterion,
     Method,
 )
-from .model import Model, default_compare
+from .model import Model, default_compare, unhash_model
 from .model_space import ModelSpace
 
 __all__ = [
@@ -238,6 +238,13 @@ class Problem(abc.ABC):
                 f'None of the supplied models have a value set for the criterion {criterion}.'
             )
         return best_model
+
+    def model_hash_to_model(self, model_hash: str):
+        model_subspace_id, model_subspace_indices = unhash_model(model_hash)
+        model = self.model_space.model_subspaces[model_subspace_id].indices_to_model(
+            indices=model_subspace_indices,
+        )
+        return model
 
     def new_candidate_space(
         self,
