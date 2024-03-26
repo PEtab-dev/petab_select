@@ -71,9 +71,10 @@ setup(
         # required for CLI
         'click',
         'dill',
-        # plotting
-        #'matplotlib>=2.2.3',
+        # plot
+        'matplotlib>=2.2.3',
         #'seaborn',
+        'toposort',
     ],
     include_package_data=True,
     python_requires=f'>={minimum_python_version}',
