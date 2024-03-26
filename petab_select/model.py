@@ -753,7 +753,7 @@ def unhash_model(model_hash: str):
         in hashed_model_subspace_indices
     ):
         model_subspace_indices = [
-            int[s]
+            int(s)
             for s in hashed_model_subspace_indices.split(
                 HASHED_MODEL_SUBSPACE_INDICES_DELIMITER
             )
@@ -774,7 +774,7 @@ def hash_model(model: Model):
             for index in model.model_subspace_indices
         )
     except:
-        hashed_model_subspace_indices = '_'.join(
+        hashed_model_subspace_indices = HASHED_MODEL_SUBSPACE_INDICES_DELIMITER.join(
             str(i) for i in model.model_subspace_indices
         )
 
