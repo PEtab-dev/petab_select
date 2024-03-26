@@ -773,9 +773,11 @@ def hash_model(model: Model):
             MODEL_SUBSPACE_INDICES_HASH_MAP[index]
             for index in model.model_subspace_indices
         )
-    except:
-        hashed_model_subspace_indices = HASHED_MODEL_SUBSPACE_INDICES_DELIMITER.join(
-            str(i) for i in model.model_subspace_indices
+    except KeyError:
+        hashed_model_subspace_indices = (
+            HASHED_MODEL_SUBSPACE_INDICES_DELIMITER.join(
+                str(i) for i in model.model_subspace_indices
+            )
         )
 
     model_hash = (
