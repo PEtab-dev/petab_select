@@ -239,7 +239,17 @@ class Problem(abc.ABC):
             )
         return best_model
 
-    def model_hash_to_model(self, model_hash: str):
+    def model_hash_to_model(self, model_hash: str) -> Model:
+        """Get the model that matches a model hash.
+
+        Args:
+            model_hash:
+                The model hash, in the format produced by
+                :func:`petab_select.model.hash_model`.
+
+        Returns:
+            The model.
+        """
         model_subspace_id, model_subspace_indices = unhash_model(model_hash)
         model = self.model_space.model_subspaces[
             model_subspace_id

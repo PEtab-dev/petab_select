@@ -744,6 +744,17 @@ def models_to_yaml_list(
 
 
 def unhash_model(model_hash: str):
+    """Convert a model hash into model subspace information.
+
+    Args:
+        model_hash:
+            The model hash, in the format produced by :func:`hash_model`.
+
+    Returns:
+        The model subspace ID, and the indices that correspond to a unique
+        model in the subspace. The indices can be converted to a model with
+        the `ModelSubspace.indices_to_model` method.
+    """
     model_subspace_id, hashed_model_subspace_indices = model_hash.split(
         MODEL_HASH_DELIMITER
     )
@@ -767,7 +778,17 @@ def unhash_model(model_hash: str):
     return model_subspace_id, model_subspace_indices
 
 
-def hash_model(model: Model):
+def hash_model(model: Model) -> str:
+    """Create a unique hash for a model.
+
+    Args:
+        model:
+            The model.
+
+    Returns:
+        The hash. The format is the model subspace followed by a representation
+        of the indices of the model parameters in its subspace.
+    """
     try:
         hashed_model_subspace_indices = ''.join(
             MODEL_SUBSPACE_INDICES_HASH_MAP[index]
