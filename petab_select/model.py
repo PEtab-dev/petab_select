@@ -766,10 +766,10 @@ class ModelHash(str):
     `ModelHash`s `model_hash0` and `model_hash1`, respectively. Assume that
     these two models end up encoding the same PEtab problem (e.g. they set the
     same parameters to be estimated).
-    The string and hash representations will be different,
-    `str(model_hash0) != str(model_hash1)` and
-    `hash(model_hash0) != hash(model_hash1)`, but their hashes will pass the
-    equality check `model_hash0 == model_hash1`.
+    The string representation will be different,
+    `str(model_hash0) != str(model_hash1)`, but their hashes will pass the
+    equality check: `model_hash0 == model_hash1` and
+    `hash(model_hash0) == hash(model_hash1)`.
 
     This means that different models in different model subspaces that end up
     being the same PEtab problem will have different human-readable hashes,
