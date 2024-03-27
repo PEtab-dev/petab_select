@@ -485,12 +485,18 @@ class Model(PetabMixin):
     def get_hash(self) -> int:
         """Get the model hash.
 
-        Currently designed to only use pre-calibration information, such that if a model
-        is calibrated twice and the two calibrated models differ in their parameter
-        estimates, then they will still have the same hash.
+        Hashes are only unique to a specific PEtab Select problem. If the
+        problem is changed, then an old hash may now refer to a different
+        model. A hash currently only contains the ID of the model subspace that
+        the model belongs to, and the location of the model in its subspace.
 
-        This is not implemented as ``__hash__`` because Python automatically truncates
-        values in a system-dependent manner, which reduces interoperability
+        Hashes only use pre-calibration information, such that if a model
+        is calibrated twice and the two calibrated models differ in their
+        parameter estimates, then they will still have the same hash.
+
+        This is not implemented as ``__hash__`` because Python automatically
+        truncates values in a system-dependent manner, which reduces
+        interoperability
         ( https://docs.python.org/3/reference/datamodel.html#object.__hash__ ).
 
         Returns:
