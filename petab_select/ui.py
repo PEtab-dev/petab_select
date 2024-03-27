@@ -1,4 +1,5 @@
 import copy
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -35,6 +36,7 @@ def candidates(
     excluded_models: Optional[List[Model]] = None,
     excluded_model_hashes: Optional[List[str]] = None,
     criterion: Optional[Criterion] = None,
+    user_calibrated_models: dict[str, Model] = None,
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
@@ -66,6 +68,16 @@ def candidates(
         criterion:
             The criterion by which models will be compared. Defaults to the criterion
             defined in the PEtab Select problem.
+        user_calibrated_models:
+            Models that were already calibrated by the user. If a model in the
+            candidates has the same hash as a model in
+            `user_calibrated_models`, then the candidate will be replaced with
+            the calibrated version. This calibrated model will still exist in
+            the candidate space, so calibration tools should take care to skip
+            calibration of already-calibrated models. This is so that users
+            can still see that this model was "visited" during model selection.
+            If you do not want this, and want the model to be automatically
+            skipped, supply it in `calibrated_models` instead.
 
     Returns:
         The candidate space, which contains the candidate models.
@@ -109,6 +121,10 @@ def candidates(
             # Dummy zero likelihood, which the predecessor model will
             # improve on after it's actually calibrated.
             predecessor_model.set_criterion(Criterion.LH, 0.0)
+            replace_user_calibrated_candidates(
+                candidate_space=candidate_space,
+                user_calibrated_models=user_calibrated_models,
+            )
             return candidate_space
 
         # Exclude the calibrated predecessor model.
@@ -206,7 +222,36 @@ def candidates(
 
     candidate_space.previous_predecessor_model = predecessor_model
 
+    replace_user_calibrated_candidates(
+        candidate_space=candidate_space,
+        user_calibrated_models=user_calibrated_models,
+    )
     return candidate_space
+
+
+def replace_user_calibrated_candidates(
+    candidate_space: CandidateSpace,
+    user_calibrated_models: Optional[dict[str, Model]],
+) -> None:
+    """Substitute models in the candidate space with calibrated models.
+
+    Args:
+        candidate_space:
+            The candidate space.
+        user_calibrated_models:
+            The calibrated models.
+    """
+    models = []
+    for model0 in candidate_space.models:
+        model = model0
+        if (
+            user_model := user_calibrated_models.get(model0.get_hash())
+            is not None
+        ):
+            logging.info(f'Using user-supplied result for: {model.get_hash()}')
+            model = user_model
+        models.append(model)
+    candidate_space.models = models
 
 
 def model_to_petab(
