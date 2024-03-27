@@ -1,4 +1,5 @@
 """Constants for the PEtab Select package."""
+import string
 import sys
 from enum import Enum
 from pathlib import Path
@@ -32,6 +33,14 @@ MODEL_SUBSPACE_INDICES = 'model_subspace_indices'
 MODEL_CODE = 'model_code'
 MODEL_HASH = 'model_hash'
 MODEL_HASHES = 'model_hashes'
+MODEL_HASH_DELIMITER = '-'
+MODEL_SUBSPACE_INDICES_HASH_DELIMITER = '.'
+MODEL_SUBSPACE_INDICES_HASH_MAP = (
+    # [0-9]+[A-Z]+[a-z]
+    string.digits
+    + string.ascii_uppercase
+    + string.ascii_lowercase
+)
 # If `predecessor_model_hash` is defined for a model, it is the ID of the model that the
 # current model was/is to be compared to. This is part of the result and is
 # only (optionally) set by the PEtab calibration tool. It is not defined by the

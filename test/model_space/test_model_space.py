@@ -75,9 +75,9 @@ def test_model_space_backward_virtual(model_space):
     candidate_space = BackwardCandidateSpace()
     model_space.search(candidate_space)
 
-    # The forward candidate space is initialized without a model, so a virtual initial
-    # model is used. This means the expected models are the "smallest" models (as many
-    # fixed parameters as possible) in the model space.
+    # The backward candidate space is initialized without a model, so a virtual
+    # initial model is used. This means the expected models are the "smallest"
+    # models (as many fixed parameters as possible) in the model space.
     expected_models = [
         ('model_subspace_1', {f'k{i}': ESTIMATE for i in range(1, 5)}),
         # This model is not included because it is exactly the same as the
