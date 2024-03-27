@@ -899,13 +899,19 @@ class ModelHash(str):
         Returns:
             The model hash.
         """
-        return ModelHash(
-            model_subspace_id=model.model_subspace_id,
-            model_subspace_indices_hash=(
+        model_subspace_id = ''
+        model_subspace_indices_hash = ''
+        if model.model_subspace_id is not None:
+            model_subspace_id = model.model_subspace_id
+            model_subspace_indices_hash = (
                 ModelHash.hash_model_subspace_indices(
-                    model.model_subspace_indices,
+                    model.model_subspace_indices
                 )
-            ),
+            )
+
+        return ModelHash(
+            model_subspace_id=model_subspace_id,
+            model_subspace_indices_hash=model_subspace_indices_hash,
             petab_hash=ModelHash.get_petab_hash(model=model),
         )
 
