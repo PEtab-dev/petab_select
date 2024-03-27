@@ -743,7 +743,7 @@ def models_to_yaml_list(
         yaml.dump(model_dicts, f)
 
 
-def unhash_model(model_hash: str):
+def unhash_model(model_hash: str) -> tuple[str, list[int]]:
     """Convert a model hash into model subspace information.
 
     Args:
