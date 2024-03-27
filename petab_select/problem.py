@@ -17,7 +17,7 @@ from .constants import (
     Criterion,
     Method,
 )
-from .model import Model, default_compare, unhash_model
+from .model import Model, ModelHash, default_compare
 from .model_space import ModelSpace
 
 __all__ = [
@@ -239,24 +239,19 @@ class Problem(abc.ABC):
             )
         return best_model
 
-    def model_hash_to_model(self, model_hash: str) -> Model:
+    def model_hash_to_model(self, model_hash: Union[str, ModelHash]) -> Model:
         """Get the model that matches a model hash.
 
         Args:
             model_hash:
-                The model hash, in the format produced by
-                :func:`petab_select.model.hash_model`.
+                The model hash.
 
         Returns:
             The model.
         """
-        model_subspace_id, model_subspace_indices = unhash_model(model_hash)
-        model = self.model_space.model_subspaces[
-            model_subspace_id
-        ].indices_to_model(
-            indices=model_subspace_indices,
+        return ModelHash.from_hash(model_hash).get_model(
+            petab_select_problem=self,
         )
-        return model
 
     def new_candidate_space(
         self,
