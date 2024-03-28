@@ -107,6 +107,57 @@ class CandidateSpace(abc.ABC):
         if self.previous_predecessor_model is None:
             self.previous_predecessor_model = self.predecessor_model
 
+        self.set_previously_calibrated_models({})
+
+    def set_previously_calibrated_models(
+        self, models: dict[str, Model]
+    ) -> None:
+        """Set the previously-calibrated models.
+
+        This allows previously-calibrated model results, e.g. from a previous
+        model selection job, to be re-used in this job. Calibrated models are
+        stored here between model selection iterations, while the calibration
+        tool calibrates the uncalibrated models of the iteration. The models
+        are then combined as the full model calibration results for the
+        iteration.
+
+        Args:
+            models:
+                The previously-calibrated models. Keys are model hashes, values
+                are models.
+        """
+        self.previously_calibrated_models = models
+
+    def get_combined_calibrated_models(
+        self, newly_calibrated_models: dict[str, Model], reset: bool = False
+    ) -> dict[str, Model]:
+        """Get the full list of calibrated models for the latest iteration.
+
+        The full list of models identified for calibration in an iteration of
+        model selection may include models for which calibration results are
+        already available. This combines the newly calibrated models with the
+        models that were already calibrated, to produce the full list of models
+        that were identified for calibration in the latest iteration.
+
+        Args:
+            newly_calibrated_models:
+                The newly calibrated models. Keys are model hashes, values are
+                models.
+            reset:
+                Whether to remove the previously calibrated models from the
+                candidate space, after they are used to produce the full list
+                of calibrated models.
+
+        Returns:
+            The full list of calibrated models.
+        """
+        combined_calibrated_models = (
+            self.previously_calibrated_models | newly_calibrated_models
+        )
+        if reset:
+            self.set_previously_calibrated_models(models={})
+        return combined_calibrated_models
+
     def write_summary_tsv(self, row):
         if self.summary_tsv is None:
             return

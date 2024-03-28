@@ -95,11 +95,15 @@ def candidates(
         calibrated_models = {}
     if newly_calibrated_models is None:
         newly_calibrated_models = {}
-    calibrated_models.update(newly_calibrated_models)
     if criterion is None:
         criterion = problem.criterion
     if candidate_space is None:
         candidate_space = problem.new_candidate_space(limit=limit)
+    newly_calibrated_models = candidate_space.get_combined_calibrated_models(
+        newly_calibrated_models=newly_calibrated_models,
+        reset=True,
+    )
+    calibrated_models.update(newly_calibrated_models)
     candidate_space.exclude_hashes(calibrated_models)
 
     # Set the predecessor model to the previous predecessor model.
@@ -222,18 +226,20 @@ def candidates(
 
     candidate_space.previous_predecessor_model = predecessor_model
 
-    replace_user_calibrated_candidates(
+    remove_user_calibrated_candidates(
         candidate_space=candidate_space,
         user_calibrated_models=user_calibrated_models,
+        criterion=criterion,
     )
     return candidate_space
 
 
-def replace_user_calibrated_candidates(
+def remove_user_calibrated_candidates(
     candidate_space: CandidateSpace,
     user_calibrated_models: Optional[dict[str, Model]],
+    criterion: Criterion,
 ) -> None:
-    """Substitute models in the candidate space with calibrated models.
+    """Remove previously-calibrated models from the uncalibrated models.
 
     Args:
         candidate_space:
@@ -241,17 +247,32 @@ def replace_user_calibrated_candidates(
         user_calibrated_models:
             The calibrated models.
     """
-    models = []
-    for model0 in candidate_space.models:
-        model = model0
+    uncalibrated_models = []
+    previously_calibrated_models = {}
+    for model in candidate_space.models:
         if (
-            user_model := user_calibrated_models.get(model0.get_hash())
+            user_model := user_calibrated_models.get(model.get_hash())
+            is not None
+        ) and (
+            user_model.get_criterion(criterion, raise_on_failure=False)
             is not None
         ):
             logging.info(f'Using user-supplied result for: {model.get_hash()}')
-            model = user_model
-        models.append(model)
-    candidate_space.models = models
+            user_model_copy = copy.deepcopy(user_model)
+            user_model_copy.predecessor_model_hash = (
+                candidate_space.predecessor_model.get_hash()
+                if isinstance(candidate_space.predecessor_model, Model)
+                else candidate_space.predecessor_model
+            )
+            previously_calibrated_models[
+                user_model_copy.get_hash()
+            ] = user_model_copy
+        else:
+            uncalibrated_models.append(model)
+    candidate_space.set_previously_calibrated_models(
+        models=previously_calibrated_models
+    )
+    candidate_space.models = uncalibrated_models
 
 
 def model_to_petab(
