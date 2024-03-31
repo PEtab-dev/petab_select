@@ -22,6 +22,7 @@ from .constants import (
     MODEL_SUBSPACE_INDICES_HASH_MAP,
     PARAMETERS,
     PETAB_ESTIMATE_TRUE,
+    PETAB_HASH_DIGEST_SIZE,
     PETAB_PROBLEM,
     PETAB_YAML,
     PREDECESSOR_MODEL_HASH,
@@ -776,6 +777,12 @@ class ModelHash(str):
     but if these models arise during model selection, then only one of them
     will be calibrated.
 
+    The PEtab hash size is computed automatically as the smallest size that
+    ensures a collision probability of less than $2^{-64}$.
+    N.B.: this assumes only one model subspace, and only 2 options for each
+    parameter (e.g. `0` and `estimate`). You can manually set the size with
+    :const:`petab_select.constants.PETAB_HASH_DIGEST_SIZE`.
+
     Attributes:
         model_subspace_id:
             The ID of the model subspace of the model. Unique up to a single
@@ -817,6 +824,16 @@ class ModelHash(str):
         instance = super().__new__(cls, hash_str)
         return instance
 
+    def __getnewargs_ex__(self):
+        return (
+            (),
+            {
+                'model_subspace_id': self.model_subspace_id,
+                'model_subspace_indices_hash': self.model_subspace_indices_hash,
+                'petab_hash': self.petab_hash,
+            },
+        )
+
     def __copy__(self):
         return ModelHash(
             model_subspace_id=self.model_subspace_id,
@@ -840,6 +857,14 @@ class ModelHash(str):
         Returns:
             The unique PEtab hash.
         """
+        digest_size = PETAB_HASH_DIGEST_SIZE
+        if digest_size is None:
+            petab_info_bits = len(model.model_subspace_indices)
+            # Ensure <2^{-64} probability of collision
+            petab_info_bits += 64
+            # Convert to bytes, round up.
+            digest_size = int(petab_info_bits / 8) + 1
+
         petab_yaml = str(model.petab_yaml.resolve())
         model_parameter_df = model.to_petab(set_estimated_parameters=False)[
             PETAB_PROBLEM
@@ -851,13 +876,12 @@ class ModelHash(str):
             model_parameter_df[ESTIMATE].to_dict()
         )
         return hash_str(
-            petab_yaml + estimate_parameter_hash + nominal_parameter_hash
-        )[:8]
+            petab_yaml + estimate_parameter_hash + nominal_parameter_hash,
+            digest_size=digest_size,
+        )
 
     @staticmethod
-    def from_hash(
-        model_hash: Optional[Union[str, "ModelHash"]]
-    ) -> "ModelHash":
+    def from_hash(model_hash: Union[str, "ModelHash"]) -> "ModelHash":
         """Reconstruct a :class:`ModelHash` object from its :func:`__hash__` string.
 
         Args:
@@ -916,7 +940,7 @@ class ModelHash(str):
         )
 
     @staticmethod
-    def hash_model_subspace_indices(model_subspace_indices: list[str]) -> str:
+    def hash_model_subspace_indices(model_subspace_indices: list[int]) -> str:
         """Hash the location of a model in its subspace.
 
         Args:
@@ -958,7 +982,9 @@ class ModelHash(str):
                 for s in self.model_subspace_indices_hash
             ]
 
-    def get_model(self, petab_select_problem=None) -> Model:
+    def get_model(
+        self, petab_select_problem: "petab_select.problem.Problem"
+    ) -> Model:
         """Get the model that a hash corresponds to.
 
         Args:
@@ -981,7 +1007,14 @@ class ModelHash(str):
         )
 
     def __hash__(self) -> str:
-        """A string representation of the model hash."""
+        """The PEtab hash.
+
+        N.B.: this is not the model hash! As the equality between two models
+        is determined by their PEtab hash only, this method only returns the
+        PEtab hash. However, the model hash is the full string with the
+        human-readable elements as well. :func:`ModelHash.from_hash` does not
+        accept the PEtab hash as input, rather the full string.
+        """
         return hash(self.petab_hash)
 
     def __eq__(self, other_hash: "ModelHash") -> bool:

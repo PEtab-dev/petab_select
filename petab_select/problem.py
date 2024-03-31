@@ -34,9 +34,8 @@ class Problem(abc.ABC):
         calibrated_models:
             Calibrated models. Will be used to augment the model selection problem (e.g.
             by excluding them from the model space).
-            FIXME(dilpath) refactor out
         candidate_space_arguments:
-            Custom options that are used to construct the candidate space.
+            Arguments are forwarded to the candidate space constructor.
         compare:
             A method that compares models by selection criterion. See
             :func:`petab_select.model.default_compare` for an example.
@@ -62,6 +61,8 @@ class Problem(abc.ABC):
             Reason for not saving:
                 Essentially reproducible from :attr:`Problem.method` and
                 :attr:`Problem.calibrated_models`.
+    FIXME(dilpath) refactor calibrated_models out, move to e.g. candidate
+                   space args
     """
 
     def __init__(
@@ -253,6 +254,13 @@ class Problem(abc.ABC):
             petab_select_problem=self,
         )
 
+    def get_model(
+        self, model_subspace_id: str, model_subspace_indices: list[int]
+    ) -> Model:
+        return self.model_space.model_subspaces[
+            model_subspace_id
+        ].indices_to_model(model_subspace_indices)
+
     def new_candidate_space(
         self,
         *args,
@@ -269,6 +277,7 @@ class Problem(abc.ABC):
         """
         if method is None:
             method = self.method
+        kwargs[CRITERION] = kwargs.get(CRITERION, self.criterion)
         candidate_space_class = method_to_candidate_space_class(method)
         candidate_space_arguments = (
             candidate_space_class.read_arguments_from_yaml_dict(

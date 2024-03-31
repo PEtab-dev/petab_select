@@ -41,6 +41,7 @@ MODEL_SUBSPACE_INDICES_HASH_MAP = (
     + string.ascii_uppercase
     + string.ascii_lowercase
 )
+PETAB_HASH_DIGEST_SIZE = None
 # If `predecessor_model_hash` is defined for a model, it is the ID of the model that the
 # current model was/is to be compared to. This is part of the result and is
 # only (optionally) set by the PEtab calibration tool. It is not defined by the
@@ -84,6 +85,7 @@ METHOD = 'method'
 VERSION = 'version'
 MODEL_SPACE_FILES = 'model_space_files'
 
+CANDIDATE_SPACE = 'candidate_space'
 CANDIDATE_SPACE_ARGUMENTS = 'candidate_space_arguments'
 METHOD_SCHEME = 'method_scheme'
 PREVIOUS_METHODS = 'previous_methods'
@@ -92,6 +94,7 @@ PREDECESSOR_MODEL = 'predecessor_model'
 
 MODEL = 'model'
 MODELS = 'models'
+TERMINATE = 'terminate'
 
 # Parameters can be fixed to a value, or estimated if indicated with the string
 # `ESTIMATE`.

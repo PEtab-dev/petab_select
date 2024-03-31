@@ -1,7 +1,7 @@
 import hashlib
 
 # import json
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 
 from .constants import (  # TYPE_PARAMETER_OPTIONS_DICT,
     ESTIMATE,
@@ -14,8 +14,11 @@ __all__ = [
 ]
 
 
-def hashify(x: Any) -> str:
+def hashify(x: Any, **kwargs) -> str:
     """Generate a hash.
+
+    Currently uses the :func:`hashlib.blake2b` method. `**kwargs` are forwarded
+    to this method.
 
     Args:
         x:
@@ -23,29 +26,32 @@ def hashify(x: Any) -> str:
             hashed.
 
     Returns:
-        The hash.
+        The hash, as a hexadecimal string.
     """
     # return int(hashlib.sha256(str(x).encode('utf-8')).hexdigest(), 16)
-    return hashlib.blake2b(str(x).encode('utf-8')).hexdigest()
+    return hashlib.blake2b(
+        str(x).encode('utf-8'),
+        **kwargs,
+    ).hexdigest()
 
 
-def hash_parameter_dict(dict_: TYPE_PARAMETER_DICT):
+def hash_parameter_dict(dict_: TYPE_PARAMETER_DICT, **kwargs):
     """Hash a dictionary of parameter values."""
     value = tuple((k, dict_[k]) for k in sorted(dict_))
-    return hashify(value)
+    return hashify(value, **kwargs)
 
 
-def hash_parameter_options(list_: TYPE_PARAMETER_OPTIONS):
+def hash_parameter_options(list_: TYPE_PARAMETER_OPTIONS, **kwargs):
     """Hash parameter options."""
-    return hashify(list(list_))
+    return hashify(list(list_), **kwargs)
 
 
-def hash_str(str_: str):
-    return hashify(str_)
+def hash_str(str_: str, **kwargs):
+    return hashify(str_, **kwargs)
 
 
-def hash_list(list_: List):
-    return hashify(list(list_))
+def hash_list(list_: List, **kwargs):
+    return hashify(list(list_), **kwargs)
 
 
 def snake_case_to_camel_case(string: str) -> str:
