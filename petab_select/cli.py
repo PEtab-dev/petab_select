@@ -6,6 +6,7 @@ import click
 import dill
 import numpy as np
 import pandas as pd
+import yaml
 from more_itertools import one
 
 from . import ui
@@ -63,7 +64,7 @@ def cli():
     pass
 
 
-@cli.command("candidates")
+@cli.command("start_iteration")
 @click.option(
     '--problem',
     '-p',
@@ -92,14 +93,14 @@ def cli():
     default=None,
     help='The method used to identify the candidate models. Defaults to the method in the problem YAML.',
 )
-@click.option(
-    '--previous-predecessor-model',
-    '-P',
-    'previous_predecessor_model_yaml',
-    type=str,
-    default=None,
-    help='(Optional) The predecessor model used in the previous iteration of model selection.',
-)
+# @click.option(
+#    '--previous-predecessor-model',
+#    '-P',
+#    'previous_predecessor_model_yaml',
+#    type=str,
+#    default=None,
+#    help='(Optional) The predecessor model used in the previous iteration of model selection.',
+# )
 @click.option(
     '--calibrated-models',
     '-C',
@@ -164,12 +165,12 @@ def cli():
     default=None,
     help='Exclude model hashes in this file (one model hash per line).',
 )
-def candidates(
+def start_iteration(
     problem_yaml: str,
     state_filename: str,
     output: str,
     method: str = None,
-    previous_predecessor_model_yaml: str = None,
+    # previous_predecessor_model_yaml: str = None,
     # best: str = None,
     calibrated_models_yamls: List[str] = None,
     newly_calibrated_models_yamls: List[str] = None,
@@ -182,14 +183,14 @@ def candidates(
     """Search for candidate models in the model space.
 
     Documentation for arguments can be viewed with
-    `petab_select candidates --help`.
+    `petab_select start_iteration --help`.
     """
     problem = Problem.from_yaml(problem_yaml)
     if method is None:
         method = problem.method
 
-    # `petab_select.ui.candidates` uses `petab_select.Problem.method` to generate
-    # the candidate space.
+    # `petab_select.ui.start_iteration` uses `petab_select.Problem.method` to
+    # generate the candidate space.
     problem.method = method
 
     candidate_space = problem.new_candidate_space(limit=limit)
@@ -220,11 +221,11 @@ def candidates(
             with open(excluded_model_hash_file, 'r') as f:
                 excluded_model_hashes += f.read().split('\n')
 
-    previous_predecessor_model = candidate_space.predecessor_model
-    if previous_predecessor_model_yaml is not None:
-        previous_predecessor_model = Model.from_yaml(
-            previous_predecessor_model_yaml
-        )
+    # previous_predecessor_model = candidate_space.predecessor_model
+    # if previous_predecessor_model_yaml is not None:
+    #    previous_predecessor_model = Model.from_yaml(
+    #        previous_predecessor_model_yaml
+    #    )
 
     # FIXME write single methods to take all models from lists of lists of
     #       models recursively
@@ -252,10 +253,10 @@ def candidates(
                 }
             )
 
-    ui.candidates(
+    ui.start_iteration(
         problem=problem,
         candidate_space=candidate_space,
-        previous_predecessor_model=previous_predecessor_model,
+        # previous_predecessor_model=previous_predecessor_model,
         calibrated_models=calibrated_models,
         newly_calibrated_models=newly_calibrated_models,
         limit=limit,
@@ -273,12 +274,116 @@ def candidates(
         filename=state_filename,
     )
 
-    # Save candidates
+    # Save candidate models
     models_to_yaml_list(
         models=candidate_space.models,
         output_yaml=output,
         relative_paths=relative_paths,
     )
+
+
+@cli.command("end_iteration")
+@click.option(
+    '--state',
+    '-s',
+    'state_filename',
+    type=str,
+    help='The file that stores the state.',
+)
+@click.option(
+    '--output',
+    '-o',
+    'output',
+    type=str,
+    help="The file where this iteration's calibrated models will be stored.",
+)
+@click.option(
+    '--output-metadata',
+    '-M',
+    'output_metadata',
+    type=str,
+    help="The file where this iteration's metadata will be stored.",
+)
+@click.option(
+    '--newly-calibrated-models',
+    '-N',
+    'newly_calibrated_models_yamls',
+    type=str,
+    multiple=True,
+    default=None,
+    help=(
+        '(Optional) Models that were calibrated in the most recent iteration.'
+    ),
+)
+@click.option(
+    '--relative-paths/--absolute-paths',
+    'relative_paths',
+    type=bool,
+    default=False,
+    help='Whether to output paths relative to the output file.',
+)
+def end_iteration(
+    state_filename: str,
+    output: str,
+    output_metadata: str,
+    newly_calibrated_models_yamls: List[str] = None,
+    relative_paths: bool = False,
+) -> None:
+    """Finalize a model selection iteration.
+
+    Documentation for arguments can be viewed with
+    `petab_select end_iteration --help`.
+    """
+    # Setup state
+    state = read_state(state_filename)
+    check_state_compatibility(
+        state=state,
+        problem=problem,
+        candidate_space=candidate_space,
+    )
+    problem = state['problem']
+    candidate_space = state['candidate_space']
+
+    newly_calibrated_models = {}
+    if newly_calibrated_models_yamls is not None:
+        for newly_calibrated_models_yaml in newly_calibrated_models_yamls:
+            newly_calibrated_models.update(
+                {
+                    model.get_hash(): model
+                    for model in models_from_yaml_list(
+                        newly_calibrated_models_yaml
+                    )
+                }
+            )
+
+    # Finalize iteration results
+    iteration_results = ui.end_iteration(
+        candidate_space=candidate_space,
+        newly_calibrated_models=newly_calibrated_models,
+    )
+
+    # Save state
+    write_state(
+        state=get_state(
+            problem=problem,
+            candidate_space=candidate_space,
+        ),
+        filename=state_filename,
+    )
+
+    # Save iteration results
+    ## Models
+    models_to_yaml_list(
+        models=iteration_results[MODELS],
+        output_yaml=output,
+        relative_paths=relative_paths,
+    )
+    ## Metadata
+    metadata = {
+        TERMINATE: iteration_results[TERMINATE],
+    }
+    with open(output_metadata, 'w') as f:
+        yaml.dump(metadata, f)
 
 
 @cli.command("model_to_petab")
@@ -494,7 +599,8 @@ def best(
     best_model.to_yaml(output, paths_relative_to=paths_relative_to)
 
 
-cli.add_command(candidates)
+cli.add_command(start_iteration)
+cli.add_command(end_iteration)
 cli.add_command(model_to_petab)
 cli.add_command(models_to_petab)
 cli.add_command(best)
