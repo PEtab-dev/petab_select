@@ -49,9 +49,6 @@ class Problem:
         yaml_path:
             The location of the selection problem YAML file. Used for relative
             paths that exist in e.g. the model space files.
-
-            TODO should the relative paths be relative to the YAML or the file that contains them?
-
     """
 
     """
@@ -64,6 +61,9 @@ class Problem:
                 :attr:`Problem.calibrated_models`.
     FIXME(dilpath) refactor calibrated_models out, move to e.g. candidate
                    space args
+            TODO should the relative paths be relative to the YAML or the file that contains them?
+                 problem relative to file that contains them
+
     """
 
     def __init__(
