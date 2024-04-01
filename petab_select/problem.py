@@ -13,6 +13,7 @@ from .constants import (
     METHOD,
     MODEL_SPACE_FILES,
     PREDECESSOR_MODEL,
+    PROBLEM_ID,
     VERSION,
     Criterion,
     Method,
@@ -25,7 +26,7 @@ __all__ = [
 ]
 
 
-class Problem(abc.ABC):
+class Problem:
     """Handle everything related to the model selection problem.
 
     Attributes:
@@ -71,12 +72,14 @@ class Problem(abc.ABC):
         candidate_space_arguments: Dict[str, Any] = None,
         compare: Callable[[Model, Model], bool] = None,
         criterion: Criterion = None,
+        problem_id: str = None,
         method: str = None,
         version: str = None,
         yaml_path: Union[Path, str] = None,
     ):
         self.model_space = model_space
         self.criterion = criterion
+        self.problem_id = problem_id
         self.method = method
         self.version = version
         self.yaml_path = Path(yaml_path)
@@ -88,6 +91,14 @@ class Problem(abc.ABC):
         self.compare = compare
         if self.compare is None:
             self.compare = partial(default_compare, criterion=self.criterion)
+
+    def __str__(self):
+        return (
+            f"YAML: {self.yaml_path}\n"
+            f"Method: {self.method}\n"
+            f"Criterion: {self.criterion}\n"
+            f"Version: {self.version}\n"
+        )
 
     def get_path(self, relative_path: Union[str, Path]) -> Path:
         """Get the path to a resource, from a relative path.
@@ -174,6 +185,8 @@ class Problem(abc.ABC):
         if criterion is not None:
             criterion = Criterion(criterion)
 
+        problem_id = problem_specification.get(PROBLEM_ID, None)
+
         candidate_space_arguments = problem_specification.get(
             CANDIDATE_SPACE_ARGUMENTS,
             None,
@@ -191,13 +204,14 @@ class Problem(abc.ABC):
             criterion=criterion,
             # TODO refactor method to use enum
             method=problem_specification.get(METHOD, None),
+            problem_id=problem_id,
             version=problem_specification.get(VERSION, None),
             yaml_path=yaml_path,
         )
 
     def get_best(
         self,
-        models: Optional[Iterable[Model]],
+        models: Optional[Union[list[Model], dict[ModelHash, Model]]],
         criterion: Optional[Union[str, None]] = None,
         compute_criterion: bool = False,
     ) -> Model:
@@ -220,6 +234,8 @@ class Problem(abc.ABC):
         Returns:
             The best model.
         """
+        if isinstance(models, dict):
+            models = list(models.values())
         if criterion is None:
             criterion = self.criterion
 

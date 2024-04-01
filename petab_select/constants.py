@@ -80,10 +80,12 @@ PARAMETERS = 'parameters'
 # PARAMETER_ESTIMATE = 'parameter_estimate'
 ESTIMATED_PARAMETERS = 'estimated_parameters'
 
+# Problem keys
 CRITERION = 'criterion'
 METHOD = 'method'
 VERSION = 'version'
 MODEL_SPACE_FILES = 'model_space_files'
+PROBLEM_ID = 'problem_id'
 
 CANDIDATE_SPACE = 'candidate_space'
 CANDIDATE_SPACE_ARGUMENTS = 'candidate_space_arguments'
