@@ -229,7 +229,7 @@ def start_iteration(
 
 def end_iteration(
     candidate_space: CandidateSpace,
-    newly_calibrated_models: dict[str, Model],
+    newly_calibrated_models: Union[list[Model], dict[str, Model]],
 ) -> dict[str, Union[dict[ModelHash, Model], bool]]:
     """Finalize model selection iteration.
 
@@ -255,6 +255,10 @@ def end_iteration(
                 Whether PEtab Select has decided to end the model selection,
                 as a boolean.
     """
+    if isinstance(newly_calibrated_models, list):
+        newly_calibrated_models = {
+            model.get_hash(): model for model in newly_calibrated_models
+        }
 
     iteration_results = {
         MODELS: candidate_space.get_iteration_calibrated_models(
