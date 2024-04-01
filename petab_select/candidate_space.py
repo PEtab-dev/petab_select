@@ -686,7 +686,7 @@ class BackwardCandidateSpace(ForwardCandidateSpace):
     direction = -1
 
 
-def delegate_super_and_inner(
+def forward_super_and_inner(
     candidate_space: CandidateSpace, method_name: str
 ) -> None:
     """Decorator to call the method of both the `super()` and `inner` space.
@@ -728,7 +728,7 @@ def delegate_super_and_inner(
     return wrapped_method
 
 
-def delegate_inner(candidate_space: CandidateSpace, method_name: str) -> None:
+def forward_inner(candidate_space: CandidateSpace, method_name: str) -> None:
     """Decorator to call the method of the `inner` space.
 
     See :func:`super_and_inner` for more details.
@@ -794,11 +794,11 @@ class FamosCandidateSpace(CandidateSpace):
         None: Method.FORWARD,
     }
 
-    delegated_inner = [
+    forwarded_inner = [
         '_consider_method',
     ]
     _consider_method = None
-    delegated_super_and_inner = [
+    forwarded_super_and_inner = [
         'reset_accepted',
         'set_predecessor_model',
         'set_excluded_hashes',
@@ -816,11 +816,11 @@ class FamosCandidateSpace(CandidateSpace):
         consecutive_laterals: bool = False,
         **kwargs,
     ):
-        for method_name in FamosCandidateSpace.delegated_inner:
-            setattr(self, method_name, delegate_inner(self, method_name))
-        for method_name in FamosCandidateSpace.delegated_super_and_inner:
+        for method_name in FamosCandidateSpace.forwarded_inner:
+            setattr(self, method_name, forward_inner(self, method_name))
+        for method_name in FamosCandidateSpace.forwarded_super_and_inner:
             setattr(
-                self, method_name, delegate_super_and_inner(self, method_name)
+                self, method_name, forward_super_and_inner(self, method_name)
             )
 
         self.critical_parameter_sets = critical_parameter_sets
