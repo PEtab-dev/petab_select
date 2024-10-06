@@ -718,7 +718,7 @@ def models_to_yaml_list(
             continue
         if model == VIRTUAL_INITIAL_MODEL:
             continue
-        print(f"Unexpected model, skipping: {model}.")
+        warnings.warn(f"Unexpected model, skipping: {model}.")
         skipped_indices.append(index)
     models = [model for index, model in models if index not in skipped_indices]
 
