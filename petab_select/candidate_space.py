@@ -1070,6 +1070,7 @@ class FamosCandidateSpace(CandidateSpace):
         # FIXME rename here `predecessor_model` to `most_distant_model`
         # self.predecessor_model = None
         self.set_predecessor_model(None)
+        self.previous_predecessor_model = predecessor_model
         self.best_model_of_current_run = None
         self.models = [predecessor_model]
 

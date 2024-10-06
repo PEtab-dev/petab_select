@@ -135,17 +135,12 @@ def test_famos(
     with pytest.raises(StopIteration, match="No valid models found."):
         predecessor_model = candidate_space.predecessor_model
         while True:
-            # Save predecessor_models and find new candidates
-            if candidate_space.predecessor_model is not None:
-                previous_predecessor_model = candidate_space.predecessor_model
-            else:
-                previous_predecessor_model = one(candidate_space.models)
+            # Find new candidates
             candidate_space = petab_select.ui.candidates(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
                 calibrated_models=calibrated_models,
                 newly_calibrated_models=newly_calibrated_models,
-                previous_predecessor_model=previous_predecessor_model,
             )
 
             # Calibrate candidate models
