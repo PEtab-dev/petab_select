@@ -1,13 +1,28 @@
+import copy
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import numpy as np
 import petab
 
-from .candidate_space import CandidateSpace
-from .constants import INITIAL_MODEL_METHODS, TYPE_PATH, Criterion, Method
+from .candidate_space import CandidateSpace, FamosCandidateSpace
+from .constants import (
+    INITIAL_MODEL_METHODS,
+    TYPE_PATH,
+    VIRTUAL_INITIAL_MODEL,
+    Criterion,
+    Method,
+)
 from .model import Model, default_compare
 from .problem import Problem
+
+__all__ = [
+    'candidates',
+    'model_to_petab',
+    'models_to_petab',
+    'best',
+    'write_summary_tsv',
+]
 
 
 def candidates(
@@ -76,10 +91,33 @@ def candidates(
     candidate_space.exclude_hashes(calibrated_models)
 
     # Set the predecessor model to the previous predecessor model.
+    predecessor_model = candidate_space.previous_predecessor_model
+
+    # If the predecessor model has not yet been calibrated, then calibrate it.
+    if (
+        predecessor_model is not None
+        and predecessor_model != VIRTUAL_INITIAL_MODEL
+    ):
+        if (
+            predecessor_model.get_criterion(
+                criterion,
+                raise_on_failure=False,
+            )
+            is None
+        ):
+            candidate_space.models = [copy.deepcopy(predecessor_model)]
+            # Dummy zero likelihood, which the predecessor model will
+            # improve on after it's actually calibrated.
+            predecessor_model.set_criterion(Criterion.LH, 0.0)
+            return candidate_space
+
+        # Exclude the calibrated predecessor model.
+        if not candidate_space.excluded(predecessor_model):
+            candidate_space.exclude(predecessor_model)
+
     # Set the new predecessor_model from the initial model or
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
-    predecessor_model = candidate_space.previous_predecessor_model
     if newly_calibrated_models:
         predecessor_model = problem.get_best(
             newly_calibrated_models.values(),
@@ -109,7 +147,7 @@ def candidates(
         # Else, in case we jumped to most distant in this iteration, go into
         # calibration with only the model we've jumped to.
         if (
-            candidate_space.governing_method == Method.FAMOS
+            isinstance(candidate_space, FamosCandidateSpace)
             and candidate_space.jumped_to_most_distant
         ):
             return candidate_space
@@ -134,15 +172,37 @@ def candidates(
     problem.model_space.exclude_model_hashes(
         model_hashes=excluded_model_hashes
     )
-    if do_search:
+    while do_search:
         problem.model_space.search(candidate_space, limit=limit_sent)
 
-    write_summary_tsv(
-        problem=problem,
-        candidate_space=candidate_space,
-        previous_predecessor_model=candidate_space.previous_predecessor_model,
-        predecessor_model=predecessor_model,
-    )
+        write_summary_tsv(
+            problem=problem,
+            candidate_space=candidate_space,
+            previous_predecessor_model=candidate_space.previous_predecessor_model,
+            predecessor_model=predecessor_model,
+        )
+
+        if candidate_space.models:
+            break
+
+        # No models were found. Repeat the search with the same candidate space,
+        # if the candidate space is able to switch methods.
+        # N.B.: candidate spaces that switch methods must raise `StopIteration`
+        # when they stop switching.
+        if isinstance(candidate_space, FamosCandidateSpace):
+            try:
+                candidate_space.update_after_calibration(
+                    calibrated_models=calibrated_models,
+                    newly_calibrated_models={},
+                    criterion=criterion,
+                )
+                continue
+            except StopIteration:
+                break
+
+        # No models were found, and the method doesn't switch, so no further
+        # models can be found.
+        break
 
     candidate_space.previous_predecessor_model = predecessor_model
 
@@ -265,7 +325,7 @@ def write_summary_tsv(
     # FIXME remove once MostDistantCandidateSpace exists...
     method = candidate_space.method
     if (
-        candidate_space.governing_method == Method.FAMOS
+        isinstance(candidate_space, FamosCandidateSpace)
         and isinstance(candidate_space.predecessor_model, Model)
         and candidate_space.predecessor_model.predecessor_model_hash is None
     ):

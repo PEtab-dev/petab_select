@@ -26,6 +26,10 @@ from .misc import parameter_string_to_value
 from .model import Model
 from .petab import PetabMixin
 
+__all__ = [
+    'ModelSubspace',
+]
+
 
 class ModelSubspace(PetabMixin):
     """Efficient representation of exponentially large model subspaces.
@@ -97,7 +101,7 @@ class ModelSubspace(PetabMixin):
                 '(e.g. forward or backward). '
                 f'This model subspace: `{self.model_subspace_id}`. '
                 'This model subspace PEtab YAML: '
-                f'`{self.petab_yaml}`.'
+                f'`{self.petab_yaml}`. '
                 'The candidate space PEtab YAML: '
                 f'`{candidate_space.predecessor_model.petab_yaml}`. '
             )
@@ -232,8 +236,10 @@ class ModelSubspace(PetabMixin):
         if candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL:
             if candidate_space.method == Method.FORWARD:
                 old_estimated_all = set()
+                old_fixed_all = set(self.parameters)
             elif candidate_space.method == Method.BACKWARD:
                 old_estimated_all = set(self.parameters)
+                old_fixed_all = set()
             else:
                 # Should already be handled elsewhere (e.g.
                 # `self.check_compatibility_stepwise_method`).
@@ -242,10 +248,16 @@ class ModelSubspace(PetabMixin):
                 )
         else:
             old_estimated_all = set()
+            old_fixed_all = set()
             if isinstance(candidate_space.predecessor_model, Model):
                 old_estimated_all = (
                     candidate_space.predecessor_model.get_estimated_parameter_ids_all()
                 )
+                old_fixed_all = [
+                    parameter_id
+                    for parameter_id in self.parameters_all
+                    if parameter_id not in old_estimated_all
+                ]
 
         # Parameters that are fixed in the candidate space
         # predecessor model but are necessarily estimated in this subspace.
@@ -264,6 +276,7 @@ class ModelSubspace(PetabMixin):
 
         # Parameters related to minimal changes compared to the predecessor model.
         old_estimated = set(old_estimated_all).intersection(self.can_estimate)
+        old_fixed = set(old_fixed_all).intersection(self.can_fix)
         new_must_estimate = set(new_must_estimate_all).intersection(
             self.parameters
         )
@@ -304,14 +317,14 @@ class ModelSubspace(PetabMixin):
                 new_must_estimate_all
                 or candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL
             ):
-                # Consider minimal models that have all necessary parameters
-                # estimated. As this subspace necessarily has more estimated
-                # parameters than the predecessor model, all parameters that
-                # can be fixed, will be fixed.
+                # Consider minimal models that have all necessarily-estimated
+                # parameters.
                 estimated_parameters = {
                     parameter_id: ESTIMATE
-                    for parameter_id in set(self.parameters).difference(
-                        self.can_fix
+                    for parameter_id in (
+                        set(self.parameters)
+                        .difference(self.can_fix)
+                        .union(old_estimated)
                     )
                 }
                 models = self.get_models(
@@ -394,14 +407,14 @@ class ModelSubspace(PetabMixin):
                 new_must_fix_all
                 or candidate_space.predecessor_model == VIRTUAL_INITIAL_MODEL
             ):
-                # Consider minimal models that have all necessarily fixed parameters.
-                # As this subspace necessarily has fewer estimated parameters than the
-                # predecessor model, all parameters that can be estimated, will be
-                # estimated.
+                # Consider minimal models that have all necessarily-fixed
+                # parameters.
                 estimated_parameters = {
                     parameter_id: ESTIMATE
-                    for parameter_id in set(self.parameters).difference(
-                        self.must_fix
+                    for parameter_id in (
+                        set(self.parameters)
+                        .difference(self.must_fix)
+                        .difference(old_fixed)
                     )
                 }
                 models = self.get_models(

@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Union
 
 import yaml
 
-from .candidate_space import method_to_candidate_space_class
+from .candidate_space import CandidateSpace, method_to_candidate_space_class
 from .constants import (
     CANDIDATE_SPACE_ARGUMENTS,
     CRITERION,
@@ -17,8 +17,12 @@ from .constants import (
     Criterion,
     Method,
 )
-from .model import Model, default_compare
+from .model import Model, ModelHash, default_compare
 from .model_space import ModelSpace
+
+__all__ = [
+    'Problem',
+]
 
 
 class Problem(abc.ABC):
@@ -68,13 +72,13 @@ class Problem(abc.ABC):
         criterion: Criterion = None,
         method: str = None,
         version: str = None,
-        yaml_path: str = None,
+        yaml_path: Union[Path, str] = None,
     ):
         self.model_space = model_space
         self.criterion = criterion
         self.method = method
         self.version = version
-        self.yaml_path = yaml_path
+        self.yaml_path = Path(yaml_path)
 
         self.candidate_space_arguments = candidate_space_arguments
         if self.candidate_space_arguments is None:
@@ -122,7 +126,7 @@ class Problem(abc.ABC):
         """Exclude models from the model space, by model hashes.
 
         Args:
-            models:
+            model_hashes:
                 The model hashes.
         """
         self.model_space.exclude_model_hashes(model_hashes)
@@ -235,12 +239,26 @@ class Problem(abc.ABC):
             )
         return best_model
 
+    def model_hash_to_model(self, model_hash: Union[str, ModelHash]) -> Model:
+        """Get the model that matches a model hash.
+
+        Args:
+            model_hash:
+                The model hash.
+
+        Returns:
+            The model.
+        """
+        return ModelHash.from_hash(model_hash).get_model(
+            petab_select_problem=self,
+        )
+
     def new_candidate_space(
         self,
         *args,
         method: Method = None,
         **kwargs,
-    ) -> None:
+    ) -> CandidateSpace:
         """Construct a new candidate space.
 
         Args:

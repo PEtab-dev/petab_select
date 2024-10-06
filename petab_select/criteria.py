@@ -1,7 +1,6 @@
 """Implementations of model selection criteria."""
 
-import math
-
+import numpy as np
 import petab
 from petab.C import OBJECTIVE_PRIOR_PARAMETERS, OBJECTIVE_PRIOR_TYPE
 
@@ -9,7 +8,12 @@ import petab_select
 
 from .constants import PETAB_PROBLEM, Criterion  # LH,; LLH,; NLLH,
 
-# from .model import Model
+__all__ = [
+    'calculate_aic',
+    'calculate_aicc',
+    'calculate_bic',
+    'CriterionComputer',
+]
 
 
 # use as attribute e.g. `Model.criterion_computer`?
@@ -88,7 +92,7 @@ class CriterionComputer:
         """Get the log-likelihood."""
         llh = self.model.get_criterion(Criterion.LLH, compute=False)
         if llh is None:
-            llh = math.log(self.get_lh())
+            llh = np.log(self.get_lh())
         return llh
 
     def get_lh(self) -> float:
@@ -100,9 +104,9 @@ class CriterionComputer:
         if lh is not None:
             return lh
         elif llh is not None:
-            return math.exp(llh)
+            return np.exp(llh)
         elif nllh is not None:
-            return math.exp(-1 * nllh)
+            return np.exp(-1 * nllh)
 
         raise ValueError(
             'Please supply the likelihood (LH) or a compatible transformation. Compatible transformations: log(LH), -log(LH).'
@@ -203,9 +207,11 @@ def calculate_aicc(
     Returns:
         The AICc value.
     """
-    return calculate_aic(n_estimated, nllh) + 2 * n_estimated * (
-        n_estimated + 1
-    ) / (n_measurements + n_priors - n_estimated - 1)
+    return calculate_aic(
+        nllh=nllh, n_estimated=n_estimated
+    ) + 2 * n_estimated * (n_estimated + 1) / (
+        n_measurements + n_priors - n_estimated - 1
+    )
 
 
 def calculate_bic(
@@ -230,4 +236,4 @@ def calculate_bic(
     Returns:
         The BIC value.
     """
-    return n_estimated * math.log(n_measurements + n_priors) + 2 * nllh
+    return n_estimated * np.log(n_measurements + n_priors) + 2 * nllh

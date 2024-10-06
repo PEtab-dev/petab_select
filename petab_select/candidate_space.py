@@ -6,7 +6,7 @@ import csv
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Type, Union
 
 import numpy as np
 from more_itertools import one
@@ -27,6 +27,15 @@ from .constants import (
 )
 from .handlers import TYPE_LIMIT, LimitHandler
 from .model import Model, default_compare
+
+__all__ = [
+    'BackwardCandidateSpace',
+    'BruteForceCandidateSpace',
+    'CandidateSpace',
+    'FamosCandidateSpace',
+    'ForwardCandidateSpace',
+    'LateralCandidateSpace',
+]
 
 
 class CandidateSpace(abc.ABC):
@@ -60,10 +69,6 @@ class CandidateSpace(abc.ABC):
             An example of a difference is in the bidirectional method, where ``governing_method``
             stores the bidirectional method, whereas `method` may also store the forward or
             backward methods.
-        retry_model_space_search_if_no_models:
-            Whether a search with a candidate space should be repeated upon failure.
-            Useful for the :class:`BidirectionalCandidateSpace`, which switches directions
-            upon failure.
         summary_tsv:
             A string or :class:`pathlib.Path`. A summary of the model selection progress
             will be written to this file.
@@ -75,12 +80,9 @@ class CandidateSpace(abc.ABC):
     #    Models will fail `self.consider` if `len(self.models) >= limit`.
     """
 
-    governing_method: Method = None
-    method: Method = None
-    retry_model_space_search_if_no_models: bool = False
-
     def __init__(
         self,
+        method: Method,
         # TODO add MODEL_TYPE = Union[str, Model], str for VIRTUAL_INITIAL_MODEL
         predecessor_model: Optional[Model] = None,
         exclusions: Optional[List[Any]] = None,
@@ -88,13 +90,12 @@ class CandidateSpace(abc.ABC):
         summary_tsv: TYPE_PATH = None,
         previous_predecessor_model: Optional[Model] = None,
     ):
+        self.method = method
+
         self.limit = LimitHandler(
             current=self.n_accepted,
             limit=limit,
         )
-        # Each candidate class specifies this as a class attribute.
-        if self.governing_method is None:
-            self.governing_method = self.method
         self.reset(predecessor_model=predecessor_model, exclusions=exclusions)
 
         self.summary_tsv = summary_tsv
@@ -124,10 +125,7 @@ class CandidateSpace(abc.ABC):
     def _setup_summary_tsv(self):
         self.summary_tsv.resolve().parent.mkdir(parents=True, exist_ok=True)
 
-        if self.summary_tsv.exists():
-            with open(self.summary_tsv, "r", encoding="utf-8") as f:
-                last_row = f.readlines()[-1]
-        else:
+        if not self.summary_tsv.exists():
             self.write_summary_tsv(
                 [
                     'method',
@@ -238,7 +236,7 @@ class CandidateSpace(abc.ABC):
         else:
             self.exclusions.append(model.get_hash())
 
-    def exclude_hashes(self, hashes: List[str]) -> None:
+    def exclude_hashes(self, hashes: Sequence[str]) -> None:
         """Exclude models from future consideration, by hash.
 
         Args:
@@ -491,7 +489,6 @@ class ForwardCandidateSpace(CandidateSpace):
             Defaults to no maximum (``None``).
     """
 
-    method = Method.FORWARD
     direction = 1
 
     def __init__(
@@ -507,7 +504,12 @@ class ForwardCandidateSpace(CandidateSpace):
         self.max_steps = max_steps
         if predecessor_model is None:
             predecessor_model = VIRTUAL_INITIAL_MODEL
-        super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
+        super().__init__(
+            method=Method.FORWARD if self.direction == 1 else Method.BACKWARD,
+            *args,
+            predecessor_model=predecessor_model,
+            **kwargs,
+        )
 
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
@@ -556,104 +558,7 @@ class ForwardCandidateSpace(CandidateSpace):
 class BackwardCandidateSpace(ForwardCandidateSpace):
     """The backward method class."""
 
-    method = Method.BACKWARD
     direction = -1
-
-
-class BidirectionalCandidateSpace(ForwardCandidateSpace):
-    """The bidirectional method class.
-
-    Attributes:
-        method_history:
-            The history of models that were found at each search.
-            A list of dictionaries, where each dictionary contains keys for the `METHOD`
-            and the list of `MODELS`.
-    """
-
-    # TODO refactor method to inherit from governing_method if not specified
-    #      by constructor argument -- remove from here.
-    method = Method.BIDIRECTIONAL
-    governing_method = Method.BIDIRECTIONAL
-    retry_model_space_search_if_no_models = True
-
-    def __init__(
-        self,
-        *args,
-        initial_method: Method = Method.FORWARD,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-
-        # FIXME cannot access from CLI
-        # FIXME probably fine to replace `self.initial_method`
-        #       with `self.method` here. i.e.:
-        #       1. change `method` to `Method.FORWARD
-        #       2. change signature to `initial_method: Method = None`
-        #       3. change code here to `if initial_method is not None: self.method = initial_method`
-        self.initial_method = initial_method
-
-        self.method_history: List[Dict[str, Union[Method, List[Model]]]] = []
-
-    def update_method(self, method: Method):
-        if method == Method.FORWARD:
-            self.direction = 1
-        elif method == Method.BACKWARD:
-            self.direction = -1
-        else:
-            raise NotImplementedError(
-                f'Bidirectional direction must be either `Method.FORWARD` or `Method.BACKWARD`, not {method}.'
-            )
-
-        self.method = method
-
-    def switch_method(self):
-        if self.method == Method.FORWARD:
-            method = Method.BACKWARD
-        elif self.method == Method.BACKWARD:
-            method = Method.FORWARD
-
-        self.update_method(method=method)
-
-    def setup_before_model_subspaces_search(self):
-        # If previous search found no models, then switch method.
-        previous_search = (
-            None if not self.method_history else self.method_history[-1]
-        )
-        if previous_search is None:
-            self.update_method(self.initial_method)
-            return
-
-        self.update_method(previous_search[METHOD])
-        if not previous_search[MODELS]:
-            self.switch_method()
-            self.retry_model_space_search_if_no_models = False
-
-    def setup_after_model_subspaces_search(self):
-        current_search = {
-            METHOD: self.method,
-            MODELS: self.models,
-        }
-        self.method_history.append(current_search)
-        self.method = self.governing_method
-
-    def wrap_search_subspaces(self, search_subspaces):
-        def wrapper():
-            def iterate():
-                self.setup_before_model_subspaces_search()
-                search_subspaces()
-                self.setup_after_model_subspaces_search()
-
-            # Repeat until models are found or switching doesn't help.
-            iterate()
-            while (
-                not self.models and self.retry_model_space_search_if_no_models
-            ):
-                iterate()
-
-            # Reset flag for next time.
-            self.retry_model_space_search_if_no_models = True
-
-        return wrapper
 
 
 class FamosCandidateSpace(CandidateSpace):
@@ -691,7 +596,6 @@ class FamosCandidateSpace(CandidateSpace):
             be applied after one lateral move.
     """
 
-    method = Method.FAMOS
     default_method_scheme = {
         (Method.BACKWARD, Method.FORWARD): Method.LATERAL,
         (Method.FORWARD, Method.BACKWARD): Method.LATERAL,
@@ -809,9 +713,12 @@ class FamosCandidateSpace(CandidateSpace):
             self.initial_method
         ]
 
-        super().__init__(*args, predecessor_model=predecessor_model, **kwargs)
-
-        self.governing_method = Method.FAMOS
+        super().__init__(
+            method=self.method,
+            *args,
+            predecessor_model=predecessor_model,
+            **kwargs,
+        )
 
         self.n_reattempts = n_reattempts
 
@@ -887,7 +794,7 @@ class FamosCandidateSpace(CandidateSpace):
             logging.info("Switching method")
             self.switch_method(calibrated_models=calibrated_models)
             self.switch_inner_candidate_space(
-                calibrated_models=calibrated_models,
+                exclusions=list(calibrated_models),
             )
             logging.info(
                 "Method switched to ", self.inner_candidate_space.method
@@ -902,7 +809,7 @@ class FamosCandidateSpace(CandidateSpace):
     ) -> bool:
         """Update ``self.best_models`` with the latest ``newly_calibrated_models``
         and determine if there was a new best model. If so, return
-        ``True``. ``False`` otherwise."""
+        ``False``. ``True`` otherwise."""
 
         go_into_switch_method = True
         for newly_calibrated_model in newly_calibrated_models.values():
@@ -1117,10 +1024,14 @@ class FamosCandidateSpace(CandidateSpace):
 
     def switch_inner_candidate_space(
         self,
-        calibrated_models: Dict[str, Model],
+        exclusions: List[str],
     ):
-        """Switch ``self.inner_candidate_space`` to the candidate space of
-        the current self.method."""
+        """Switch the inner candidate space to match the current method.
+
+        Args:
+            exclusions:
+                Hashes of excluded models.
+        """
 
         # if self.method != Method.MOST_DISTANT:
         self.inner_candidate_space = self.inner_candidate_spaces[self.method]
@@ -1128,7 +1039,7 @@ class FamosCandidateSpace(CandidateSpace):
         # calibrated models
         self.inner_candidate_space.reset(
             predecessor_model=self.predecessor_model,
-            exclusions=calibrated_models,
+            exclusions=exclusions,
         )
 
     def jump_to_most_distant(
@@ -1256,37 +1167,8 @@ class FamosCandidateSpace(CandidateSpace):
         return wrapper
 
 
-# TODO rewrite so BidirectionalCandidateSpace inherits from ForwardAndBackwardCandidateSpace
-#      instead
-class ForwardAndBackwardCandidateSpace(BidirectionalCandidateSpace):
-    method = Method.FORWARD_AND_BACKWARD
-    governing_method = Method.FORWARD_AND_BACKWARD
-    retry_model_space_search_if_no_models = False
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs, initial_method=None)
-
-    def wrap_search_subspaces(self, search_subspaces):
-        def wrapper():
-            for method in [Method.FORWARD, Method.BACKWARD]:
-                self.update_method(method=method)
-                search_subspaces()
-                self.setup_after_model_subspaces_search()
-
-        return wrapper
-
-    # Disable unused interface
-    setup_before_model_subspaces_search = None
-    switch_method = None
-
-    def setup_after_model_space_search(self):
-        pass
-
-
 class LateralCandidateSpace(CandidateSpace):
     """Find models with the same number of estimated parameters."""
-
-    method = Method.LATERAL
 
     def __init__(
         self,
@@ -1301,6 +1183,7 @@ class LateralCandidateSpace(CandidateSpace):
                 Maximal allowed number of swap moves. If 0 then there is no maximum.
         """
         super().__init__(
+            method=Method.LATERAL,
             *args,
             predecessor_model=predecessor_model,
             **kwargs,
@@ -1343,8 +1226,6 @@ class LateralCandidateSpace(CandidateSpace):
 class BruteForceCandidateSpace(CandidateSpace):
     """The brute-force method class."""
 
-    method = Method.BRUTE_FORCE
-
     def __init__(self, *args, **kwargs):
         # if args or kwargs:
         #    # FIXME remove?
@@ -1353,40 +1234,43 @@ class BruteForceCandidateSpace(CandidateSpace):
         #        'Arguments were provided but will be ignored, because of the '
         #        'brute force candidate space.'
         #    )
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            method=Method.BRUTE_FORCE,
+            *args,
+            **kwargs,
+        )
 
     def _consider_method(self, model):
         return True
 
 
-candidate_space_classes = [
-    ForwardCandidateSpace,
-    BackwardCandidateSpace,
-    BidirectionalCandidateSpace,
-    LateralCandidateSpace,
-    BruteForceCandidateSpace,
-    ForwardAndBackwardCandidateSpace,
-    FamosCandidateSpace,
-]
+candidate_space_classes = {
+    Method.FORWARD: ForwardCandidateSpace,
+    Method.BACKWARD: BackwardCandidateSpace,
+    Method.LATERAL: LateralCandidateSpace,
+    Method.BRUTE_FORCE: BruteForceCandidateSpace,
+    Method.FAMOS: FamosCandidateSpace,
+}
 
 
 def method_to_candidate_space_class(method: Method) -> Type[CandidateSpace]:
-    """Instantiate a candidate space given its method name.
+    """Get a candidate space class, given its method name.
 
     Args:
         method:
-            The name of the method corresponding to one of the implemented candidate
-            spaces.
+            The name of the method corresponding to one of the implemented
+            candidate spaces.
 
     Returns:
         The candidate space.
     """
-    for candidate_space_class in candidate_space_classes:
-        if candidate_space_class.method == method:
-            return candidate_space_class
-    raise NotImplementedError(
-        f'The provided method name {method} does not correspond to an implemented candidate space.'
-    )
+    candidate_space_class = candidate_space_classes.get(method, None)
+    if candidate_space_class is None:
+        raise NotImplementedError(
+            f'The provided method `{method}` does not correspond to an '
+            'implemented candidate space.'
+        )
+    return candidate_space_class
 
 
 '''
