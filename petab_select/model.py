@@ -740,10 +740,31 @@ def models_from_yaml_list(
 
 
 def models_to_yaml_list(
-    models: List[Model],
+    models: List[Union[Model, str]],
     output_yaml: TYPE_PATH,
     relative_paths: bool = True,
-):
+) -> None:
+    """Generate a YAML listing of models.
+
+    Args:
+        models:
+            The models.
+        output_yaml:
+            The location where the YAML will be saved.
+        relative_paths:
+            Whether to rewrite the paths in each model (e.g. the path to the
+            model's PEtab problem) relative to the `output_yaml` location.
+    """
+    skipped_indices = []
+    for index, model in enumerate(models):
+        if isinstance(model, Model):
+            continue
+        if model == VIRTUAL_INITIAL_MODEL:
+            continue
+        warnings.warn(f"Unexpected model, skipping: {model}.")
+        skipped_indices.append(index)
+    models = [model for index, model in models if index not in skipped_indices]
+
     paths_relative_to = None
     if relative_paths:
         paths_relative_to = Path(output_yaml).parent
