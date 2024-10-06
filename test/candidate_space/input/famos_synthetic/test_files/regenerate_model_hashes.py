@@ -1,11 +1,15 @@
+from pathlib import Path
+
 import pandas as pd
 
 import petab_select
 
+script_dir = Path(__file__).parent.resolve()
+
 petab_select_problem = petab_select.Problem.from_yaml(
-    "../select/FAMoS_2019_petab_select_problem.yaml"
+    script_dir / "../select/FAMoS_2019_petab_select_problem.yaml"
 )
-df = pd.read_csv("calibration_results.tsv", sep="\t", dtype=str)
+df = pd.read_csv(script_dir / "calibration_results.tsv", sep="\t", dtype=str)
 
 model_hashes = list(df.model_hash)
 new_model_hashes = [
@@ -22,4 +26,4 @@ new_model_hashes = [
 ]
 
 df["model_hash"] = new_model_hashes
-df.to_csv("D.tsv", sep="\t", index=False)
+df.to_csv(script_dir / "calibration_results.tsv", sep="\t", index=False)
