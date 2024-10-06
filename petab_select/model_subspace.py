@@ -101,7 +101,7 @@ class ModelSubspace(PetabMixin):
                 '(e.g. forward or backward). '
                 f'This model subspace: `{self.model_subspace_id}`. '
                 'This model subspace PEtab YAML: '
-                f'`{self.petab_yaml}`.'
+                f'`{self.petab_yaml}`. '
                 'The candidate space PEtab YAML: '
                 f'`{candidate_space.predecessor_model.petab_yaml}`. '
             )

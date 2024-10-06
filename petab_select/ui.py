@@ -94,7 +94,10 @@ def candidates(
     predecessor_model = candidate_space.previous_predecessor_model
 
     # If the predecessor model has not yet been calibrated, then calibrate it.
-    if predecessor_model != VIRTUAL_INITIAL_MODEL:
+    if (
+        predecessor_model is not None
+        and predecessor_model != VIRTUAL_INITIAL_MODEL
+    ):
         if (
             predecessor_model.get_criterion(
                 criterion,
@@ -193,8 +196,13 @@ def candidates(
                     newly_calibrated_models={},
                     criterion=criterion,
                 )
+                continue
             except StopIteration:
                 break
+
+        # No models were found, and the method doesn't switch, so no further
+        # models can be found.
+        break
 
     candidate_space.previous_predecessor_model = predecessor_model
 

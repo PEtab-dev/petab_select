@@ -17,7 +17,7 @@ from .constants import (
     Criterion,
     Method,
 )
-from .model import Model, default_compare
+from .model import Model, ModelHash, default_compare
 from .model_space import ModelSpace
 
 __all__ = [
@@ -238,6 +238,20 @@ class Problem(abc.ABC):
                 f'None of the supplied models have a value set for the criterion {criterion}.'
             )
         return best_model
+
+    def model_hash_to_model(self, model_hash: Union[str, ModelHash]) -> Model:
+        """Get the model that matches a model hash.
+
+        Args:
+            model_hash:
+                The model hash.
+
+        Returns:
+            The model.
+        """
+        return ModelHash.from_hash(model_hash).get_model(
+            petab_select_problem=self,
+        )
 
     def new_candidate_space(
         self,
