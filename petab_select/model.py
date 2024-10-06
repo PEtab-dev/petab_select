@@ -743,7 +743,18 @@ def models_to_yaml_list(
     models: List[Union[Model, str]],
     output_yaml: TYPE_PATH,
     relative_paths: bool = True,
-):
+) -> None:
+    """Generate a YAML listing of models.
+
+    Args:
+        models:
+            The models.
+        output_yaml:
+            The location where the YAML will be saved.
+        relative_paths:
+            Whether to rewrite the paths in each model (e.g. the path to the
+            model's PEtab problem) relative to the `output_yaml` location.
+    """
     skipped_indices = []
     for index, model in enumerate(models):
         if isinstance(model, Model):
