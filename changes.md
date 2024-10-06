@@ -1,5 +1,21 @@
 # Changes
 
+## 0.1.13
+- fixed bug when no predecessor model is provided, introduced in 0.1.11 (#83)
+
+## 0.1.12
+- fixed bug in last version: non-FAMoS methods do not terminate
+
+## 0.1.11
+- fixed bug in stepwise moves when working with multiple subspaces (#65)
+- fixed bug in FAMoS switching (#68)
+- removed `BidirectionalCandidateSpace` and `ForwardAndBackwardCandidateSpace` (#68)
+- set estimated parameters as the nominal values in exported PEtab problems (#77)
+- many CI, doc, and code quality improvements by @dweindl (#57, #58, #59, #60, #61, #63, #69, #70, #71, #72, #74)
+- fixed bug in model hash reproducibility (#78)
+- refactored `governing_method` out of `CandidateSpace` (#73)
+- fixed bug related to attempted calibration of virtual models (#75)
+
 ## 0.1.10
 - added `Model.set_estimated_parameters`
   - now expected that `Model.estimated_parameters` has untransformed values
