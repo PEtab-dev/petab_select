@@ -928,7 +928,7 @@ class ModelHash(str):
 
         if model_hash == VIRTUAL_INITIAL_MODEL:
             return ModelHash(
-                model_subspace_id='',
+                model_subspace_id=VIRTUAL_INITIAL_MODEL,
                 model_subspace_indices_hash='',
                 # petab_hash=VIRTUAL_INITIAL_MODEL,
             )
