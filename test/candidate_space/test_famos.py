@@ -3,7 +3,6 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import petab
 import pytest
 from more_itertools import one
 
