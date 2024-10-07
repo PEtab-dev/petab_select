@@ -181,20 +181,21 @@ class CandidateSpace(abc.ABC):
         self.models = iteration_uncalibrated_models
 
     def get_iteration_calibrated_models(
-        self, newly_calibrated_models: dict[str, Model], reset: bool = False
+        self, calibrated_models: dict[str, Model], reset: bool = False
     ) -> dict[str, Model]:
         """Get the full list of calibrated models for the current iteration.
 
         The full list of models identified for calibration in an iteration of
         model selection may include models for which calibration results are
-        already available. This combines the newly calibrated models with the
-        models that were already calibrated, to produce the full list of models
-        that were identified for calibration in the latest iteration.
+        already available. This combines the calibration results of the
+        uncalibrated models, with the models that were already calibrated, to
+        produce the full list of models that were identified for calibration
+        in the current iteration.
 
         Args:
-            newly_calibrated_models:
-                The newly calibrated models. Keys are model hashes, values are
-                models.
+            calibrated_models:
+                The calibration results for the uncalibrated models of this
+                iteration. Keys are model hashes, values are models.
             reset:
                 Whether to remove the previously calibrated models from the
                 candidate space, after they are used to produce the full list
@@ -204,7 +205,7 @@ class CandidateSpace(abc.ABC):
             The full list of calibrated models.
         """
         combined_calibrated_models = (
-            self.iteration_user_calibrated_models | newly_calibrated_models
+            self.iteration_user_calibrated_models | calibrated_models
         )
         if reset:
             self.set_iteration_user_calibrated_models(

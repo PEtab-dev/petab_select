@@ -11,8 +11,8 @@ from more_itertools import one
 
 from . import ui
 from .candidate_space import CandidateSpace
-from .constants import PETAB_YAML
-from .model import Model, models_from_yaml_list, models_to_yaml_list
+from .constants import CANDIDATE_SPACE, MODELS, PETAB_YAML, TERMINATE
+from .model import Model, ModelHash, models_from_yaml_list, models_to_yaml_list
 from .problem import Problem
 
 
@@ -74,16 +74,16 @@ def cli():
 @click.option(
     '--state',
     '-s',
-    'state_filename',
+    'state_dill',
     type=str,
     help='The file that stores the state.',
 )
 @click.option(
-    '--output',
-    '-o',
-    'output',
+    '--output-uncalibrated-models',
+    '-u',
+    'uncalibrated_models_yaml',
     type=str,
-    help='The file where candidate models will be stored.',
+    help='The file where uncalibrated models from this iteration will be stored.',
 )
 @click.option(
     '--method',
@@ -101,26 +101,26 @@ def cli():
 #    default=None,
 #    help='(Optional) The predecessor model used in the previous iteration of model selection.',
 # )
-@click.option(
-    '--calibrated-models',
-    '-C',
-    'calibrated_models_yamls',
-    type=str,
-    multiple=True,
-    default=None,
-    help='(Optional) Models that have been calibrated.',
-)
-@click.option(
-    '--newly-calibrated-models',
-    '-N',
-    'newly_calibrated_models_yamls',
-    type=str,
-    multiple=True,
-    default=None,
-    help=(
-        '(Optional) Models that were calibrated in the most recent iteration.'
-    ),
-)
+# @click.option(
+#    '--calibrated-models',
+#    '-C',
+#    'calibrated_models_yamls',
+#    type=str,
+#    multiple=True,
+#    default=None,
+#    help='(Optional) Models that have been calibrated.',
+# )
+# @click.option(
+#    '--newly-calibrated-models',
+#    '-N',
+#    'newly_calibrated_models_yamls',
+#    type=str,
+#    multiple=True,
+#    default=None,
+#    help=(
+#        '(Optional) Models that were calibrated in the most recent iteration.'
+#    ),
+# )
 @click.option(
     '--limit',
     '-l',
@@ -167,13 +167,13 @@ def cli():
 )
 def start_iteration(
     problem_yaml: str,
-    state_filename: str,
-    output: str,
+    state_dill: str,
+    uncalibrated_models_yaml: str,
     method: str = None,
     # previous_predecessor_model_yaml: str = None,
     # best: str = None,
-    calibrated_models_yamls: List[str] = None,
-    newly_calibrated_models_yamls: List[str] = None,
+    # calibrated_models_yamls: List[str] = None,
+    # newly_calibrated_models_yamls: List[str] = None,
     limit: float = np.inf,
     limit_sent: float = np.inf,
     relative_paths: bool = False,
@@ -196,17 +196,17 @@ def start_iteration(
     candidate_space = problem.new_candidate_space(limit=limit)
 
     # Setup state
-    if not Path(state_filename).exists():
-        Path(state_filename).parent.mkdir(parents=True, exist_ok=True)
+    if not Path(state_dill).exists():
+        Path(state_dill).parent.mkdir(parents=True, exist_ok=True)
     else:
-        state = read_state(state_filename)
+        state = read_state(state_dill)
+        problem = state['problem']
+        candidate_space = state['candidate_space']
         check_state_compatibility(
             state=state,
             problem=problem,
             candidate_space=candidate_space,
         )
-        problem = state['problem']
-        candidate_space = state['candidate_space']
 
     excluded_models = []
     # TODO seems like default is `()`, not `None`...
@@ -221,48 +221,56 @@ def start_iteration(
             with open(excluded_model_hash_file, 'r') as f:
                 excluded_model_hashes += f.read().split('\n')
 
+    excluded_hashes = [
+        excluded_model.get_hash() for excluded_model in excluded_models
+    ]
+    excluded_hashes += [
+        ModelHash.from_hash(hash_str) for hash_str in excluded_model_hashes
+    ]
+
     # previous_predecessor_model = candidate_space.predecessor_model
     # if previous_predecessor_model_yaml is not None:
     #    previous_predecessor_model = Model.from_yaml(
     #        previous_predecessor_model_yaml
     #    )
 
-    # FIXME write single methods to take all models from lists of lists of
-    #       models recursively
-    calibrated_models = None
-    if calibrated_models_yamls is not None:
-        calibrated_models = {}
-        for calibrated_models_yaml in calibrated_models_yamls:
-            calibrated_models.update(
-                {
-                    model.get_hash(): model
-                    for model in models_from_yaml_list(calibrated_models_yaml)
-                }
-            )
+    # # FIXME write single methods to take all models from lists of lists of
+    # #       models recursively
+    # calibrated_models = None
+    # if calibrated_models_yamls:
+    #     calibrated_models = {}
+    #     for calibrated_models_yaml in calibrated_models_yamls:
+    #         calibrated_models.update(
+    #             {
+    #                 model.get_hash(): model
+    #                 for model in models_from_yaml_list(calibrated_models_yaml)
+    #             }
+    #         )
 
-    newly_calibrated_models = None
-    if newly_calibrated_models_yamls is not None:
-        newly_calibrated_models = {}
-        for newly_calibrated_models_yaml in newly_calibrated_models_yamls:
-            newly_calibrated_models.update(
-                {
-                    model.get_hash(): model
-                    for model in models_from_yaml_list(
-                        newly_calibrated_models_yaml
-                    )
-                }
-            )
+    # newly_calibrated_models = None
+    # if newly_calibrated_models_yamls:
+    #     newly_calibrated_models = {}
+    #     for newly_calibrated_models_yaml in newly_calibrated_models_yamls:
+    #         newly_calibrated_models.update(
+    #             {
+    #                 model.get_hash(): model
+    #                 for model in models_from_yaml_list(
+    #                     newly_calibrated_models_yaml
+    #                 )
+    #             }
+    #         )
 
     ui.start_iteration(
         problem=problem,
         candidate_space=candidate_space,
         # previous_predecessor_model=previous_predecessor_model,
-        calibrated_models=calibrated_models,
-        newly_calibrated_models=newly_calibrated_models,
+        # calibrated_models=calibrated_models,
+        # newly_calibrated_models=newly_calibrated_models,
         limit=limit,
         limit_sent=limit_sent,
-        excluded_models=excluded_models,
-        excluded_model_hashes=excluded_model_hashes,
+        excluded_hashes=excluded_hashes,
+        # excluded_models=excluded_models,
+        # excluded_model_hashes=excluded_model_hashes,
     )
 
     # Save state
@@ -271,13 +279,13 @@ def start_iteration(
             problem=problem,
             candidate_space=candidate_space,
         ),
-        filename=state_filename,
+        filename=state_dill,
     )
 
     # Save candidate models
     models_to_yaml_list(
         models=candidate_space.models,
-        output_yaml=output,
+        output_yaml=uncalibrated_models_yaml,
         relative_paths=relative_paths,
     )
 
@@ -286,33 +294,32 @@ def start_iteration(
 @click.option(
     '--state',
     '-s',
-    'state_filename',
+    'state_dill',
     type=str,
     help='The file that stores the state.',
 )
 @click.option(
-    '--output',
-    '-o',
-    'output',
+    '--output-models',
+    '-m',
+    'models_yaml',
     type=str,
     help="The file where this iteration's calibrated models will be stored.",
 )
 @click.option(
     '--output-metadata',
-    '-M',
-    'output_metadata',
+    '-d',
+    'metadata_yaml',
     type=str,
     help="The file where this iteration's metadata will be stored.",
 )
 @click.option(
-    '--newly-calibrated-models',
-    '-N',
-    'newly_calibrated_models_yamls',
+    '--calibrated-models',
+    '-c',
+    'calibrated_models_yamls',
     type=str,
     multiple=True,
-    default=None,
     help=(
-        '(Optional) Models that were calibrated in the most recent iteration.'
+        'The calibration results for the uncalibrated models of this iteration.'
     ),
 )
 @click.option(
@@ -323,10 +330,10 @@ def start_iteration(
     help='Whether to output paths relative to the output file.',
 )
 def end_iteration(
-    state_filename: str,
-    output: str,
-    output_metadata: str,
-    newly_calibrated_models_yamls: List[str] = None,
+    state_dill: str,
+    models_yaml: str,
+    metadata_yaml: str,
+    calibrated_models_yamls: List[str] = None,
     relative_paths: bool = False,
 ) -> None:
     """Finalize a model selection iteration.
@@ -335,54 +342,51 @@ def end_iteration(
     `petab_select end_iteration --help`.
     """
     # Setup state
-    state = read_state(state_filename)
+    state = read_state(state_dill)
+    problem = state['problem']
+    candidate_space = state['candidate_space']
     check_state_compatibility(
         state=state,
         problem=problem,
         candidate_space=candidate_space,
     )
-    problem = state['problem']
-    candidate_space = state['candidate_space']
 
-    newly_calibrated_models = {}
-    if newly_calibrated_models_yamls is not None:
-        for newly_calibrated_models_yaml in newly_calibrated_models_yamls:
-            newly_calibrated_models.update(
+    calibrated_models = {}
+    if calibrated_models_yamls:
+        for calibrated_models_yaml in calibrated_models_yamls:
+            calibrated_models.update(
                 {
                     model.get_hash(): model
-                    for model in models_from_yaml_list(
-                        newly_calibrated_models_yaml
-                    )
+                    for model in models_from_yaml_list(calibrated_models_yaml)
                 }
             )
 
     # Finalize iteration results
     iteration_results = ui.end_iteration(
         candidate_space=candidate_space,
-        newly_calibrated_models=newly_calibrated_models,
-    )
-
-    # Save state
-    write_state(
-        state=get_state(
-            problem=problem,
-            candidate_space=candidate_space,
-        ),
-        filename=state_filename,
+        calibrated_models=calibrated_models,
     )
 
     # Save iteration results
+    ## State
+    write_state(
+        state=get_state(
+            problem=problem,
+            candidate_space=iteration_results[CANDIDATE_SPACE],
+        ),
+        filename=state_dill,
+    )
     ## Models
     models_to_yaml_list(
         models=iteration_results[MODELS],
-        output_yaml=output,
+        output_yaml=models_yaml,
         relative_paths=relative_paths,
     )
     ## Metadata
     metadata = {
         TERMINATE: iteration_results[TERMINATE],
     }
-    with open(output_metadata, 'w') as f:
+    with open(metadata_yaml, 'w') as f:
         yaml.dump(metadata, f)
 
 

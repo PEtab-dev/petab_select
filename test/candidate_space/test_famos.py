@@ -13,6 +13,7 @@ from petab_select.constants import (
     MODEL_HASH,
     MODELS,
     TERMINATE,
+    UNCALIBRATED_MODELS,
     Criterion,
 )
 from petab_select.model import default_compare
@@ -128,8 +129,8 @@ def test_famos(
         return progress_list
 
     progress_list = []
+    all_calibrated_models = {}
     calibrated_models = {}
-    newly_calibrated_models = {}
 
     candidate_space = petab_select_problem.new_candidate_space()
     candidate_space.summary_tsv.unlink(missing_ok=True)
@@ -146,19 +147,17 @@ def test_famos(
             )
 
             # Calibrate candidate models
-            newly_calibrated_models = {}
-            for candidate_model in iteration[MODELS]:
+            calibrated_models = {}
+            for candidate_model in iteration[UNCALIBRATED_MODELS]:
                 calibrate(candidate_model)
-                newly_calibrated_models[
-                    candidate_model.get_hash()
-                ] = candidate_model
+                calibrated_models[candidate_model.get_hash()] = candidate_model
 
             # Finalize iteration
             iteration_results = petab_select.ui.end_iteration(
                 candidate_space=iteration[CANDIDATE_SPACE],
-                newly_calibrated_models=newly_calibrated_models,
+                calibrated_models=calibrated_models,
             )
-            calibrated_models.update(iteration_results[MODELS])
+            all_calibrated_models.update(iteration_results[MODELS])
             candidate_space = iteration_results[CANDIDATE_SPACE]
 
             # Stop iteration if there are no candidate models

@@ -96,6 +96,7 @@ PREDECESSOR_MODEL = 'predecessor_model'
 
 MODEL = 'model'
 MODELS = 'models'
+UNCALIBRATED_MODELS = 'uncalibrated_models'
 TERMINATE = 'terminate'
 
 # Parameters can be fixed to a value, or estimated if indicated with the string

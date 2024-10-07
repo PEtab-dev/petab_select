@@ -14,6 +14,7 @@ from .constants import (
     PREDECESSOR_MODEL,
     TERMINATE,
     TYPE_PATH,
+    UNCALIBRATED_MODELS,
     VIRTUAL_INITIAL_MODEL,
     Criterion,
     Method,
@@ -34,7 +35,7 @@ __all__ = [
 def get_iteration(candidate_space: CandidateSpace) -> dict[str, Any]:
     return {
         CANDIDATE_SPACE: candidate_space,
-        MODELS: candidate_space.models,
+        UNCALIBRATED_MODELS: candidate_space.models,
         PREDECESSOR_MODEL: candidate_space.get_predecessor_model(),
     }
 
@@ -231,8 +232,8 @@ def start_iteration(
 
 def end_iteration(
     candidate_space: CandidateSpace,
-    newly_calibrated_models: Union[list[Model], dict[str, Model]],
-) -> dict[str, Union[dict[ModelHash, Model], bool]]:
+    calibrated_models: list[Model] | dict[str, Model],
+) -> dict[str, dict[ModelHash, Model] | bool | CandidateSpace]:
     """Finalize model selection iteration.
 
     All models from the current iteration are provided to the calibration tool.
@@ -244,9 +245,9 @@ def end_iteration(
     Args:
         candidate_space:
             The candidate space.
-        newly_calibrated_models:
-            The models that were calibrated by the calibration tool in the
-            current iteration.
+        calibrated_models:
+            The calibration results for the uncalibrated models of this
+            iteration.
 
     Returns:
         A dictionary, with the following items:
@@ -257,14 +258,14 @@ def end_iteration(
                 Whether PEtab Select has decided to end the model selection,
                 as a boolean.
     """
-    if isinstance(newly_calibrated_models, list):
-        newly_calibrated_models = {
-            model.get_hash(): model for model in newly_calibrated_models
+    if isinstance(calibrated_models, list):
+        calibrated_models = {
+            model.get_hash(): model for model in calibrated_models
         }
 
     iteration_results = {
         MODELS: candidate_space.get_iteration_calibrated_models(
-            newly_calibrated_models=newly_calibrated_models,
+            calibrated_models=calibrated_models,
             reset=True,
         )
     }

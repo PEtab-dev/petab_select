@@ -721,7 +721,7 @@ def models_from_yaml_list(
     """
     with open(str(model_list_yaml)) as f:
         model_dict_list = yaml.safe_load(f)
-    if model_dict_list is None:
+    if not model_dict_list:
         return []
 
     if not isinstance(model_dict_list, list):
@@ -746,7 +746,7 @@ def models_from_yaml_list(
 
 
 def models_to_yaml_list(
-    models: List[Union[Model, str]],
+    models: list[Model | str] | dict[ModelHash, Model | str],
     output_yaml: TYPE_PATH,
     relative_paths: bool = True,
 ) -> None:
@@ -761,6 +761,9 @@ def models_to_yaml_list(
             Whether to rewrite the paths in each model (e.g. the path to the
             model's PEtab problem) relative to the `output_yaml` location.
     """
+    if isinstance(models, dict):
+        models = list(models.values())
+
     skipped_indices = []
     for index, model in enumerate(models):
         if isinstance(model, Model):
@@ -769,7 +772,11 @@ def models_to_yaml_list(
             continue
         warnings.warn(f"Unexpected model, skipping: {model}.")
         skipped_indices.append(index)
-    models = [model for index, model in models if index not in skipped_indices]
+    models = [
+        model
+        for index, model in enumerate(models)
+        if index not in skipped_indices
+    ]
 
     paths_relative_to = None
     if relative_paths:
