@@ -1,4 +1,6 @@
 """The `Model` class."""
+from __future__ import annotations
+
 import string
 import warnings
 from os.path import relpath
@@ -1038,7 +1040,7 @@ class ModelHash(str):
         """
         return hash(self.petab_hash)
 
-    def __eq__(self, other_hash: "ModelHash") -> bool:
+    def __eq__(self, other_hash: str | ModelHash) -> bool:
         """Check whether two model hashes are equivalent.
 
         This only checks for equivalence up to the same PEtab problem (see
@@ -1047,4 +1049,8 @@ class ModelHash(str):
         Returns:
             Whether the two hashes correspond to equivalent PEtab problems.
         """
-        return self.petab_hash == other_hash.petab_hash
+        petab_hash = other_hash
+        # Check whether the PEtab hash needs to be extracted
+        if MODEL_HASH_DELIMITER in other_hash:
+            petab_hash = ModelHash.from_hash(other_hash).petab_hash
+        return self.petab_hash == petab_hash
