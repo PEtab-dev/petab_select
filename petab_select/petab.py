@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import List, Optional
 
-import petab
+import petab.v1 as petab
 from more_itertools import one
-from petab.C import ESTIMATE, NOMINAL_VALUE
+from petab.v1.C import ESTIMATE, NOMINAL_VALUE
 
 from .constants import PETAB_ESTIMATE_FALSE, TYPE_PARAMETER_DICT, TYPE_PATH
 

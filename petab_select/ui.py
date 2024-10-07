@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-import petab
+import petab.v1 as petab
 
 from .candidate_space import CandidateSpace, FamosCandidateSpace
 from .constants import (
