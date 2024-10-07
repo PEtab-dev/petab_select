@@ -5,10 +5,10 @@ from os.path import relpath
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import petab
+import petab.v1 as petab
 import yaml
 from more_itertools import one
-from petab.C import ESTIMATE, NOMINAL_VALUE
+from petab.v1.C import ESTIMATE, NOMINAL_VALUE
 
 from .constants import (
     CRITERIA,
