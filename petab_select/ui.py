@@ -11,6 +11,7 @@ from .constants import (
     CANDIDATE_SPACE,
     INITIAL_MODEL_METHODS,
     MODELS,
+    PREDECESSOR_MODEL,
     TERMINATE,
     TYPE_PATH,
     VIRTUAL_INITIAL_MODEL,
@@ -34,6 +35,7 @@ def get_iteration(candidate_space: CandidateSpace) -> dict[str, Any]:
     return {
         CANDIDATE_SPACE: candidate_space,
         MODELS: candidate_space.models,
+        PREDECESSOR_MODEL: candidate_space.get_predecessor_model(),
     }
 
 
