@@ -5,7 +5,7 @@ import string
 import warnings
 from os.path import relpath
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import petab.v1 as petab
 import yaml
@@ -42,6 +42,9 @@ from .misc import (
     parameter_string_to_value,
 )
 from .petab import PetabMixin
+
+if TYPE_CHECKING:
+    from .problem import Problem
 
 __all__ = [
     'Model',
@@ -1014,9 +1017,7 @@ class ModelHash(str):
                 for s in self.model_subspace_indices_hash
             ]
 
-    def get_model(
-        self, petab_select_problem: "petab_select.problem.Problem"
-    ) -> Model:
+    def get_model(self, petab_select_problem: Problem) -> Model:
         """Get the model that a hash corresponds to.
 
         Args:
