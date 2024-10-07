@@ -3,8 +3,8 @@ criteria:
   NLLH: -4.087701638723078
 estimated_parameters:
   sigma_x2: 0.12248840167611977
-model_hash: M1_0-000-206d09d4ad12953707
-model_id: M1_0-000-206d09d4ad12953707
+model_hash: M1_0-000
+model_id: M1_0-000
 model_subspace_id: M1_0
 model_subspace_indices:
 - 0

@@ -4,8 +4,8 @@ criteria:
 estimated_parameters:
   k1: 0.20160877910494426
   sigma_x2: 0.11716072823171682
-model_hash: M1_3-000-01370e4bcad02a818b
-model_id: M1_3-000-01370e4bcad02a818b
+model_hash: M1_3-000
+model_id: M1_3-000
 model_subspace_id: M1_3
 model_subspace_indices:
 - 0
