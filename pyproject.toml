@@ -5,12 +5,47 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.black]
+[tool.ruff]
 line-length = 79
-target-version = ['py37', 'py38', 'py39']
-skip-string-normalization = true
+exclude = ["amici_models"]
+extend-include = ["*.ipynb"]
+lint.ignore = [
+    # FIXME: we should be able to remive move of those
+    "D103", # Missing docstring in public function
+    "S101", # Use of assert detected
+    "E501", # Line too long
+    "B028", # No explicit `stacklevel` keyword argument found
+    "C419", # Unnecessary list comprehension
+    "F403", # star import
+    "F821", # undefined name
+    "T201", # print statement
+    "S301", # pickle module used
+    "S102", # Use of exec detected
+    "S307", # Use of possibly insecure function
+    "B026", # Star-arg unpacking after a keyword argument
+    "B006",
+    "B027",
+    "C405",
+    "C416",
+    "E722",
+    "B904",
+    "B007",
+    "F841",
+    "B024",
 
-[tool.isort]
-profile = "black"
-line_length = 79
-multi_line_output = 3
+]
+lint.select = [
+    "F",  # Pyflakes
+    "I",  # isort
+    # "D",  # pydocstyle (PEP 257)  FIXME enable after https://github.com/PEtab-dev/petab_select/pull/67
+    "S",  # flake8-bandit
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "T20",  # flake8-print
+    "W",  # pycodestyle Warnings
+    "E",  # pycodestyle Errors
+    "UP",  # pyupgrade
+    # "ANN",  # flakes-annotations
+]
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
