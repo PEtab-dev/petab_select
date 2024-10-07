@@ -16,6 +16,7 @@ from petab_select.constants import (
     MODEL_SUBSPACE_ID,
     PARAMETER_VALUE_DELIMITER,
     PETAB_YAML,
+    Criterion,
 )
 from petab_select.model import Model
 from petab_select.model_subspace import ModelSubspace
@@ -115,7 +116,9 @@ def test_get_models(model_subspace):
 
 def test_search_forward(model_subspace, initial_model):
     # TODO exclude history, use limit
-    candidate_space = ForwardCandidateSpace(predecessor_model=initial_model)
+    candidate_space = ForwardCandidateSpace(
+        predecessor_model=initial_model, criterion=Criterion.NLLH
+    )
 
     model_subspace.search(candidate_space=candidate_space)
     # Only one model is possible in the forward direction.
@@ -133,7 +136,7 @@ def test_search_forward(model_subspace, initial_model):
     # FIXME currently only returns 1 model anyway
     limit_considered_candidates = 1
     model_subspace.reset_exclusions()
-    candidate_space.reset(predecessor_model=initial_model)
+    candidate_space.reset(predecessor_model=initial_model, excluded_hashes=[])
     model_subspace.search(
         candidate_space=candidate_space,
         limit=limit_considered_candidates,
@@ -145,7 +148,9 @@ def test_search_forward(model_subspace, initial_model):
 
 def test_search_backward(model_subspace, initial_model):
     # TODO exclude history, use limit
-    candidate_space = BackwardCandidateSpace(predecessor_model=initial_model)
+    candidate_space = BackwardCandidateSpace(
+        predecessor_model=initial_model, criterion=Criterion.NLLH
+    )
 
     model_subspace.search(candidate_space=candidate_space)
     # Only two models are possible in the backward direction.
@@ -175,7 +180,7 @@ def test_search_backward(model_subspace, initial_model):
     # Test limit via model subspace
     limit_considered_candidates = 1
     model_subspace.reset_exclusions()
-    candidate_space.reset(predecessor_model=initial_model)
+    candidate_space.reset(predecessor_model=initial_model, excluded_hashes=[])
     model_subspace.search(
         candidate_space=candidate_space,
         limit=limit_considered_candidates,
@@ -187,7 +192,7 @@ def test_search_backward(model_subspace, initial_model):
 
 def test_search_brute_force(model_subspace):
     # TODO exclude history, use limit
-    candidate_space = BruteForceCandidateSpace()
+    candidate_space = BruteForceCandidateSpace(criterion=Criterion.NLLH)
 
     model_subspace.search(candidate_space=candidate_space)
     # All models (6) are accepted as candidates.
@@ -220,7 +225,7 @@ def test_search_brute_force(model_subspace):
     )
 
     limit_accepted_candidates = 3
-    candidate_space.reset(limit=limit_accepted_candidates)
+    candidate_space.reset(limit=limit_accepted_candidates, excluded_hashes=[])
     model_subspace.search(candidate_space=candidate_space)
     """ FIXME remove, since models now have to be explicitly excluded. TODO Test exclusions via problem `add_calibrated_model`
     # Test exclusions: no models are in the candidate space as the model subspace
@@ -239,7 +244,7 @@ def test_search_brute_force(model_subspace):
     candidate_space.limit.set_limit(limit_accepted_candidates)
     with pytest.warns(
         RuntimeWarning,
-        match="Model has been previously excluded from the candidate space so is skipped here.",
+        match=r"Model .* has been previously excluded from the candidate space so is skipped here.",
     ) as warning_record:
         model_subspace.search(candidate_space=candidate_space)
     test_parameterizations = [
@@ -270,7 +275,7 @@ def test_search_brute_force(model_subspace):
     # Test limit via model subspace
     limit_considered_candidates = 1
     model_subspace.reset_exclusions()
-    candidate_space.reset()
+    candidate_space.reset(excluded_hashes=[])
     model_subspace.search(
         candidate_space=candidate_space,
         limit=limit_considered_candidates,
@@ -282,7 +287,9 @@ def test_search_brute_force(model_subspace):
 
 def test_search_swap(model_subspace, initial_model):
     # TODO exclude history, use limit
-    candidate_space = LateralCandidateSpace(predecessor_model=initial_model)
+    candidate_space = LateralCandidateSpace(
+        predecessor_model=initial_model, criterion=Criterion.NLLH
+    )
 
     model_subspace.search(candidate_space=candidate_space)
     # Only two models are possible in the swap direction.
@@ -314,7 +321,7 @@ def test_search_swap(model_subspace, initial_model):
     # FIXME currently only returns 1 model anyway
     limit_considered_candidates = 1
     model_subspace.reset_exclusions()
-    candidate_space.reset(predecessor_model=initial_model)
+    candidate_space.reset(predecessor_model=initial_model, excluded_hashes=[])
     model_subspace.search(
         candidate_space=candidate_space,
         limit=limit_considered_candidates,

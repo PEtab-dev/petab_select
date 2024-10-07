@@ -92,13 +92,13 @@ class CandidateSpace(abc.ABC):
     def __init__(
         self,
         method: Method,
+        criterion: Criterion,
         # TODO add MODEL_TYPE = Union[str, Model], str for VIRTUAL_INITIAL_MODEL
         predecessor_model: Optional[Model] = None,
         excluded_hashes: Optional[list[ModelHash]] = None,
         limit: TYPE_LIMIT = np.inf,
         summary_tsv: TYPE_PATH = None,
         previous_predecessor_model: Optional[Model] = None,
-        criterion: Criterion = None,
         calibrated_models: dict[ModelHash, Model] = None,
     ):
         self.method = method
@@ -123,8 +123,6 @@ class CandidateSpace(abc.ABC):
 
         self.set_iteration_user_calibrated_models({})
         self.criterion = criterion
-        if self.criterion is None:
-            raise ValueError("Please provide a criterion.")
         self.calibrated_models = calibrated_models
         if self.calibrated_models is None:
             self.calibrated_models = {}
