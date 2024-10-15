@@ -13,6 +13,7 @@ Welcome to petab-select's documentation!
    examples
    Test Suite <test_suite>
    api
+   problem_definition
 
 
 Indices and tables
