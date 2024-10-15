@@ -1,3 +1,4 @@
+git+https://github.com/ICB-DCM/pyPESTO.git@select_use_old_calibrations#egg=pypesto
 tox >= 3.12.4
 pre-commit >= 2.10.1
 flake8 >= 4.0.1
