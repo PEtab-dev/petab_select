@@ -1,8 +1,8 @@
 """Implementations of model selection criteria."""
 
 import numpy as np
-import petab
-from petab.C import OBJECTIVE_PRIOR_PARAMETERS, OBJECTIVE_PRIOR_TYPE
+import petab.v1 as petab
+from petab.v1.C import OBJECTIVE_PRIOR_PARAMETERS, OBJECTIVE_PRIOR_TYPE
 
 import petab_select
 
