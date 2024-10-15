@@ -12,6 +12,7 @@ Welcome to petab-select's documentation!
 
    examples
    api
+   problem_definition
 
 
 Indices and tables
