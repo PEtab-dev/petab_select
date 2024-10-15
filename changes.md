@@ -1,5 +1,61 @@
 # Changes
 
+## 0.2.0
+There are some **major breaking changes**, to support users providing previous calibration results, e.g. from previous model selection runs. The following changes are reflected in the notebook examples.
+- **breaking change** previously, calibration tools would call `candidates` at each iteration of model selection. `candidates` has now been renamed to `start_iteration`, and tools are now expected to run `end_iteration` after calibrating the iteration's models. This structure also simplifies the codebase for other features of PEtab Select.
+- **breaking change** previously, calibration tools would determine whether to continue model selection based on whether the candidate space contains any models. Now, calibration tools should rely on the `TERMINATE` signal provided by `end_iteration` to determine whether to continue model selection.
+- **breaking change** PEtab Select hides user-calibrated models from the calibration tool, until `end_iteration` is called. Hence, if a calibration tool does some analysis on the calibrated models of the current iteration, the tool should use the `MODELS` provided by `end_iteration`, and not the MODELS provided by `start_iteration`.
+In summary, here's some pseudocode showing the old way.
+```python
+from petab_select.ui import candidates
+while True:
+    # Get iteration models
+    models = candidates(...).models
+    # Terminate if no models
+    if not models:
+        break
+    # Calibrate iteration models
+    for model in models:
+        calibrate(model)
+    # Print a summary/analysis of current iteration models
+    print_summary_of_iteration_models(models)
+```
+And here's the new way. Full working examples are given in the updated notebooks, including how to handle the candidate space.
+```python
+from petab_select.ui import start_iteration, end_iteration
+from petab_select.constants import MODELS, TERMINATE
+while True:
+    # Initialize iteration, get uncalibrated iteration models
+    iteration = start_iteration(...)
+    # Calibrate iteration models
+    for model in iteration[MODELS]:
+        calibrate(model)
+    # Finalize iteration, get all iteration models and results
+    iteration_results = end_iteration(...)
+    # Print a summary/analysis of all iteration models
+    print_summary_of_iteration_models(iteration_results[MODELS])
+    # Terminate if indicated
+    if iteration_results[TERMINATE]:
+        break
+```
+- Other changes
+    - fixed a buy introduced in 0.1.8, where FAMoS "jump to most distant" moves were not handled correctly
+    - the renamed `candidates`->`start_iteration`:
+        - no longer accepts `calibrated_models`, as they are automatically stored in the `CandidateSpace` now with each `end_iteration`
+        - exclusions via `exclude_models` is no longer supported. exclusions can be supplied with `set_excluded_hashes`
+        - `calibrated_models` and `newly_calibrated_models` no longer need to be tracked between iterations. They are now tracked by the candidate space.
+    - some refactoring
+    - PEtab hashes are now computed for each model, to determine whether they are unique, e.g. for assessing whether a model is already excluded.
+      Two models are considered equivalent if their PEtab hashes match. The PEtab hash is composed of the location of the PEtab YAML in the filesystem,
+      the nominal values of the parameters in the model's PEtab problem, and the estimated parameters of the model's PEtab problem. The PEtab hash
+      digest size is automatically computed to ensure a collision probability of <2^{-64}, given some assumptions. Users can also manually set the digest size.
+      More details are available at the documentation for `petab_select.model.ModelHash`.
+    - model hashes are more readable and composed of three parts:
+        1. the model subspace ID
+        2. the location of the model in its subspace (the model subspace indices)
+        3. the PEtab hash
+    - users can now specify a "PEtab Select problem ID" in their YAML files
+
 ## 0.1.13
 - fixed bug when no predecessor model is provided, introduced in 0.1.11 (#83)
 

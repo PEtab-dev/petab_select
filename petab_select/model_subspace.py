@@ -227,6 +227,8 @@ class ModelSubspace(PetabMixin):
         if not self.check_compatibility_stepwise_method(candidate_space):
             return
 
+        # TODO check inside `continue_searching` too? or move
+        # all limit handling to candidate space
         if candidate_space.limit.reached():
             return
 
