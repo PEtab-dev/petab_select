@@ -1,0 +1,5 @@
+version: beta_1
+criterion: AICc
+method: forward
+model_space_files:
+- model_space.tsv
