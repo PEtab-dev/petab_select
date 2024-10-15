@@ -490,7 +490,7 @@ class CandidateSpace(abc.ABC):
             # in all model subspaces to get an accurate comparable distance. Currently
             # only reasonable when working with a single PEtab problem for all models
             # in all subspaces.
-            if model1.petab_yaml != model1.petab_yaml:
+            if model0.petab_yaml != model1.petab_yaml:
                 raise ValueError(
                     'Computing the distance between different models that '
                     'have different "base" PEtab problems is not yet '
