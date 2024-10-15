@@ -21,12 +21,12 @@ A YAML file with a description of the model selection problem.
 
 .. code-block:: yaml
 
-   format_version: [string]
-   criterion: [string]
-   method: [string]
-   model_space_files: [List of filenames]
-   [constraint_files]: [List of filenames]
-   [predecessor_model_files]: [List of filenames]
+   format_version: # string.
+   criterion: # string.
+   method: # string.
+   model_space_files: # list[string]. Filenames.
+   constraint_files: # list[string] (optional). Filenames.
+   predecessor_model_files: # list[string] (optional). Filenames.
 
 - ``format_version``: The version of the model selection extension format (e.g. ``'beta_1'``)
 - ``criterion``: The criterion by which models should be compared (e.g. ``'AIC'``)
@@ -103,14 +103,14 @@ The only required key is the PEtab YAML, as a model requires a PEtab problem. Al
 
 .. code-block:: yaml
 
-   [criteria]: [Dictionary of criterion names and values]
-   [estimated_parameters]: [Dictionary of parameter IDs and values]
-   [model_hash]: [string]
-   [model_id]: [string]
-   [parameters]: [Dictionary of parameter IDs and values]
-   petab_yaml: [string]
-   [predecessor_model_hash]: [string]
-   [sbml]: [string]
+   criteria: # dict[string, float] (optional). Criterion ID => criterion value.
+   estimated_parameters: # dict[string, float] (optional). Parameter ID => parameter value.
+   model_hash: # string (optional).
+   model_id: # string (optional).
+   parameters: # dict[string, float] (optional). Parameter ID => parameter value or "estimate".
+   petab_yaml: # string.
+   predecessor_model_hash: # string (optional).
+   sbml: # string (optional).
 
 - ``criteria``: The value of the criterion by which model selection was performed, at least. Optionally, other criterion values too.
 - ``estimated_parameters``: Parameter estimates, not only of parameters specified to be estimated in a model space file, but also parameters specified to be estimated in the original PEtab problem of the model.
