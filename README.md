@@ -1,5 +1,7 @@
 # PEtab Select
 
+[![PyPI - Version](https://img.shields.io/pypi/v/petab-select)](https://pypi.org/project/petab-select/)
+
 The repository for the development of the extension to PEtab for model
 selection, including the additional file formats and Python 3 package.
 
