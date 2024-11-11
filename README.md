@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/PEtab-dev/petab_select/logo/doc/logo/logo.svg" height="200" alt="PEtab Select logo">
+<img src="https://raw.githubusercontent.com/PEtab-dev/petab_select/logo/doc/logo/logo-wide.svg" height="200" alt="PEtab Select logo">
 
 [![PyPI - Version](https://img.shields.io/pypi/v/petab-select)](https://pypi.org/project/petab-select/)
 
