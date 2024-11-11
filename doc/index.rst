@@ -11,7 +11,9 @@ Welcome to petab-select's documentation!
    :caption: Contents:
 
    examples
+   Test Suite <test_suite>
    api
+   problem_definition
 
 
 Indices and tables
