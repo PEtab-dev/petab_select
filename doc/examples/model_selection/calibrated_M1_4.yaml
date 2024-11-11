@@ -1,11 +1,18 @@
 criteria:
-  AIC: 30
-model_id: M1_4_0
-parameters:
-  k1: 0.2
-  k2: estimate
-  k3: estimate
+  AIC: 15
 estimated_parameters:
   k2: 0.15
   k3: 0.0
+model_hash: M1_4-000
+model_id: M1_4-000
+model_subspace_id: M1_4
+model_subspace_indices:
+- 0
+- 0
+- 0
+parameters:
+  k1: 0
+  k2: estimate
+  k3: estimate
 petab_yaml: ../model_selection/petab_problem.yaml
+predecessor_model_hash: null

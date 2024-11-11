@@ -45,20 +45,6 @@ def get_state(
     return state
 
 
-def check_state_compatibility(
-    state: Dict[str, Any],
-    problem: Problem,
-    candidate_space: CandidateSpace,
-):
-    # if state['problem'].method != problem.method:
-    #    warnings.warn(
-    #        'The method in the problem loaded from the state does not match '
-    #        'the method specified in either the PEtab Select YAML file or '
-    #        'specified explicitly with this command.'
-    #    )
-    pass
-
-
 @click.group()
 def cli():
     pass
@@ -192,7 +178,6 @@ def start_iteration(
     # `petab_select.ui.start_iteration` uses `petab_select.Problem.method` to
     # generate the candidate space.
     problem.method = method
-
     candidate_space = problem.new_candidate_space(limit=limit)
 
     # Setup state
@@ -200,13 +185,13 @@ def start_iteration(
         Path(state_dill).parent.mkdir(parents=True, exist_ok=True)
     else:
         state = read_state(state_dill)
+        if state["problem"].method != problem.method:
+            raise NotImplementedError(
+                "Changing method in the middle of a run is currently not "
+                "supported. Delete the state to start with a new method."
+            )
         problem = state['problem']
         candidate_space = state['candidate_space']
-        check_state_compatibility(
-            state=state,
-            problem=problem,
-            candidate_space=candidate_space,
-        )
 
     excluded_models = []
     # TODO seems like default is `()`, not `None`...
@@ -345,11 +330,6 @@ def end_iteration(
     state = read_state(state_dill)
     problem = state['problem']
     candidate_space = state['candidate_space']
-    check_state_compatibility(
-        state=state,
-        problem=problem,
-        candidate_space=candidate_space,
-    )
 
     calibrated_models = {}
     if calibrated_models_yamls:
@@ -513,7 +493,7 @@ def models_to_petab(
     print(result_string)
 
 
-@cli.command("best")
+@cli.command("get_best")
 @click.option(
     '--problem',
     '-p',
@@ -559,7 +539,7 @@ def models_to_petab(
     default=False,
     help='Whether to output paths relative to the output file.',
 )
-def best(
+def get_best(
     problem_yaml: str,
     models_yamls: List[str],
     output: str,
@@ -578,24 +558,11 @@ def best(
 
     problem = Problem.from_yaml(problem_yaml)
 
-    if state_filename is not None:
-        state = read_state(state_filename)
-        check_state_compatibility(
-            state=state,
-            problem=problem,
-            candidate_space=None,
-        )
-        set_state(
-            state=state,
-            problem=problem,
-            candidate_space=None,
-        )
-
     models = []
     for models_yaml in models_yamls:
         models.extend(models_from_yaml_list(models_yaml))
 
-    best_model = ui.best(
+    best_model = ui.get_best(
         problem=problem,
         models=models,
         criterion=criterion,
@@ -607,4 +574,4 @@ cli.add_command(start_iteration)
 cli.add_command(end_iteration)
 cli.add_command(model_to_petab)
 cli.add_command(models_to_petab)
-cli.add_command(best)
+cli.add_command(get_best)

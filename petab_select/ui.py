@@ -27,7 +27,7 @@ __all__ = [
     'end_iteration',
     'model_to_petab',
     'models_to_petab',
-    'best',
+    'get_best',
     'write_summary_tsv',
 ]
 
@@ -330,7 +330,7 @@ def models_to_petab(
     return result
 
 
-def best(
+def get_best(
     problem: Problem,
     models: List[Model],
     criterion: Optional[Union[str, None]] = None,

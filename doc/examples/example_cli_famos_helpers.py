@@ -49,7 +49,9 @@ def parse_summary_to_progress_list(
     df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]
 
     parameter_list = list(
-        one(petab_select_problem.model_space.model_subspaces).parameters
+        one(
+            petab_select_problem.model_space.model_subspaces.values()
+        ).parameters
     )
 
     progress_list = []
