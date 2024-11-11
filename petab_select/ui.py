@@ -1,45 +1,62 @@
 import copy
+import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-import petab
+import petab.v1 as petab
 
 from .candidate_space import CandidateSpace, FamosCandidateSpace
 from .constants import (
+    CANDIDATE_SPACE,
     INITIAL_MODEL_METHODS,
+    MODELS,
+    PREDECESSOR_MODEL,
+    TERMINATE,
     TYPE_PATH,
+    UNCALIBRATED_MODELS,
     VIRTUAL_INITIAL_MODEL,
     Criterion,
     Method,
 )
-from .model import Model, default_compare
+from .model import Model, ModelHash, default_compare
 from .problem import Problem
 
 __all__ = [
-    'candidates',
+    'start_iteration',
+    'end_iteration',
     'model_to_petab',
     'models_to_petab',
-    'best',
+    'get_best',
     'write_summary_tsv',
 ]
 
 
-def candidates(
+def get_iteration(candidate_space: CandidateSpace) -> dict[str, Any]:
+    return {
+        CANDIDATE_SPACE: candidate_space,
+        UNCALIBRATED_MODELS: candidate_space.models,
+        PREDECESSOR_MODEL: candidate_space.get_predecessor_model(),
+    }
+
+
+def start_iteration(
     problem: Problem,
     candidate_space: Optional[CandidateSpace] = None,
     limit: Union[float, int] = np.inf,
     limit_sent: Union[float, int] = np.inf,
-    calibrated_models: Optional[Dict[str, Model]] = None,
-    newly_calibrated_models: Optional[Dict[str, Model]] = None,
-    excluded_models: Optional[List[Model]] = None,
-    excluded_model_hashes: Optional[List[str]] = None,
+    excluded_hashes: Optional[list[ModelHash]] = None,
     criterion: Optional[Criterion] = None,
+    user_calibrated_models: Optional[
+        Union[list[Model], dict[ModelHash, Model]]
+    ] = None,
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
-    A predecessor model is chosen from ``newly_calibrated_models`` if available,
-    otherwise from ``calibrated_models``, and is used for applicable methods.
+    The predecessor model can be specified in the `candidate_space`
+    (:func:`CandidateSpace.set_predecessor_model). If `candidate_space` is not
+    provided, then the predecessor model can be specified in `problem`
+    (:attr:`Problem.candidate_space_arguments`).
 
     Args:
         problem:
@@ -52,43 +69,54 @@ def candidates(
         limit_sent:
             The maximum number of models sent to the candidate space (which are possibly
             rejected and excluded).
-        calibrated_models:
-            All calibrated models in the model selection.
-        newly_calibrated_models:
-            All calibrated models in the most recent iteration of model
-            selection.
-        excluded_models:
-            Models that will be excluded from model subspaces during the search for
-            candidates.
-        excluded_model_hashes:
-            Hashes of models that will be excluded from model subspaces during the
-            search for candidates.
+        excluded_hashes:
+            Hashes of models that will be excluded from the candidate space.
         criterion:
             The criterion by which models will be compared. Defaults to the criterion
             defined in the PEtab Select problem.
+        user_calibrated_models:
+            Models that were already calibrated by the user. When supplied as a
+            `dict`, the keys are model hashes. If a model in the
+            candidates has the same hash as a model in
+            `user_calibrated_models`, then the candidate will be replaced with
+            the calibrated version. This calibrated model will still exist in
+            the candidate space, so calibration tools should take care to skip
+            calibration of already-calibrated models. This is so that users
+            can still see that this model was "visited" during model selection.
+            If you do not want this, and want the model to be automatically
+            skipped, supply it in `calibrated_models` instead.
 
     Returns:
-        The candidate space, which contains the candidate models.
+        A dictionary, with the following items:
+            :const:`petab_select.constants.CANDIDATE_SPACE`:
+                The candidate space.
+            :const:`petab_select.constants.MODELS`:
+                The uncalibrated models of the current iteration.
+    """
+
+    """
+    FIXME(dilpath)
+    - currently takes predecessor model from
+      candidate_space.previous_predecessor_model
+    - deprecate limit_sent? possibly unused by anyone
+    - add `Iteration` class to manage an iteration, append to
+      `CandidateSpace.iterations`?
     """
     do_search = True
     # FIXME might be difficult for a CLI tool to specify a specific predecessor
     #       model if their candidate space has models. Need a way to empty
     #       the candidate space of models... might be difficult with pickled
     #       candidate space objects/arguments?
-    if excluded_models is None:
-        excluded_models = []
-    if excluded_model_hashes is None:
-        excluded_model_hashes = []
-    if calibrated_models is None:
-        calibrated_models = {}
-    if newly_calibrated_models is None:
-        newly_calibrated_models = {}
-    calibrated_models.update(newly_calibrated_models)
-    if criterion is None:
-        criterion = problem.criterion
+    if excluded_hashes is None:
+        excluded_hashes = []
     if candidate_space is None:
         candidate_space = problem.new_candidate_space(limit=limit)
-    candidate_space.exclude_hashes(calibrated_models)
+
+    if criterion is None:
+        criterion = problem.criterion
+    if criterion is None:
+        raise ValueError("Please provide a criterion.")
+    candidate_space.criterion = criterion
 
     # Set the predecessor model to the previous predecessor model.
     predecessor_model = candidate_space.previous_predecessor_model
@@ -109,18 +137,24 @@ def candidates(
             # Dummy zero likelihood, which the predecessor model will
             # improve on after it's actually calibrated.
             predecessor_model.set_criterion(Criterion.LH, 0.0)
-            return candidate_space
+            candidate_space.set_iteration_user_calibrated_models(
+                user_calibrated_models=user_calibrated_models
+            )
+            return get_iteration(candidate_space=candidate_space)
 
         # Exclude the calibrated predecessor model.
         if not candidate_space.excluded(predecessor_model):
-            candidate_space.exclude(predecessor_model)
+            candidate_space.set_excluded_hashes(
+                predecessor_model,
+                extend=True,
+            )
 
     # Set the new predecessor_model from the initial model or
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
-    if newly_calibrated_models:
+    if candidate_space.latest_iteration_calibrated_models:
         predecessor_model = problem.get_best(
-            newly_calibrated_models.values(),
+            candidate_space.latest_iteration_calibrated_models.values(),
             criterion=criterion,
         )
         # If the new predecessor model isn't better than the previous one,
@@ -134,23 +168,15 @@ def candidates(
         ):
             predecessor_model = candidate_space.previous_predecessor_model
 
-        try:
-            candidate_space.update_after_calibration(
-                calibrated_models=calibrated_models,
-                newly_calibrated_models=newly_calibrated_models,
-                criterion=criterion,
-            )
-        except StopIteration:
-            do_search = False
-
         # If candidate space not Famos then ignored.
         # Else, in case we jumped to most distant in this iteration, go into
         # calibration with only the model we've jumped to.
+        # TODO handle as proper `MostDistantCandidateSpace`
         if (
             isinstance(candidate_space, FamosCandidateSpace)
             and candidate_space.jumped_to_most_distant
         ):
-            return candidate_space
+            return get_iteration(candidate_space=candidate_space)
 
     if (
         predecessor_model is None
@@ -164,14 +190,8 @@ def candidates(
     if predecessor_model is not None:
         candidate_space.reset(predecessor_model)
 
-    # TODO support excluding model IDs? should be faster but may have issues, e.g.:
-    #      - duplicate model IDs among multiple model subspaces
-    #      - perhaps less portable if model IDs are generated differently on different
-    #        computers
-    problem.model_space.exclude_models(models=excluded_models)
-    problem.model_space.exclude_model_hashes(
-        model_hashes=excluded_model_hashes
-    )
+    # FIXME store exclusions in candidate space only
+    problem.model_space.exclude_model_hashes(model_hashes=excluded_hashes)
     while do_search:
         problem.model_space.search(candidate_space, limit=limit_sent)
 
@@ -192,9 +212,7 @@ def candidates(
         if isinstance(candidate_space, FamosCandidateSpace):
             try:
                 candidate_space.update_after_calibration(
-                    calibrated_models=calibrated_models,
-                    newly_calibrated_models={},
-                    criterion=criterion,
+                    iteration_calibrated_models={},
                 )
                 continue
             except StopIteration:
@@ -206,7 +224,66 @@ def candidates(
 
     candidate_space.previous_predecessor_model = predecessor_model
 
-    return candidate_space
+    candidate_space.set_iteration_user_calibrated_models(
+        user_calibrated_models=user_calibrated_models
+    )
+    return get_iteration(candidate_space=candidate_space)
+
+
+def end_iteration(
+    candidate_space: CandidateSpace,
+    calibrated_models: list[Model] | dict[str, Model],
+) -> dict[str, dict[ModelHash, Model] | bool | CandidateSpace]:
+    """Finalize model selection iteration.
+
+    All models from the current iteration are provided to the calibration tool.
+    This includes user-calibrated models that the tool did not see until now.
+
+    A termination signal is also provided, if the model selection algorithm
+    ends.
+
+    Args:
+        candidate_space:
+            The candidate space.
+        calibrated_models:
+            The calibration results for the uncalibrated models of this
+            iteration.
+
+    Returns:
+        A dictionary, with the following items:
+            :const:`petab_select.constants.MODELS`:
+                All calibrated models for the current iteration as a
+                dictionary, where keys are model hashes, and values are models.
+            :const:`petab_select.constants.TERMINATE`:
+                Whether PEtab Select has decided to end the model selection,
+                as a boolean.
+    """
+    if isinstance(calibrated_models, list):
+        calibrated_models = {
+            model.get_hash(): model for model in calibrated_models
+        }
+
+    iteration_results = {
+        MODELS: candidate_space.get_iteration_calibrated_models(
+            calibrated_models=calibrated_models,
+            reset=True,
+        )
+    }
+
+    terminate = not iteration_results[MODELS]
+    try:
+        candidate_space.update_after_calibration(
+            iteration_calibrated_models=iteration_results[MODELS],
+        )
+    except StopIteration:
+        # e.g. FAMoS switch_method encountered "None", indicating end of model
+        # selection
+        terminate = True
+    iteration_results[TERMINATE] = terminate
+
+    iteration_results[CANDIDATE_SPACE] = candidate_space
+
+    return iteration_results
 
 
 def model_to_petab(
@@ -253,7 +330,7 @@ def models_to_petab(
     return result
 
 
-def best(
+def get_best(
     problem: Problem,
     models: List[Model],
     criterion: Optional[Union[str, None]] = None,

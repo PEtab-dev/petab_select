@@ -3,13 +3,19 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import petab
 import pytest
 from more_itertools import one
 
 import petab_select
 from petab_select import ESTIMATE, FamosCandidateSpace, Method, Model
-from petab_select.constants import Criterion
+from petab_select.constants import (
+    CANDIDATE_SPACE,
+    MODEL_HASH,
+    MODELS,
+    TERMINATE,
+    UNCALIBRATED_MODELS,
+    Criterion,
+)
 from petab_select.model import default_compare
 
 
@@ -30,8 +36,11 @@ def expected_criterion_values(input_path):
     calibration_results = pd.read_csv(
         input_path / "test_files" / "calibration_results.tsv",
         sep="\t",
-    ).set_index('model_id')
-    return dict(calibration_results['AICc'])
+    ).set_index(MODEL_HASH)
+    return {
+        petab_select.model.ModelHash.from_hash(k): v
+        for k, v in calibration_results[Criterion.AICC].items()
+    }
 
 
 @pytest.fixture
@@ -76,24 +85,18 @@ def expected_progress_list():
     ]
 
 
-@pytest.mark.skip(reason="FIXME")
 def test_famos(
     petab_select_problem,
     expected_criterion_values,
     expected_progress_list,
 ):
-    def set_model_id(model):
-        model.model_id = "M_" + ''.join(
-            '1' if v == ESTIMATE else '0' for v in model.parameters.values()
-        )
-
     def calibrate(
         model,
         expected_criterion_values=expected_criterion_values,
     ) -> None:
         model.set_criterion(
             criterion=petab_select_problem.criterion,
-            value=expected_criterion_values[model.model_id],
+            value=expected_criterion_values[model.get_hash()],
         )
 
     def parse_summary_to_progress_list(summary_tsv: str) -> Tuple[Method, set]:
@@ -102,9 +105,9 @@ def test_famos(
         df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]
 
         parameter_list = list(
-            petab_select_problem.model_space.model_subspaces[
-                'model_subspace_1'
-            ].parameters
+            one(
+                petab_select_problem.model_space.model_subspaces.values()
+            ).parameters
         )
 
         progress_list = []
@@ -126,42 +129,50 @@ def test_famos(
         return progress_list
 
     progress_list = []
+    all_calibrated_models = {}
     calibrated_models = {}
-    newly_calibrated_models = {}
 
     candidate_space = petab_select_problem.new_candidate_space()
     candidate_space.summary_tsv.unlink(missing_ok=True)
     candidate_space._setup_summary_tsv()
 
-    with pytest.raises(StopIteration, match="No valid models found."):
-        predecessor_model = candidate_space.predecessor_model
+    with pytest.raises(
+        StopIteration, match="No valid models found."
+    ), pytest.warns(RuntimeWarning) as warning_record:
         while True:
-            # Save predecessor_models and find new candidates
-            if candidate_space.predecessor_model is not None:
-                previous_predecessor_model = candidate_space.predecessor_model
-            else:
-                previous_predecessor_model = one(candidate_space.models)
-            candidate_space = petab_select.ui.candidates(
+            # Initialize iteration
+            iteration = petab_select.ui.start_iteration(
                 problem=petab_select_problem,
                 candidate_space=candidate_space,
-                calibrated_models=calibrated_models,
-                newly_calibrated_models=newly_calibrated_models,
-                previous_predecessor_model=previous_predecessor_model,
             )
 
             # Calibrate candidate models
-            newly_calibrated_models = {}
-            for candidate_model in candidate_space.models:
-                set_model_id(candidate_model)
+            calibrated_models = {}
+            for candidate_model in iteration[UNCALIBRATED_MODELS]:
                 calibrate(candidate_model)
-                newly_calibrated_models[
-                    candidate_model.get_hash()
-                ] = candidate_model
-                calibrated_models.update(newly_calibrated_models)
+                calibrated_models[candidate_model.get_hash()] = candidate_model
+
+            # Finalize iteration
+            iteration_results = petab_select.ui.end_iteration(
+                candidate_space=iteration[CANDIDATE_SPACE],
+                calibrated_models=calibrated_models,
+            )
+            all_calibrated_models.update(iteration_results[MODELS])
+            candidate_space = iteration_results[CANDIDATE_SPACE]
 
             # Stop iteration if there are no candidate models
-            if not candidate_space.models:
+            if iteration_results[TERMINATE]:
                 raise StopIteration("No valid models found.")
+
+    # A model is encountered twice and therefore skipped.
+    expected_repeated_model_hash = petab_select_problem.get_model(
+        model_subspace_id=one(
+            petab_select_problem.model_space.model_subspaces
+        ),
+        model_subspace_indices=[int(s) for s in "0001011010010010"],
+    ).get_hash()
+    assert len(warning_record) == 1
+    assert expected_repeated_model_hash in warning_record[0].message.args[0]
 
     progress_list = parse_summary_to_progress_list(candidate_space.summary_tsv)
 

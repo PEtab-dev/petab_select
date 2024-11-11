@@ -13,11 +13,12 @@ from .constants import (
     METHOD,
     MODEL_SPACE_FILES,
     PREDECESSOR_MODEL,
+    PROBLEM_ID,
     VERSION,
     Criterion,
     Method,
 )
-from .model import Model, default_compare
+from .model import Model, ModelHash, default_compare
 from .model_space import ModelSpace
 
 __all__ = [
@@ -25,7 +26,7 @@ __all__ = [
 ]
 
 
-class Problem(abc.ABC):
+class Problem:
     """Handle everything related to the model selection problem.
 
     Attributes:
@@ -34,9 +35,8 @@ class Problem(abc.ABC):
         calibrated_models:
             Calibrated models. Will be used to augment the model selection problem (e.g.
             by excluding them from the model space).
-            FIXME(dilpath) refactor out
         candidate_space_arguments:
-            Custom options that are used to construct the candidate space.
+            Arguments are forwarded to the candidate space constructor.
         compare:
             A method that compares models by selection criterion. See
             :func:`petab_select.model.default_compare` for an example.
@@ -49,9 +49,6 @@ class Problem(abc.ABC):
         yaml_path:
             The location of the selection problem YAML file. Used for relative
             paths that exist in e.g. the model space files.
-
-            TODO should the relative paths be relative to the YAML or the file that contains them?
-
     """
 
     """
@@ -62,6 +59,11 @@ class Problem(abc.ABC):
             Reason for not saving:
                 Essentially reproducible from :attr:`Problem.method` and
                 :attr:`Problem.calibrated_models`.
+    FIXME(dilpath) refactor calibrated_models out, move to e.g. candidate
+                   space args
+            TODO should the relative paths be relative to the YAML or the file that contains them?
+                 problem relative to file that contains them
+
     """
 
     def __init__(
@@ -70,12 +72,14 @@ class Problem(abc.ABC):
         candidate_space_arguments: Dict[str, Any] = None,
         compare: Callable[[Model, Model], bool] = None,
         criterion: Criterion = None,
+        problem_id: str = None,
         method: str = None,
         version: str = None,
         yaml_path: Union[Path, str] = None,
     ):
         self.model_space = model_space
         self.criterion = criterion
+        self.problem_id = problem_id
         self.method = method
         self.version = version
         self.yaml_path = Path(yaml_path)
@@ -87,6 +91,14 @@ class Problem(abc.ABC):
         self.compare = compare
         if self.compare is None:
             self.compare = partial(default_compare, criterion=self.criterion)
+
+    def __str__(self):
+        return (
+            f"YAML: {self.yaml_path}\n"
+            f"Method: {self.method}\n"
+            f"Criterion: {self.criterion}\n"
+            f"Version: {self.version}\n"
+        )
 
     def get_path(self, relative_path: Union[str, Path]) -> Path:
         """Get the path to a resource, from a relative path.
@@ -173,6 +185,8 @@ class Problem(abc.ABC):
         if criterion is not None:
             criterion = Criterion(criterion)
 
+        problem_id = problem_specification.get(PROBLEM_ID, None)
+
         candidate_space_arguments = problem_specification.get(
             CANDIDATE_SPACE_ARGUMENTS,
             None,
@@ -190,13 +204,14 @@ class Problem(abc.ABC):
             criterion=criterion,
             # TODO refactor method to use enum
             method=problem_specification.get(METHOD, None),
+            problem_id=problem_id,
             version=problem_specification.get(VERSION, None),
             yaml_path=yaml_path,
         )
 
     def get_best(
         self,
-        models: Optional[Iterable[Model]],
+        models: Optional[Union[list[Model], dict[ModelHash, Model]]],
         criterion: Optional[Union[str, None]] = None,
         compute_criterion: bool = False,
     ) -> Model:
@@ -219,6 +234,8 @@ class Problem(abc.ABC):
         Returns:
             The best model.
         """
+        if isinstance(models, dict):
+            models = list(models.values())
         if criterion is None:
             criterion = self.criterion
 
@@ -239,6 +256,27 @@ class Problem(abc.ABC):
             )
         return best_model
 
+    def model_hash_to_model(self, model_hash: Union[str, ModelHash]) -> Model:
+        """Get the model that matches a model hash.
+
+        Args:
+            model_hash:
+                The model hash.
+
+        Returns:
+            The model.
+        """
+        return ModelHash.from_hash(model_hash).get_model(
+            petab_select_problem=self,
+        )
+
+    def get_model(
+        self, model_subspace_id: str, model_subspace_indices: list[int]
+    ) -> Model:
+        return self.model_space.model_subspaces[
+            model_subspace_id
+        ].indices_to_model(model_subspace_indices)
+
     def new_candidate_space(
         self,
         *args,
@@ -255,6 +293,7 @@ class Problem(abc.ABC):
         """
         if method is None:
             method = self.method
+        kwargs[CRITERION] = kwargs.get(CRITERION, self.criterion)
         candidate_space_class = method_to_candidate_space_class(method)
         candidate_space_arguments = (
             candidate_space_class.read_arguments_from_yaml_dict(

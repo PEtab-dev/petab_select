@@ -15,6 +15,7 @@ from petab_select.constants import (
     MODEL_SUBSPACE_ID,
     PARAMETER_VALUE_DELIMITER,
     PETAB_YAML,
+    Criterion,
 )
 from petab_select.model import Model
 from petab_select.model_space import ModelSpace
@@ -36,7 +37,7 @@ def model_space(model_space_files) -> ModelSpace:
 
 
 def test_model_space_forward_virtual(model_space):
-    candidate_space = ForwardCandidateSpace()
+    candidate_space = ForwardCandidateSpace(criterion=Criterion.NLLH)
     model_space.search(candidate_space)
 
     # The forward candidate space is initialized without a model, so a virtual initial
@@ -72,18 +73,21 @@ def test_model_space_forward_virtual(model_space):
 
 @pytest.mark.filterwarnings('ignore:Model has been previously excluded')
 def test_model_space_backward_virtual(model_space):
-    candidate_space = BackwardCandidateSpace()
+    candidate_space = BackwardCandidateSpace(criterion=Criterion.NLLH)
     model_space.search(candidate_space)
 
-    # The forward candidate space is initialized without a model, so a virtual initial
-    # model is used. This means the expected models are the "smallest" models (as many
-    # fixed parameters as possible) in the model space.
+    # The backward candidate space is initialized without a model, so a virtual
+    # initial model is used. This means the expected models are the "smallest"
+    # models (as many fixed parameters as possible) in the model space.
     expected_models = [
         ('model_subspace_1', {f'k{i}': ESTIMATE for i in range(1, 5)}),
+        # This model could be excluded, if the hashes/model comparisons enabled
+        # identification of identical models between different subspaces.
+        # TODO delete above, keep below comment, when implemented...
         # This model is not included because it is exactly the same as the
         # other model (same PEtab YAML and parameterization), hence has been
         # excluded from the candidate space.
-        # ('model_subspace_3', {f'k{i}': ESTIMATE for i in range(1,5)}),
+        ('model_subspace_3', {f'k{i}': ESTIMATE for i in range(1, 5)}),
     ]
 
     models = [
@@ -100,7 +104,7 @@ def test_model_space_backward_virtual(model_space):
 
 
 def test_model_space_brute_force_limit(model_space):
-    candidate_space = BruteForceCandidateSpace()
+    candidate_space = BruteForceCandidateSpace(criterion=Criterion.NLLH)
     model_space.search(candidate_space, limit=13)
 
     # There are fifteen total models in the model space. Limiting to 13 models should

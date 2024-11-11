@@ -1,0 +1,48 @@
+- criteria:
+    AIC: 180
+  estimated_parameters: {}
+  model_hash: M1_0-000
+  model_id: M1_0-000
+  model_subspace_id: M1_0
+  model_subspace_indices:
+  - 0
+  - 0
+  - 0
+  parameters:
+    k1: 0
+    k2: 0
+    k3: 0
+  petab_yaml: ../model_selection/petab_problem.yaml
+  predecessor_model_hash: null
+- criteria:
+    AIC: 100
+  estimated_parameters: {}
+  model_hash: M1_1-000
+  model_id: M1_1-000
+  model_subspace_id: M1_1
+  model_subspace_indices:
+  - 0
+  - 0
+  - 0
+  parameters:
+    k1: 0.2
+    k2: 0.1
+    k3: estimate
+  petab_yaml: ../model_selection/petab_problem.yaml
+  predecessor_model_hash: null
+- criteria:
+    AIC: 50
+  estimated_parameters: {}
+  model_hash: M1_2-000
+  model_id: M1_2-000
+  model_subspace_id: M1_2
+  model_subspace_indices:
+  - 0
+  - 0
+  - 0
+  parameters:
+    k1: 0.2
+    k2: estimate
+    k3: 0
+  petab_yaml: ../model_selection/petab_problem.yaml
+  predecessor_model_hash: null
