@@ -86,6 +86,12 @@ setup(
             # FIXME
             # 'pypesto > 0.2.13',
             'pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@select_use_old_calibrations#egg=pypesto',
+            'tox >= 3.12.4',
+            'flake8 >= 4.0.1',
+        ],
+        'dev': [
+            requirement.strip()
+            for requirement in open("requirements_dev.txt").readlines()
         ],
         'doc': [
             'sphinx>=3.5.3,<7',
