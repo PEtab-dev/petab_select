@@ -1,9 +1,11 @@
 """The `Model` class."""
+from __future__ import annotations
+
 import string
 import warnings
 from os.path import relpath
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import petab.v1 as petab
 import yaml
@@ -22,6 +24,7 @@ from .constants import (
     MODEL_SUBSPACE_INDICES_HASH_MAP,
     PARAMETERS,
     PETAB_ESTIMATE_TRUE,
+    PETAB_HASH_DIGEST_SIZE,
     PETAB_PROBLEM,
     PETAB_YAML,
     PREDECESSOR_MODEL_HASH,
@@ -39,6 +42,9 @@ from .misc import (
     parameter_string_to_value,
 )
 from .petab import PetabMixin
+
+if TYPE_CHECKING:
+    from .problem import Problem
 
 __all__ = [
     'Model',
@@ -715,7 +721,7 @@ def models_from_yaml_list(
     """
     with open(str(model_list_yaml)) as f:
         model_dict_list = yaml.safe_load(f)
-    if model_dict_list is None:
+    if not model_dict_list:
         return []
 
     if not isinstance(model_dict_list, list):
@@ -740,7 +746,7 @@ def models_from_yaml_list(
 
 
 def models_to_yaml_list(
-    models: List[Union[Model, str]],
+    models: list[Model | str] | dict[ModelHash, Model | str],
     output_yaml: TYPE_PATH,
     relative_paths: bool = True,
 ) -> None:
@@ -755,6 +761,9 @@ def models_to_yaml_list(
             Whether to rewrite the paths in each model (e.g. the path to the
             model's PEtab problem) relative to the `output_yaml` location.
     """
+    if isinstance(models, dict):
+        models = list(models.values())
+
     skipped_indices = []
     for index, model in enumerate(models):
         if isinstance(model, Model):
@@ -763,7 +772,11 @@ def models_to_yaml_list(
             continue
         warnings.warn(f"Unexpected model, skipping: {model}.")
         skipped_indices.append(index)
-    models = [model for index, model in models if index not in skipped_indices]
+    models = [
+        model
+        for index, model in enumerate(models)
+        if index not in skipped_indices
+    ]
 
     paths_relative_to = None
     if relative_paths:
@@ -779,6 +792,22 @@ def models_to_yaml_list(
 class ModelHash(str):
     """A class to handle model hash functionality.
 
+    The model hash is designed to be human-readable and able to be converted
+    back into the corresponding model. Currently, if two models from two
+    different model subspaces are actually the same PEtab problem, they will
+    still have different model hashes.
+
+    Attributes:
+        model_subspace_id:
+            The ID of the model subspace of the model. Unique up to a single
+            PEtab Select problem model space.
+        model_subspace_indices_hash:
+            A hash of the location of the model in its model
+            subspace. Unique up to a single model subspace.
+    """
+
+    # FIXME petab problem--specific hashes that are cross-platform?
+    """
     The model hash is designed to be: human-readable; able to be converted
     back into the corresponding model, and unique up to the same PEtab
     problem and parameters.
@@ -797,89 +826,105 @@ class ModelHash(str):
     but if these models arise during model selection, then only one of them
     will be calibrated.
 
-    Attributes:
-        model_subspace_id:
-            The ID of the model subspace of the model. Unique up to a single
-            PEtab Select problem model space.
-        model_subspace_indices_hash:
-            A hash of the location of the model in its model
-            subspace. Unique up to a single model subspace.
-        petab_hash:
-            A hash that is unique up to the same PEtab problem, which is
-            determined by: the PEtab problem YAML file location, nominal
-            parameter values, and parameters set to be estimated. This means
-            that different models may have the same `unique_petab_hash`,
-            because they are the same estimation problem.
+    The PEtab hash size is computed automatically as the smallest size that
+    ensures a collision probability of less than $2^{-64}$.
+    N.B.: this assumes only one model subspace, and only 2 options for each
+    parameter (e.g. `0` and `estimate`). You can manually set the size with
+    :const:`petab_select.constants.PETAB_HASH_DIGEST_SIZE`.
+
+    petab_hash:
+        A hash that is unique up to the same PEtab problem, which is
+        determined by: the PEtab problem YAML file location, nominal
+        parameter values, and parameters set to be estimated. This means
+        that different models may have the same `unique_petab_hash`,
+        because they are the same estimation problem.
     """
 
     def __init__(
         self,
         model_subspace_id: str,
         model_subspace_indices_hash: str,
-        petab_hash: str,
+        # petab_hash: str,
     ):
         self.model_subspace_id = model_subspace_id
         self.model_subspace_indices_hash = model_subspace_indices_hash
-        self.petab_hash = petab_hash
+        # self.petab_hash = petab_hash
 
     def __new__(
         cls,
         model_subspace_id: str,
         model_subspace_indices_hash: str,
-        petab_hash: str,
+        # petab_hash: str,
     ):
         hash_str = MODEL_HASH_DELIMITER.join(
             [
                 model_subspace_id,
                 model_subspace_indices_hash,
-                petab_hash,
+                # petab_hash,
             ]
         )
         instance = super().__new__(cls, hash_str)
         return instance
 
+    def __getnewargs_ex__(self):
+        return (
+            (),
+            {
+                'model_subspace_id': self.model_subspace_id,
+                'model_subspace_indices_hash': self.model_subspace_indices_hash,
+                # 'petab_hash': self.petab_hash,
+            },
+        )
+
     def __copy__(self):
         return ModelHash(
             model_subspace_id=self.model_subspace_id,
             model_subspace_indices_hash=self.model_subspace_indices_hash,
-            petab_hash=self.petab_hash,
+            # petab_hash=self.petab_hash,
         )
 
     def __deepcopy__(self, memo):
         return self.__copy__()
 
+    # @staticmethod
+    # def get_petab_hash(model: Model) -> str:
+    #     """Get a hash that is unique up to the same estimation problem.
+
+    #     See :attr:`petab_hash` for more information.
+
+    #     Args:
+    #         model:
+    #             The model.
+
+    #     Returns:
+    #         The unique PEtab hash.
+    #     """
+    #     digest_size = PETAB_HASH_DIGEST_SIZE
+    #     if digest_size is None:
+    #         petab_info_bits = len(model.model_subspace_indices)
+    #         # Ensure <2^{-64} probability of collision
+    #         petab_info_bits += 64
+    #         # Convert to bytes, round up.
+    #         digest_size = int(petab_info_bits / 8) + 1
+
+    #     petab_yaml = str(model.petab_yaml.resolve())
+    #     model_parameter_df = model.to_petab(set_estimated_parameters=False)[
+    #         PETAB_PROBLEM
+    #     ].parameter_df
+    #     nominal_parameter_hash = hash_parameter_dict(
+    #         model_parameter_df[NOMINAL_VALUE].to_dict()
+    #     )
+    #     estimate_parameter_hash = hash_parameter_dict(
+    #         model_parameter_df[ESTIMATE].to_dict()
+    #     )
+    #     return hash_str(
+    #         petab_yaml + estimate_parameter_hash + nominal_parameter_hash,
+    #         digest_size=digest_size,
+    #     )
+
     @staticmethod
-    def get_petab_hash(model: Model) -> str:
-        """Get a hash that is unique up to the same estimation problem.
-
-        See :attr:`petab_hash` for more information.
-
-        Args:
-            model:
-                The model.
-
-        Returns:
-            The unique PEtab hash.
-        """
-        petab_yaml = str(model.petab_yaml.resolve())
-        model_parameter_df = model.to_petab(set_estimated_parameters=False)[
-            PETAB_PROBLEM
-        ].parameter_df
-        nominal_parameter_hash = hash_parameter_dict(
-            model_parameter_df[NOMINAL_VALUE].to_dict()
-        )
-        estimate_parameter_hash = hash_parameter_dict(
-            model_parameter_df[ESTIMATE].to_dict()
-        )
-        return hash_str(
-            petab_yaml + estimate_parameter_hash + nominal_parameter_hash
-        )[:8]
-
-    @staticmethod
-    def from_hash(
-        model_hash: Optional[Union[str, "ModelHash"]]
-    ) -> "ModelHash":
-        """Reconstruct a :class:`ModelHash` object from its :func:`__hash__` string.
+    def from_hash(model_hash: Union[str, ModelHash]) -> ModelHash:
+        """Reconstruct a :class:`ModelHash` object.
 
         Args:
             model_hash:
@@ -893,20 +938,20 @@ class ModelHash(str):
 
         if model_hash == VIRTUAL_INITIAL_MODEL:
             return ModelHash(
-                model_subspace_id='',
+                model_subspace_id=VIRTUAL_INITIAL_MODEL,
                 model_subspace_indices_hash='',
-                petab_hash=VIRTUAL_INITIAL_MODEL,
+                # petab_hash=VIRTUAL_INITIAL_MODEL,
             )
 
         (
             model_subspace_id,
             model_subspace_indices_hash,
-            petab_hash,
+            # petab_hash,
         ) = model_hash.split(MODEL_HASH_DELIMITER)
         return ModelHash(
             model_subspace_id=model_subspace_id,
             model_subspace_indices_hash=model_subspace_indices_hash,
-            petab_hash=petab_hash,
+            # petab_hash=petab_hash,
         )
 
     @staticmethod
@@ -933,11 +978,11 @@ class ModelHash(str):
         return ModelHash(
             model_subspace_id=model_subspace_id,
             model_subspace_indices_hash=model_subspace_indices_hash,
-            petab_hash=ModelHash.get_petab_hash(model=model),
+            # petab_hash=ModelHash.get_petab_hash(model=model),
         )
 
     @staticmethod
-    def hash_model_subspace_indices(model_subspace_indices: list[str]) -> str:
+    def hash_model_subspace_indices(model_subspace_indices: list[int]) -> str:
         """Hash the location of a model in its subspace.
 
         Args:
@@ -979,7 +1024,7 @@ class ModelHash(str):
                 for s in self.model_subspace_indices_hash
             ]
 
-    def get_model(self, petab_select_problem=None) -> Model:
+    def get_model(self, petab_select_problem: Problem) -> Model:
         """Get the model that a hash corresponds to.
 
         Args:
@@ -990,8 +1035,8 @@ class ModelHash(str):
         Returns:
             The model.
         """
-        if self.petab_hash == VIRTUAL_INITIAL_MODEL:
-            return self.petab_hash
+        # if self.petab_hash == VIRTUAL_INITIAL_MODEL:
+        #     return self.petab_hash
 
         return petab_select_problem.model_space.model_subspaces[
             self.model_subspace_id
@@ -1002,16 +1047,25 @@ class ModelHash(str):
         )
 
     def __hash__(self) -> str:
-        """A string representation of the model hash."""
-        return hash(self.petab_hash)
+        """The PEtab hash.
 
-    def __eq__(self, other_hash: "ModelHash") -> bool:
+        N.B.: this is not the model hash! As the equality between two models
+        is determined by their PEtab hash only, this method only returns the
+        PEtab hash. However, the model hash is the full string with the
+        human-readable elements as well. :func:`ModelHash.from_hash` does not
+        accept the PEtab hash as input, rather the full string.
+        """
+        return hash(str(self))
+
+    def __eq__(self, other_hash: str | ModelHash) -> bool:
         """Check whether two model hashes are equivalent.
-
-        This only checks for equivalence up to the same PEtab problem (see
-        :attr:`petab_hash`)
 
         Returns:
             Whether the two hashes correspond to equivalent PEtab problems.
         """
-        return self.petab_hash == other_hash.petab_hash
+        # petab_hash = other_hash
+        # # Check whether the PEtab hash needs to be extracted
+        # if MODEL_HASH_DELIMITER in other_hash:
+        #     petab_hash = ModelHash.from_hash(other_hash).petab_hash
+        # return self.petab_hash == petab_hash
+        return str(self) == str(other_hash)

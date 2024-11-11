@@ -2,9 +2,10 @@ from pathlib import Path
 from typing import List, Tuple
 
 import pandas as pd
+from more_itertools import one
 
 import petab_select
-from petab_select import ESTIMATE, Method, Model
+from petab_select import ESTIMATE, MODEL_HASH, Criterion, Method, Model
 
 input_path = (
     Path(__file__).resolve().parent.parent.parent
@@ -19,20 +20,13 @@ petab_select_problem_yaml = str(
 expected_criterion_values = dict(
     pd.read_csv(
         input_path / "test_files" / "calibration_results.tsv", sep="\t"
-    ).set_index('model_id')['AICc']
+    ).set_index(MODEL_HASH)[Criterion.AICC]
 )
 
 petab_select_problem = petab_select.Problem.from_yaml(
     petab_select_problem_yaml
 )
 criterion = petab_select_problem.criterion
-
-
-def set_model_id(model: Model) -> None:
-    """Set the model ID to a binary string for easier analysis."""
-    model.model_id = "M_" + ''.join(
-        str(v) for v in model.model_subspace_indices
-    )
 
 
 def calibrate(
@@ -43,7 +37,7 @@ def calibrate(
     """Set the criterion value for a model."""
     model.set_criterion(
         criterion=criterion,
-        value=float(expected_criterion_values[model.model_id]),
+        value=float(expected_criterion_values[model.get_hash()]),
     )
 
 
@@ -55,9 +49,9 @@ def parse_summary_to_progress_list(
     df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]
 
     parameter_list = list(
-        petab_select_problem.model_space.model_subspaces[
-            'model_subspace_1'
-        ].parameters
+        one(
+            petab_select_problem.model_space.model_subspaces.values()
+        ).parameters
     )
 
     progress_list = []
