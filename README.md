@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/PEtab-dev/petab_select/logo/doc/logo/logo.svg" height="60" align="left" alt="PEtab Select logo">
+<img src="https://raw.githubusercontent.com/PEtab-dev/petab_select/logo/doc/logo/logo.svg" height="100" align="left" alt="PEtab Select logo">
 
 # PEtab Select
 
