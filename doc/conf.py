@@ -55,6 +55,7 @@ autodoc_default_options = {
 
 html_theme = 'sphinx_rtd_theme'
 # html_static_path = ['_static']
+html_logo = "logo/logo-wide.svg"
 
 
 def autodoc_skip_member(app, what, name, obj, skip, options):
