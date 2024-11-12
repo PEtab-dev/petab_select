@@ -94,10 +94,10 @@ can be specified like
 .. list-table::
    :header-rows: 1
 
-   * - ``model_subspace_id``
-     - ``petab_yaml``
-     - ``p1``
-     - ``p2``
+   * - model_subspace_id
+     - petab_yaml
+     - p1
+     - p2
    * - subspace1
      - petab_problem.yaml
      - 0;estimate
