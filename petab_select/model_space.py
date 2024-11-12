@@ -221,6 +221,7 @@ class ModelSpace:
             warnings.warn(
                 "The candidate space has already reached its limit of accepted models.",
                 RuntimeWarning,
+                stacklevel=2,
             )
             return candidate_space.models
 

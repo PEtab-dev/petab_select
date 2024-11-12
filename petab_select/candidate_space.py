@@ -405,6 +405,7 @@ class CandidateSpace(abc.ABC):
                 f"Model `{model.get_hash()}` has been previously excluded "
                 "from the candidate space so is skipped here.",
                 RuntimeWarning,
+                stacklevel=2,
             )
             return True
         if not self.is_plausible(model):

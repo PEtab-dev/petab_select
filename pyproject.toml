@@ -14,8 +14,6 @@ lint.ignore = [
     "D103", # Missing docstring in public function
     "S101", # Use of assert detected
     "E501", # Line too long
-    "B028", # No explicit `stacklevel` keyword argument found
-    "C419", # Unnecessary list comprehension
     "F403", # star import
     "F821", # undefined name
     "T201", # print statement

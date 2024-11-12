@@ -99,17 +99,13 @@ def test_get_models(model_subspace):
     test_parameterizations = [model.parameters for model in models]
     # Getter gets only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in expected_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in expected_parameterizations
     )
     # Getter gets all expected models.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
 
@@ -163,17 +159,13 @@ def test_search_backward(model_subspace, initial_model):
     ]
     # Search found only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in test_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in test_parameterizations
     )
     # Search found all expected models.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
     # Test limit via model subspace
@@ -210,17 +202,13 @@ def test_search_brute_force(model_subspace):
     ]
     # Search found only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in test_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in test_parameterizations
     )
     # Search found all expected models.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
     limit_accepted_candidates = 3
@@ -256,19 +244,15 @@ def test_search_brute_force(model_subspace):
     assert len(candidate_space.models) == limit_accepted_candidates
     # Search found only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in test_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in test_parameterizations
     )
     # Test exclusions: all models have now been added to the candidate space.
     # TODO ideally with only 3 additional calls to `candidate_space.consider`, assuming
     #      the model_subspace excluded the first three models it had already sent.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
     # Test limit via model subspace
@@ -303,17 +287,13 @@ def test_search_swap(model_subspace, initial_model):
     ]
     # Search found only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in test_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in test_parameterizations
     )
     # Search found all expected models.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
     # Test limit via model subspace

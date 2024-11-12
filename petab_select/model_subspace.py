@@ -103,7 +103,8 @@ class ModelSubspace(PetabMixin):
                 "This model subspace PEtab YAML: "
                 f"`{self.petab_yaml}`. "
                 "The candidate space PEtab YAML: "
-                f"`{candidate_space.predecessor_model.petab_yaml}`. "
+                f"`{candidate_space.predecessor_model.petab_yaml}`.",
+                stacklevel=2,
             )
             return False
         return True

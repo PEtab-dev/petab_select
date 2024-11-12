@@ -193,7 +193,8 @@ class Model(PetabMixin):
         if criterion in self.criteria:
             warnings.warn(
                 "Overwriting saved criterion value. "
-                f"Criterion: {criterion}. Value: {self.get_criterion(criterion)}."
+                f"Criterion: {criterion}. Value: {self.get_criterion(criterion)}.",
+                stacklevel=2,
             )
             # FIXME debug why value is overwritten during test case 0002.
             if False:
@@ -330,7 +331,9 @@ class Model(PetabMixin):
         unknown_attributes = set(model_dict).difference(Model.converters_load)
         if unknown_attributes:
             warnings.warn(
-                "Ignoring unknown attributes: " + ", ".join(unknown_attributes)
+                "Ignoring unknown attributes: "
+                + ", ".join(unknown_attributes),
+                stacklevel=2,
             )
 
         if base_path is not None:
@@ -662,14 +665,18 @@ def default_compare(
     """
     if not model1.has_criterion(criterion):
         warnings.warn(
-            f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".'
+            f'Model "{model1.model_id}" does not provide a value for the '
+            f'criterion "{criterion}".',
+            stacklevel=2,
         )
         return False
     if model0 == VIRTUAL_INITIAL_MODEL or model0 is None:
         return True
     if criterion_threshold < 0:
         warnings.warn(
-            "The provided criterion threshold is negative. The absolute value will be used instead."
+            "The provided criterion threshold is negative. "
+            "The absolute value will be used instead.",
+            stacklevel=2,
         )
         criterion_threshold = abs(criterion_threshold)
     if criterion in [
@@ -766,7 +773,7 @@ def models_to_yaml_list(
             continue
         if model == VIRTUAL_INITIAL_MODEL:
             continue
-        warnings.warn(f"Unexpected model, skipping: {model}.")
+        warnings.warn(f"Unexpected model, skipping: {model}.", stacklevel=2)
         skipped_indices.append(index)
     models = [
         model

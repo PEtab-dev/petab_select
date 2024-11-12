@@ -58,9 +58,9 @@ def test_model_space_forward_virtual(model_space):
     ]
 
     # Search found only expected models.
-    assert all([model in expected_models for model in models])
+    assert all(model in expected_models for model in models)
     # All expected models have now been added to the candidate space.
-    assert all([model in models for model in expected_models])
+    assert all(model in models for model in expected_models)
     # Probably unnecessary: same number of models in expectation vs realization
     assert len(expected_models) == len(candidate_space.models)
 
@@ -90,9 +90,9 @@ def test_model_space_backward_virtual(model_space):
     ]
 
     # Search found only expected models.
-    assert all([model in expected_models for model in models])
+    assert all(model in expected_models for model in models)
     # All expected models have now been added to the candidate space.
-    assert all([model in models for model in expected_models])
+    assert all(model in models for model in expected_models)
     # Probably unnecessary: same number of models in expectation vs realization
     assert len(expected_models) == len(candidate_space.models)
 
@@ -164,9 +164,9 @@ def test_model_space_brute_force_limit(model_space):
     ]
 
     # Search found only expected models.
-    assert all([model in expected_models for model in models])
+    assert all(model in expected_models for model in models)
     # All expected models have now been added to the candidate space.
-    assert all([model in models for model in expected_models])
+    assert all(model in models for model in expected_models)
     # Probably unnecessary: same number of models in expectation vs realization
     assert len(expected_models) == len(candidate_space.models)
 
