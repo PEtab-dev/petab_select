@@ -1,5 +1,4 @@
 import copy
-import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -23,12 +22,12 @@ from .model import Model, ModelHash, default_compare
 from .problem import Problem
 
 __all__ = [
-    'start_iteration',
-    'end_iteration',
-    'model_to_petab',
-    'models_to_petab',
-    'get_best',
-    'write_summary_tsv',
+    "start_iteration",
+    "end_iteration",
+    "model_to_petab",
+    "models_to_petab",
+    "get_best",
+    "write_summary_tsv",
 ]
 
 
@@ -406,7 +405,7 @@ def write_summary_tsv(
         and isinstance(candidate_space.predecessor_model, Model)
         and candidate_space.predecessor_model.predecessor_model_hash is None
     ):
-        with open(candidate_space.summary_tsv, 'r') as f:
+        with open(candidate_space.summary_tsv) as f:
             if sum(1 for _ in f) > 1:
                 method = Method.MOST_DISTANT
 

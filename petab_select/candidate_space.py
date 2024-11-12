@@ -1,4 +1,5 @@
 """Classes and methods related to candidate spaces."""
+
 import abc
 import bisect
 import copy
@@ -6,16 +7,14 @@ import csv
 import logging
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import numpy as np
 from more_itertools import one
 
 from .constants import (
     ESTIMATE,
-    METHOD,
     METHOD_SCHEME,
-    MODELS,
     NEXT_METHOD,
     PREDECESSOR_MODEL,
     PREVIOUS_METHODS,
@@ -29,12 +28,12 @@ from .handlers import TYPE_LIMIT, LimitHandler
 from .model import Model, ModelHash, default_compare
 
 __all__ = [
-    'BackwardCandidateSpace',
-    'BruteForceCandidateSpace',
-    'CandidateSpace',
-    'FamosCandidateSpace',
-    'ForwardCandidateSpace',
-    'LateralCandidateSpace',
+    "BackwardCandidateSpace",
+    "BruteForceCandidateSpace",
+    "CandidateSpace",
+    "FamosCandidateSpace",
+    "ForwardCandidateSpace",
+    "LateralCandidateSpace",
 ]
 
 
@@ -166,7 +165,7 @@ class CandidateSpace(abc.ABC):
                 is not None
             ):
                 logging.info(
-                    f'Using user-supplied result for: {model.get_hash()}'
+                    f"Using user-supplied result for: {model.get_hash()}"
                 )
                 user_model_copy = copy.deepcopy(user_model)
                 user_model_copy.predecessor_model_hash = (
@@ -233,11 +232,11 @@ class CandidateSpace(abc.ABC):
         if not isinstance(row, list):
             row = [
                 row,
-                *([''] * 5),
+                *([""] * 5),
             ]
 
-        with open(self.summary_tsv, 'a', encoding="utf-8") as f:
-            writer = csv.writer(f, delimiter='\t')
+        with open(self.summary_tsv, "a", encoding="utf-8") as f:
+            writer = csv.writer(f, delimiter="\t")
             writer.writerow(row)
 
     def _setup_summary_tsv(self):
@@ -247,12 +246,12 @@ class CandidateSpace(abc.ABC):
         if not self.summary_tsv.exists():
             self.write_summary_tsv(
                 [
-                    'method',
-                    '# candidates',
-                    'predecessor change',
-                    'current model criterion',
-                    'current model',
-                    'candidate changes',
+                    "method",
+                    "# candidates",
+                    "predecessor change",
+                    "current model criterion",
+                    "current model",
+                    "candidate changes",
                 ]
             )
 
@@ -403,8 +402,8 @@ class CandidateSpace(abc.ABC):
             return False
         if self.excluded(model):
             warnings.warn(
-                f'Model `{model.get_hash()}` has been previously excluded '
-                'from the candidate space so is skipped here.',
+                f"Model `{model.get_hash()}` has been previously excluded "
+                "from the candidate space so is skipped here.",
                 RuntimeWarning,
             )
             return True
@@ -433,7 +432,7 @@ class CandidateSpace(abc.ABC):
             and self.method not in VIRTUAL_INITIAL_MODEL_METHODS
         ):
             raise ValueError(
-                f'A virtual initial model was requested for a method ({self.method}) that does not support them.'
+                f"A virtual initial model was requested for a method ({self.method}) that does not support them."
             )
 
     def get_predecessor_model(self) -> Union[str, Model]:
@@ -473,7 +472,7 @@ class CandidateSpace(abc.ABC):
             The hashes of excluded models.
         """
         try:
-            return getattr(self, "excluded_hashes")
+            return self.excluded_hashes
         except AttributeError:
             self.excluded_hashes = set()
             return self.get_excluded_hashes()
@@ -582,9 +581,9 @@ class CandidateSpace(abc.ABC):
             model0.petab_yaml
         ):
             raise NotImplementedError(
-                'Computation of distances between different PEtab problems is '
-                'currently not supported. This error is also raised if the same '
-                'PEtab problem is read from YAML files in different locations.'
+                "Computation of distances between different PEtab problems is "
+                "currently not supported. This error is also raised if the same "
+                "PEtab problem is read from YAML files in different locations."
             )
 
         # All parameters from the PEtab problem are used in the computation.
@@ -596,9 +595,9 @@ class CandidateSpace(abc.ABC):
                 parameters0 = np.array([ESTIMATE for _ in parameter_ids])
             else:
                 raise NotImplementedError(
-                    'Distances for the virtual initial model have not yet been '
+                    "Distances for the virtual initial model have not yet been "
                     f'implemented for the method "{self.method}". Please notify the'
-                    'developers.'
+                    "developers."
                 )
         else:
             parameter_ids = list(model0.petab_parameters)
@@ -611,10 +610,10 @@ class CandidateSpace(abc.ABC):
             # in all subspaces.
             if model0.petab_yaml.resolve() != model1.petab_yaml.resolve():
                 raise ValueError(
-                    'Computing the distance between different models that '
+                    "Computing the distance between different models that "
                     'have different "base" PEtab problems is not yet '
-                    f'supported. First base PEtab problem: {model0.petab_yaml}.'
-                    f' Second base PEtab problem: {model1.petab_yaml}.'
+                    f"supported. First base PEtab problem: {model0.petab_yaml}."
+                    f" Second base PEtab problem: {model1.petab_yaml}."
                 )
         parameters1 = np.array(
             model1.get_parameter_values(parameter_ids=parameter_ids)
@@ -634,8 +633,8 @@ class CandidateSpace(abc.ABC):
 
         # TODO constants? e.g. Distance.L1 and Distance.Size
         distances = {
-            'l1': l1,
-            'size': size,
+            "l1": l1,
+            "size": size,
         }
 
         return distances
@@ -698,7 +697,7 @@ class ForwardCandidateSpace(CandidateSpace):
 
     def is_plausible(self, model: Model) -> bool:
         distances = self.distances_in_estimated_parameters(model)
-        n_steps = self.direction * distances['size']
+        n_steps = self.direction * distances["size"]
 
         if self.max_steps is not None and n_steps > self.max_steps:
             raise StopIteration(
@@ -709,7 +708,7 @@ class ForwardCandidateSpace(CandidateSpace):
         # increases (or decreases, if `self.direction == -1`), and no
         # previously estimated parameters become fixed.
         if self.predecessor_model == VIRTUAL_INITIAL_MODEL or (
-            n_steps > 0 and distances['l1'] == n_steps
+            n_steps > 0 and distances["l1"] == n_steps
         ):
             return True
         return False
@@ -718,7 +717,7 @@ class ForwardCandidateSpace(CandidateSpace):
         # TODO calculated here and `is_plausible`. Rewrite to only calculate
         #      once?
         distances = self.distances_in_estimated_parameters(model)
-        return distances['l1']
+        return distances["l1"]
 
     def _consider_method(self, model) -> bool:
         """See :meth:`CandidateSpace._consider_method`."""
@@ -855,14 +854,14 @@ class FamosCandidateSpace(CandidateSpace):
     }
 
     forwarded_inner = [
-        '_consider_method',
+        "_consider_method",
     ]
     _consider_method = None
     forwarded_super_and_inner = [
-        'reset_accepted',
-        'set_predecessor_model',
-        'set_excluded_hashes',
-        'set_limit',
+        "reset_accepted",
+        "set_predecessor_model",
+        "set_excluded_hashes",
+        "set_limit",
     ]
 
     def __init__(
@@ -907,7 +906,7 @@ class FamosCandidateSpace(CandidateSpace):
             and not self.check_critical(predecessor_model)
         ):
             raise ValueError(
-                f'Provided predecessor model {predecessor_model.parameters} does not contain necessary critical parameters {self.critical_parameter_sets}. Provide a valid predecessor model.'
+                f"Provided predecessor model {predecessor_model.parameters} does not contain necessary critical parameters {self.critical_parameter_sets}. Provide a valid predecessor model."
             )
 
         if (
@@ -936,7 +935,7 @@ class FamosCandidateSpace(CandidateSpace):
         )
         if Method.LATERAL in inner_methods and not self.swap_parameter_sets:
             raise ValueError(
-                f"Use of the lateral method with FAMoS requires `swap_parameter_sets`."
+                "Use of the lateral method with FAMoS requires `swap_parameter_sets`."
             )
 
         for method in inner_methods:
@@ -947,8 +946,8 @@ class FamosCandidateSpace(CandidateSpace):
                 Method.MOST_DISTANT,
             ]:
                 raise NotImplementedError(
-                    f'Methods FAMoS can swap to are `Method.FORWARD`, `Method.BACKWARD` and `Method.LATERAL`, not {method}. \
-                    Check if the method_scheme scheme provided is correct.'
+                    f"Methods FAMoS can swap to are `Method.FORWARD`, `Method.BACKWARD` and `Method.LATERAL`, not {method}. \
+                    Check if the method_scheme scheme provided is correct."
                 )
 
         self.inner_candidate_spaces = {
@@ -1367,7 +1366,7 @@ class FamosCandidateSpace(CandidateSpace):
             raise StopIteration("No most_distant model found. Terminating")
 
         most_distant_parameter_values = [
-            str(index).replace('1', ESTIMATE) for index in most_distant_indices
+            str(index).replace("1", ESTIMATE) for index in most_distant_indices
         ]
 
         most_distant_parameters = {
@@ -1419,14 +1418,14 @@ class LateralCandidateSpace(CandidateSpace):
     def is_plausible(self, model: Model) -> bool:
         if self.predecessor_model is None:
             raise ValueError(
-                f"The predecessor_model is still None. Provide an appropriate predecessor_model"
+                "The predecessor_model is still None. Provide an appropriate predecessor_model"
             )
 
         distances = self.distances_in_estimated_parameters(model)
 
         # If max_number_of_steps is non-zero and the number of steps made is
         # larger then move is not plausible.
-        if self.max_steps is not None and distances['l1'] > 2 * self.max_steps:
+        if self.max_steps is not None and distances["l1"] > 2 * self.max_steps:
             raise StopIteration(
                 f"Maximal number of steps for method {self.method} exceeded. Stop sending candidate models."
             )
@@ -1435,12 +1434,12 @@ class LateralCandidateSpace(CandidateSpace):
         # the same, but some estimated parameters have become fixed and vice
         # versa.
         if (
-            distances['size'] == 0
+            distances["size"] == 0
             and
             # distances['size'] == 0 implies L1 % 2 == 0.
             # FIXME here and elsewhere, deal with models that are equal
             #       except for the values of their fixed parameters.
-            distances['l1'] > 0
+            distances["l1"] > 0
         ):
             return True
         return False
@@ -1493,8 +1492,8 @@ def method_to_candidate_space_class(method: Method) -> Type[CandidateSpace]:
     candidate_space_class = candidate_space_classes.get(method, None)
     if candidate_space_class is None:
         raise NotImplementedError(
-            f'The provided method `{method}` does not correspond to an '
-            'implemented candidate space.'
+            f"The provided method `{method}` does not correspond to an "
+            "implemented candidate space."
         )
     return candidate_space_class
 

@@ -1,13 +1,12 @@
 from pathlib import Path
 from typing import Tuple
 
-import numpy as np
 import pandas as pd
 import pytest
 from more_itertools import one
 
 import petab_select
-from petab_select import ESTIMATE, FamosCandidateSpace, Method, Model
+from petab_select import Method
 from petab_select.constants import (
     CANDIDATE_SPACE,
     MODEL_HASH,
@@ -16,7 +15,6 @@ from petab_select.constants import (
     UNCALIBRATED_MODELS,
     Criterion,
 )
-from petab_select.model import default_compare
 
 
 @pytest.fixture
@@ -101,7 +99,7 @@ def test_famos(
 
     def parse_summary_to_progress_list(summary_tsv: str) -> Tuple[Method, set]:
         """Get progress information from the summary file."""
-        df_raw = pd.read_csv(summary_tsv, sep='\t')
+        df_raw = pd.read_csv(summary_tsv, sep="\t")
         df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]
 
         parameter_list = list(

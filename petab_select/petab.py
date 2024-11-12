@@ -32,8 +32,8 @@ class PetabMixin:
     ):
         if petab_yaml is None and petab_problem is None:
             raise ValueError(
-                'Please supply at least one of either the location of the '
-                'PEtab problem YAML file, or an instance of the PEtab problem.'
+                "Please supply at least one of either the location of the "
+                "PEtab problem YAML file, or an instance of the PEtab problem."
             )
         self.petab_yaml = petab_yaml
         if self.petab_yaml is not None:

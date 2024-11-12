@@ -15,5 +15,5 @@ from .ui import *
 __all__ = [
     x
     for x in dir(sys.modules[__name__])
-    if not x.startswith('_') and x != 'sys'
+    if not x.startswith("_") and x != "sys"
 ]

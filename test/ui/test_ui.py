@@ -1,28 +1,14 @@
 from pathlib import Path
-from typing import Tuple
 
-import numpy as np
-import pandas as pd
 import pytest
 from more_itertools import one
 
 import petab_select
-from petab_select import (
-    ESTIMATE,
-    FamosCandidateSpace,
-    ForwardCandidateSpace,
-    Method,
-    Model,
-)
 from petab_select.constants import (
     CANDIDATE_SPACE,
-    MODEL_HASH,
     MODELS,
-    TERMINATE,
     UNCALIBRATED_MODELS,
-    Criterion,
 )
-from petab_select.model import default_compare
 
 
 @pytest.fixture
@@ -39,7 +25,7 @@ def petab_select_problem():
 def test_user_calibrated_models(petab_select_problem):
     """Test handling of user-calibrated models."""
     model_M1_2 = petab_select_problem.model_space.model_subspaces[
-        'M1_2'
+        "M1_2"
     ].indices_to_model((0, 0, 0))
     model_M1_2.set_criterion(
         criterion=petab_select_problem.criterion, value=12.3

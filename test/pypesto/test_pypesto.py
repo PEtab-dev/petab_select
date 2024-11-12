@@ -1,25 +1,18 @@
 import os
 from pathlib import Path
 
-import fides
 import numpy as np
 import pandas as pd
 import pypesto.engine
 import pypesto.optimize
 import pypesto.select
 import pytest
-from more_itertools import one
 
 import petab_select
 from petab_select import Model
 from petab_select.constants import (
-    CANDIDATE_SPACE,
     CRITERIA,
     ESTIMATED_PARAMETERS,
-    MODEL,
-    MODELS,
-    Criterion,
-    Method,
 )
 
 os.environ["AMICI_EXPERIMENTAL_SBML_NONCONST_CLS"] = "1"
@@ -33,17 +26,17 @@ test_cases = [
 
 # Do not use computationally-expensive test cases in CI
 skip_test_cases = [
-    '0009',
+    "0009",
 ]
 
-test_cases_path = Path(__file__).resolve().parent.parent.parent / 'test_cases'
+test_cases_path = Path(__file__).resolve().parent.parent.parent / "test_cases"
 
 # Reduce runtime but with high reproducibility
 minimize_options = {
-    'n_starts': 10,
-    'engine': pypesto.engine.MultiProcessEngine(),
-    'filename': None,
-    'progress_bar': False,
+    "n_starts": 10,
+    "engine": pypesto.engine.MultiProcessEngine(),
+    "filename": None,
+    "progress_bar": False,
 }
 
 
@@ -66,10 +59,10 @@ def test_pypesto(test_case_path_stem):
         pytest.skip("Test marked to be skipped.")
 
     test_case_path = test_cases_path / test_case_path_stem
-    expected_model_yaml = test_case_path / 'expected.yaml'
+    expected_model_yaml = test_case_path / "expected.yaml"
     # Setup the pyPESTO model selector instance.
     petab_select_problem = petab_select.Problem.from_yaml(
-        test_case_path / 'petab_select_problem.yaml',
+        test_case_path / "petab_select_problem.yaml",
     )
     pypesto_select_problem = pypesto.select.Problem(
         petab_select_problem=petab_select_problem

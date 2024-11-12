@@ -5,7 +5,7 @@ import pandas as pd
 from more_itertools import one
 
 import petab_select
-from petab_select import ESTIMATE, MODEL_HASH, Criterion, Method, Model
+from petab_select import MODEL_HASH, Criterion, Method, Model
 
 input_path = (
     Path(__file__).resolve().parent.parent.parent
@@ -45,7 +45,7 @@ def parse_summary_to_progress_list(
     summary_tsv: str,
 ) -> List[Tuple[Method, set]]:
     """Get progress information from the summary file."""
-    df_raw = pd.read_csv(summary_tsv, sep='\t')
+    df_raw = pd.read_csv(summary_tsv, sep="\t")
     df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]
 
     parameter_list = list(

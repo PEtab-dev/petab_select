@@ -1,7 +1,7 @@
 import hashlib
 
 # import json
-from typing import Any, List, Optional, Union
+from typing import Any, List, Union
 
 from .constants import (  # TYPE_PARAMETER_OPTIONS_DICT,
     ESTIMATE,
@@ -10,7 +10,7 @@ from .constants import (  # TYPE_PARAMETER_OPTIONS_DICT,
 )
 
 __all__ = [
-    'parameter_string_to_value',
+    "parameter_string_to_value",
 ]
 
 
@@ -30,7 +30,7 @@ def hashify(x: Any, **kwargs) -> str:
     """
     # return int(hashlib.sha256(str(x).encode('utf-8')).hexdigest(), 16)
     return hashlib.blake2b(
-        str(x).encode('utf-8'),
+        str(x).encode("utf-8"),
         **kwargs,
     ).hexdigest()
 
@@ -64,8 +64,8 @@ def snake_case_to_camel_case(string: str) -> str:
     Returns:
         The string, in camel case.
     """
-    string_pieces = string.split('_')
-    string_camel = ''
+    string_pieces = string.split("_")
+    string_camel = ""
     for string_piece in string_pieces:
         string_camel += string_piece[0].upper() + string_piece[1:]
     return string_camel
@@ -90,7 +90,7 @@ def parameter_string_to_value(
     if parameter_string == ESTIMATE:
         if passthrough_estimate:
             return parameter_string
-        raise ValueError('Please handle estimated parameters differently.')
+        raise ValueError("Please handle estimated parameters differently.")
     float_value = float(parameter_string)
     int_value = int(float_value)
 

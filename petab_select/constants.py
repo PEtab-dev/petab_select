@@ -1,4 +1,5 @@
 """Constants for the PEtab Select package."""
+
 import string
 import sys
 from enum import Enum
@@ -13,9 +14,9 @@ PETAB_YAML_COLUMN = 1
 PARAMETER_DEFINITIONS_START = 2
 HEADER_ROW = 0
 
-PARAMETER_VALUE_DELIMITER = ';'
-CODE_DELIMITER = '-'
-ESTIMATE = 'estimate'
+PARAMETER_VALUE_DELIMITER = ";"
+CODE_DELIMITER = "-"
+ESTIMATE = "estimate"
 PETAB_ESTIMATE_FALSE = 0
 PETAB_ESTIMATE_TRUE = 1
 
@@ -27,19 +28,17 @@ TYPE_PATH = Union[str, Path]
 #      suggest that a parameter has a conflicting name)
 # MODEL_ID = 'modelId'  # TODO already defined, reorganize constants
 # YAML = 'YAML'  # FIXME
-MODEL_ID = 'model_id'
-MODEL_SUBSPACE_ID = 'model_subspace_id'
-MODEL_SUBSPACE_INDICES = 'model_subspace_indices'
-MODEL_CODE = 'model_code'
-MODEL_HASH = 'model_hash'
-MODEL_HASHES = 'model_hashes'
-MODEL_HASH_DELIMITER = '-'
-MODEL_SUBSPACE_INDICES_HASH_DELIMITER = '.'
+MODEL_ID = "model_id"
+MODEL_SUBSPACE_ID = "model_subspace_id"
+MODEL_SUBSPACE_INDICES = "model_subspace_indices"
+MODEL_CODE = "model_code"
+MODEL_HASH = "model_hash"
+MODEL_HASHES = "model_hashes"
+MODEL_HASH_DELIMITER = "-"
+MODEL_SUBSPACE_INDICES_HASH_DELIMITER = "."
 MODEL_SUBSPACE_INDICES_HASH_MAP = (
     # [0-9]+[A-Z]+[a-z]
-    string.digits
-    + string.ascii_uppercase
-    + string.ascii_lowercase
+    string.digits + string.ascii_uppercase + string.ascii_lowercase
 )
 PETAB_HASH_DIGEST_SIZE = None
 # If `predecessor_model_hash` is defined for a model, it is the ID of the model that the
@@ -47,17 +46,17 @@ PETAB_HASH_DIGEST_SIZE = None
 # only (optionally) set by the PEtab calibration tool. It is not defined by the
 # PEtab Select model selection problem (but may be subsequently stored in the
 # PEtab Select model report format.
-PREDECESSOR_MODEL_HASH = 'predecessor_model_hash'
-PETAB_PROBLEM = 'petab_problem'
-PETAB_YAML = 'petab_yaml'
-SBML = 'sbml'
-HASH = 'hash'
+PREDECESSOR_MODEL_HASH = "predecessor_model_hash"
+PETAB_PROBLEM = "petab_problem"
+PETAB_YAML = "petab_yaml"
+SBML = "sbml"
+HASH = "hash"
 
 # MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
 MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_SUBSPACE_ID, PETAB_YAML]
 
 # COMPARED_MODEL_ID = 'compared_'+MODEL_ID
-YAML_FILENAME = 'yaml'
+YAML_FILENAME = "yaml"
 
 # DISTANCES = {
 #    FORWARD: {
@@ -74,30 +73,30 @@ YAML_FILENAME = 'yaml'
 #    },
 # }
 
-CRITERIA = 'criteria'
+CRITERIA = "criteria"
 
-PARAMETERS = 'parameters'
+PARAMETERS = "parameters"
 # PARAMETER_ESTIMATE = 'parameter_estimate'
-ESTIMATED_PARAMETERS = 'estimated_parameters'
+ESTIMATED_PARAMETERS = "estimated_parameters"
 
 # Problem keys
-CRITERION = 'criterion'
-METHOD = 'method'
-VERSION = 'version'
-MODEL_SPACE_FILES = 'model_space_files'
-PROBLEM_ID = 'problem_id'
+CRITERION = "criterion"
+METHOD = "method"
+VERSION = "version"
+MODEL_SPACE_FILES = "model_space_files"
+PROBLEM_ID = "problem_id"
 
-CANDIDATE_SPACE = 'candidate_space'
-CANDIDATE_SPACE_ARGUMENTS = 'candidate_space_arguments'
-METHOD_SCHEME = 'method_scheme'
-PREVIOUS_METHODS = 'previous_methods'
-NEXT_METHOD = 'next_method'
-PREDECESSOR_MODEL = 'predecessor_model'
+CANDIDATE_SPACE = "candidate_space"
+CANDIDATE_SPACE_ARGUMENTS = "candidate_space_arguments"
+METHOD_SCHEME = "method_scheme"
+PREVIOUS_METHODS = "previous_methods"
+NEXT_METHOD = "next_method"
+PREDECESSOR_MODEL = "predecessor_model"
 
-MODEL = 'model'
-MODELS = 'models'
-UNCALIBRATED_MODELS = 'uncalibrated_models'
-TERMINATE = 'terminate'
+MODEL = "model"
+MODELS = "models"
+UNCALIBRATED_MODELS = "uncalibrated_models"
+TERMINATE = "terminate"
 
 # Parameters can be fixed to a value, or estimated if indicated with the string
 # `ESTIMATE`.
@@ -115,34 +114,34 @@ class Method(str, Enum):
     """String literals for model selection methods."""
 
     #: The backward stepwise method.
-    BACKWARD = 'backward'
+    BACKWARD = "backward"
     #: The brute-force method.
-    BRUTE_FORCE = 'brute_force'
+    BRUTE_FORCE = "brute_force"
     #: The FAMoS method.
-    FAMOS = 'famos'
+    FAMOS = "famos"
     #: The forward stepwise method.
-    FORWARD = 'forward'
+    FORWARD = "forward"
     #: The lateral, or swap, method.
-    LATERAL = 'lateral'
+    LATERAL = "lateral"
     #: The jump-to-most-distant-model method.
-    MOST_DISTANT = 'most_distant'
+    MOST_DISTANT = "most_distant"
 
 
 class Criterion(str, Enum):
     """String literals for model selection criteria."""
 
     #: The Akaike information criterion.
-    AIC = 'AIC'
+    AIC = "AIC"
     #: The corrected Akaike information criterion.
-    AICC = 'AICc'
+    AICC = "AICc"
     #: The Bayesian information criterion.
-    BIC = 'BIC'
+    BIC = "BIC"
     #: The likelihood.
-    LH = 'LH'
+    LH = "LH"
     #: The log-likelihood.
-    LLH = 'LLH'
+    LLH = "LLH"
     #: The negative log-likelihood.
-    NLLH = 'NLLH'
+    NLLH = "NLLH"
 
 
 #: Methods that move through model space by taking steps away from some model.
@@ -159,7 +158,7 @@ INITIAL_MODEL_METHODS = [
 ]
 
 #: Virtual initial models can be used to initialize some initial model methods.
-VIRTUAL_INITIAL_MODEL = 'virtual_initial_model'
+VIRTUAL_INITIAL_MODEL = "virtual_initial_model"
 #: Methods that are compatible with a virtual initial model.
 VIRTUAL_INITIAL_MODEL_METHODS = [
     Method.BACKWARD,
@@ -170,6 +169,6 @@ VIRTUAL_INITIAL_MODEL_METHODS = [
 __all__ = [
     x
     for x in dir(sys.modules[__name__])
-    if not x.startswith('_')
-    and x not in ('sys', "Enum", "Path", "Dict", "List", "Literal", "Union")
+    if not x.startswith("_")
+    and x not in ("sys", "Enum", "Path", "Dict", "List", "Literal", "Union")
 ]

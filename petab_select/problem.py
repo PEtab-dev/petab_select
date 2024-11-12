@@ -1,5 +1,5 @@
 """The model selection problem class."""
-import abc
+
 from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional, Union
@@ -22,7 +22,7 @@ from .model import Model, ModelHash, default_compare
 from .model_space import ModelSpace
 
 __all__ = [
-    'Problem',
+    "Problem",
 ]
 
 
@@ -146,7 +146,7 @@ class Problem:
     @staticmethod
     def from_yaml(
         yaml_path: Union[str, Path],
-    ) -> 'Problem':
+    ) -> "Problem":
         """Generate a problem from a PEtab Select problem YAML file.
 
         Args:
@@ -157,13 +157,13 @@ class Problem:
             A `Problem` instance.
         """
         yaml_path = Path(yaml_path)
-        with open(yaml_path, 'r') as f:
+        with open(yaml_path) as f:
             problem_specification = yaml.safe_load(f)
 
         if not problem_specification.get(MODEL_SPACE_FILES, []):
             raise KeyError(
-                'The model selection problem specification file is missing '
-                'model space files.'
+                "The model selection problem specification file is missing "
+                "model space files."
             )
 
         model_space = ModelSpace.from_files(
@@ -252,7 +252,7 @@ class Problem:
                 best_model = model
         if best_model is None:
             raise KeyError(
-                f'None of the supplied models have a value set for the criterion {criterion}.'
+                f"None of the supplied models have a value set for the criterion {criterion}."
             )
         return best_model
 

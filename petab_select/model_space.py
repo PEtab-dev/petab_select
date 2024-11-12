@@ -1,4 +1,5 @@
 """The `ModelSpace` class and related methods."""
+
 import itertools
 import logging
 import warnings
@@ -218,7 +219,7 @@ class ModelSpace:
         """
         if candidate_space.limit.reached():
             warnings.warn(
-                'The candidate space has already reached its limit of accepted models.',
+                "The candidate space has already reached its limit of accepted models.",
                 RuntimeWarning,
             )
             return candidate_space.models
@@ -229,7 +230,7 @@ class ModelSpace:
             #      ID
             if only_one_subspace and len(self.model_subspaces) > 1:
                 logging.warning(
-                    f'There is more than one model subspace. This can lead to problems for candidate space {candidate_space}, especially if they have different PEtab YAML files.'
+                    f"There is more than one model subspace. This can lead to problems for candidate space {candidate_space}, especially if they have different PEtab YAML files."
                 )
             for model_subspace in self.model_subspaces.values():
                 model_subspace.search(
@@ -239,9 +240,9 @@ class ModelSpace:
                     break
                 elif len(candidate_space.models) > limit:
                     raise ValueError(
-                        'An unknown error has occurred. Too many models were '
-                        f'generated. Requested limit: {limit}. Number of '
-                        f'generated models: {len(candidate_space.models)}.'
+                        "An unknown error has occurred. Too many models were "
+                        f"generated. Requested limit: {limit}. Number of "
+                        f"generated models: {len(candidate_space.models)}."
                     )
 
         search_subspaces()
@@ -295,14 +296,14 @@ class ModelSpace:
 def get_model_space_df(df: Union[TYPE_PATH, pd.DataFrame]) -> pd.DataFrame:
     # model_space_df = pd.read_csv(filename, sep='\t', index_col=MODEL_SUBSPACE_ID)  # FIXME
     if isinstance(df, get_args(TYPE_PATH)):
-        df = pd.read_csv(df, sep='\t')
+        df = pd.read_csv(df, sep="\t")
     if df.index.name != MODEL_SUBSPACE_ID:
         df.set_index([MODEL_SUBSPACE_ID], inplace=True)
     return df
 
 
 def write_model_space_df(df: pd.DataFrame, filename: TYPE_PATH) -> None:
-    df.to_csv(filename, sep='\t', index=True)
+    df.to_csv(filename, sep="\t", index=True)
 
 
 # def get_model_space(

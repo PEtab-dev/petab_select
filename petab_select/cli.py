@@ -1,4 +1,5 @@
 """The PEtab Select command-line interface."""
+
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -12,16 +13,16 @@ from more_itertools import one
 from . import ui
 from .candidate_space import CandidateSpace
 from .constants import CANDIDATE_SPACE, MODELS, PETAB_YAML, TERMINATE
-from .model import Model, ModelHash, models_from_yaml_list, models_to_yaml_list
+from .model import ModelHash, models_from_yaml_list, models_to_yaml_list
 from .problem import Problem
 
 
 def read_state(filename: str) -> Dict[str, Any]:
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         state = dill.load(f)
 
-    state['problem'] = dill.loads(state['problem'])
-    state['candidate_space'] = dill.loads(state['candidate_space'])
+    state["problem"] = dill.loads(state["problem"])
+    state["candidate_space"] = dill.loads(state["candidate_space"])
 
     return state
 
@@ -30,7 +31,7 @@ def write_state(
     state: Dict[str, Any],
     filename: str,
 ) -> Dict[str, Any]:
-    with open(filename, 'wb') as f:
+    with open(filename, "wb") as f:
         dill.dump(state, f)
 
 
@@ -39,8 +40,8 @@ def get_state(
     candidate_space: CandidateSpace,
 ) -> Dict[str, Any]:
     state = {
-        'problem': dill.dumps(problem),
-        'candidate_space': dill.dumps(candidate_space),
+        "problem": dill.dumps(problem),
+        "candidate_space": dill.dumps(candidate_space),
     }
     return state
 
@@ -52,32 +53,32 @@ def cli():
 
 @cli.command("start_iteration")
 @click.option(
-    '--problem',
-    '-p',
-    'problem_yaml',
-    help='The PEtab Select YAML problem file.',
+    "--problem",
+    "-p",
+    "problem_yaml",
+    help="The PEtab Select YAML problem file.",
 )
 @click.option(
-    '--state',
-    '-s',
-    'state_dill',
+    "--state",
+    "-s",
+    "state_dill",
     type=str,
-    help='The file that stores the state.',
+    help="The file that stores the state.",
 )
 @click.option(
-    '--output-uncalibrated-models',
-    '-u',
-    'uncalibrated_models_yaml',
+    "--output-uncalibrated-models",
+    "-u",
+    "uncalibrated_models_yaml",
     type=str,
-    help='The file where uncalibrated models from this iteration will be stored.',
+    help="The file where uncalibrated models from this iteration will be stored.",
 )
 @click.option(
-    '--method',
-    '-m',
-    'method',
+    "--method",
+    "-m",
+    "method",
     type=str,
     default=None,
-    help='The method used to identify the candidate models. Defaults to the method in the problem YAML.',
+    help="The method used to identify the candidate models. Defaults to the method in the problem YAML.",
 )
 # @click.option(
 #    '--previous-predecessor-model',
@@ -108,48 +109,48 @@ def cli():
 #    ),
 # )
 @click.option(
-    '--limit',
-    '-l',
-    'limit',
+    "--limit",
+    "-l",
+    "limit",
     type=float,
     default=np.inf,
-    help='(Optional) Limit the number of models in the output.',
+    help="(Optional) Limit the number of models in the output.",
 )
 @click.option(
-    '--limit-sent',
-    '-L',
-    'limit_sent',
+    "--limit-sent",
+    "-L",
+    "limit_sent",
     type=float,
     default=np.inf,
     help=(
-        '(Optional) Limit the number of models sent to the candidate space '
-        '(which are possibly rejected and excluded from the output).'
+        "(Optional) Limit the number of models sent to the candidate space "
+        "(which are possibly rejected and excluded from the output)."
     ),
 )
 @click.option(
-    '--relative-paths/--absolute-paths',
-    'relative_paths',
+    "--relative-paths/--absolute-paths",
+    "relative_paths",
     type=bool,
     default=False,
-    help='Whether to output paths relative to the output file.',
+    help="Whether to output paths relative to the output file.",
 )
 @click.option(
-    '--excluded-models',
-    '-e',
-    'excluded_model_files',
+    "--excluded-models",
+    "-e",
+    "excluded_model_files",
     type=str,
     multiple=True,
     default=None,
-    help='Exclude models in this file.',
+    help="Exclude models in this file.",
 )
 @click.option(
-    '--excluded-model-hashes',
-    '-E',
-    'excluded_model_hash_files',
+    "--excluded-model-hashes",
+    "-E",
+    "excluded_model_hash_files",
     type=str,
     multiple=True,
     default=None,
-    help='Exclude model hashes in this file (one model hash per line).',
+    help="Exclude model hashes in this file (one model hash per line).",
 )
 def start_iteration(
     problem_yaml: str,
@@ -190,8 +191,8 @@ def start_iteration(
                 "Changing method in the middle of a run is currently not "
                 "supported. Delete the state to start with a new method."
             )
-        problem = state['problem']
-        candidate_space = state['candidate_space']
+        problem = state["problem"]
+        candidate_space = state["candidate_space"]
 
     excluded_models = []
     # TODO seems like default is `()`, not `None`...
@@ -203,8 +204,8 @@ def start_iteration(
     excluded_model_hashes = []
     if excluded_model_hash_files is not None:
         for excluded_model_hash_file in excluded_model_hash_files:
-            with open(excluded_model_hash_file, 'r') as f:
-                excluded_model_hashes += f.read().split('\n')
+            with open(excluded_model_hash_file) as f:
+                excluded_model_hashes += f.read().split("\n")
 
     excluded_hashes = [
         excluded_model.get_hash() for excluded_model in excluded_models
@@ -277,42 +278,42 @@ def start_iteration(
 
 @cli.command("end_iteration")
 @click.option(
-    '--state',
-    '-s',
-    'state_dill',
+    "--state",
+    "-s",
+    "state_dill",
     type=str,
-    help='The file that stores the state.',
+    help="The file that stores the state.",
 )
 @click.option(
-    '--output-models',
-    '-m',
-    'models_yaml',
+    "--output-models",
+    "-m",
+    "models_yaml",
     type=str,
     help="The file where this iteration's calibrated models will be stored.",
 )
 @click.option(
-    '--output-metadata',
-    '-d',
-    'metadata_yaml',
+    "--output-metadata",
+    "-d",
+    "metadata_yaml",
     type=str,
     help="The file where this iteration's metadata will be stored.",
 )
 @click.option(
-    '--calibrated-models',
-    '-c',
-    'calibrated_models_yamls',
+    "--calibrated-models",
+    "-c",
+    "calibrated_models_yamls",
     type=str,
     multiple=True,
     help=(
-        'The calibration results for the uncalibrated models of this iteration.'
+        "The calibration results for the uncalibrated models of this iteration."
     ),
 )
 @click.option(
-    '--relative-paths/--absolute-paths',
-    'relative_paths',
+    "--relative-paths/--absolute-paths",
+    "relative_paths",
     type=bool,
     default=False,
-    help='Whether to output paths relative to the output file.',
+    help="Whether to output paths relative to the output file.",
 )
 def end_iteration(
     state_dill: str,
@@ -328,8 +329,8 @@ def end_iteration(
     """
     # Setup state
     state = read_state(state_dill)
-    problem = state['problem']
-    candidate_space = state['candidate_space']
+    problem = state["problem"]
+    candidate_space = state["candidate_space"]
 
     calibrated_models = {}
     if calibrated_models_yamls:
@@ -366,34 +367,34 @@ def end_iteration(
     metadata = {
         TERMINATE: iteration_results[TERMINATE],
     }
-    with open(metadata_yaml, 'w') as f:
+    with open(metadata_yaml, "w") as f:
         yaml.dump(metadata, f)
 
 
 @cli.command("model_to_petab")
 @click.option(
-    '--model',
-    '-m',
-    'models_yamls',
+    "--model",
+    "-m",
+    "models_yamls",
     multiple=True,
-    help='The PEtab Select model YAML file.',
+    help="The PEtab Select model YAML file.",
 )
 @click.option(
-    '--output',
-    '-o',
-    'output_path',
+    "--output",
+    "-o",
+    "output_path",
     type=str,
-    help='The directory where the PEtab files will be output.',
+    help="The directory where the PEtab files will be output.",
 )
 @click.option(
-    '--model_id',
-    '-i',
-    'model_id',
+    "--model_id",
+    "-i",
+    "model_id",
     type=str,
     default=None,
     help=(
-        '(Optional) The ID of the model to use, in case the YAML file '
-        'contains multiple models.'
+        "(Optional) The ID of the model to use, in case the YAML file "
+        "contains multiple models."
     ),
 )
 def model_to_petab(
@@ -419,17 +420,17 @@ def model_to_petab(
         for model in models:
             if model.model_id == model_id:
                 if model0 is not None:
-                    raise ValueError('There are multiple models with this ID.')
+                    raise ValueError("There are multiple models with this ID.")
                 model0 = model
                 # TODO could `break` here and remove the above `ValueError`
                 #      and the `model0` logic
     if model0 is None:
-        raise ValueError('Could not find a model with the specified model ID.')
+        raise ValueError("Could not find a model with the specified model ID.")
 
     if model_id is not None and model0.model_id != model_id:
         raise ValueError(
-            'The ID of the model from the YAML file does not match the '
-            'specified ID.'
+            "The ID of the model from the YAML file does not match the "
+            "specified ID."
         )
 
     result = ui.model_to_petab(model0, output_path)
@@ -438,19 +439,19 @@ def model_to_petab(
 
 @cli.command("models_to_petab")
 @click.option(
-    '--models',
-    '-m',
-    'models_yamls',
+    "--models",
+    "-m",
+    "models_yamls",
     type=str,
     multiple=True,
-    help='The PEtab Select model YAML file, containing a list of models.',
+    help="The PEtab Select model YAML file, containing a list of models.",
 )
 @click.option(
-    '--output',
-    '-o',
-    'output_path_prefix',
+    "--output",
+    "-o",
+    "output_path_prefix",
     type=str,
-    help='The directory where the PEtab files will be output. The PEtab files will be stored in a model-specific subdirectory.',
+    help="The directory where the PEtab files will be output. The PEtab files will be stored in a model-specific subdirectory.",
 )
 def models_to_petab(
     models_yamls: List[str],
@@ -472,21 +473,21 @@ def models_to_petab(
         models.extend(models_from_yaml_list(models_yaml))
 
     model_ids = pd.Series([model.model_id for model in models])
-    duplicates = '\n'.join(set(model_ids[model_ids.duplicated()]))
+    duplicates = "\n".join(set(model_ids[model_ids.duplicated()]))
     if duplicates:
         raise ValueError(
-            'It appears that the provided PEtab Select model YAML file '
-            'contains multiple models with the same ID. The following '
-            f'duplicates were detected: {duplicates}'
+            "It appears that the provided PEtab Select model YAML file "
+            "contains multiple models with the same ID. The following "
+            f"duplicates were detected: {duplicates}"
         )
 
     results = ui.models_to_petab(
         models,
         output_path_prefix=output_path_prefix,
     )
-    result_string = '\n'.join(
+    result_string = "\n".join(
         [
-            '\t'.join([model.model_id, result[PETAB_YAML]])
+            "\t".join([model.model_id, result[PETAB_YAML]])
             for model, result in zip(models, results)
         ]
     )
@@ -495,49 +496,49 @@ def models_to_petab(
 
 @cli.command("get_best")
 @click.option(
-    '--problem',
-    '-p',
-    'problem_yaml',
+    "--problem",
+    "-p",
+    "problem_yaml",
     type=str,
-    help='The PEtab Select YAML problem file.',
+    help="The PEtab Select YAML problem file.",
 )
 @click.option(
-    '--models',
-    '-m',
-    'models_yamls',
+    "--models",
+    "-m",
+    "models_yamls",
     type=str,
     multiple=True,
-    help='A list of calibrated models.',
+    help="A list of calibrated models.",
 )
 @click.option(
-    '--output',
-    '-o',
-    'output',
+    "--output",
+    "-o",
+    "output",
     type=str,
-    help='The file where the best model will be stored.',
+    help="The file where the best model will be stored.",
 )
 @click.option(
-    '--state',
-    '-s',
-    'state_filename',
-    type=str,
-    default=None,
-    help='The file that stores the state.',
-)
-@click.option(
-    '--criterion',
-    '-c',
-    'criterion',
+    "--state",
+    "-s",
+    "state_filename",
     type=str,
     default=None,
-    help='The criterion by which models will be compared.',
+    help="The file that stores the state.",
 )
 @click.option(
-    '--relative-paths/--absolute-paths',
-    'relative_paths',
+    "--criterion",
+    "-c",
+    "criterion",
+    type=str,
+    default=None,
+    help="The criterion by which models will be compared.",
+)
+@click.option(
+    "--relative-paths/--absolute-paths",
+    "relative_paths",
     type=bool,
     default=False,
-    help='Whether to output paths relative to the output file.',
+    help="Whether to output paths relative to the output file.",
 )
 def get_best(
     problem_yaml: str,
