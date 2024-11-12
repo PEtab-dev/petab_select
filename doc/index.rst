@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to petab-select's documentation!
+Welcome to PEtab Select's documentation!
 ========================================
 
 PEtab Select brings
@@ -13,7 +13,7 @@ formats, a Python library and a command line interface.
 
 Model selection is the process of choosing the best model from a set of
 candidate models. PEtab Select provides a standardized and compact way to
-specify the candidate model space, implements a number model selection
+specify the candidate model space, implements a number of model selection
 algorithms and criteria.
 
 Supported model selection algorithms:
@@ -25,14 +25,17 @@ Supported model selection algorithms:
 
 Supported model selection criteria:
 
-* (corrected) Akaike Information Criterion (AIC / cAIC)
+* (corrected) Akaike Information Criterion (AIC / AICc)
 * Bayesian Information Criterion (BIC)
-* ...
 
 Model calibration is performed outside of PEtab Select. For example,
 PEtab Select is well-integrated with
-`pypesto <https://pypesto.readthedocs.io/>`_
-(`model selection example <https://pypesto.readthedocs.io/en/latest/example/model_selection.html>`_).
+
+* `BasiCO <https://basico.readthedocs.io/>`_ (`example <https://basico.readthedocs.io/en/latest/notebooks/Working_with_PEtab.html#Model-Selection>`_)
+* `PEtab.jl <https://sebapersson.github.io/PEtab.jl>`_ (`example <https://sebapersson.github.io/PEtab.jl/stable/pest_select/>`_)
+* `pyPESTO <https://pypesto.readthedocs.io/>`_
+(`example <https://pypesto.readthedocs.io/en/latest/example/model_selection.html>`_)
+
 Other model calibration tools can easily be integrated using the provided
 Python library or command line interface.
 
