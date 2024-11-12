@@ -92,7 +92,7 @@ defines a model subspace.
 Here, the format for a single model is shown. Multiple models can be specified
 as a YAML list of the same format. The only required key is the ``petab_yaml``,
 as a model requires a PEtab problem. Other keys are required in different
-contexts; for example, model comparison will require ``criterion``.
+contexts (for example, model comparison will require ``criteria``).
 
 .. code-block:: yaml
 
