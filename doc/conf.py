@@ -11,9 +11,10 @@ import sphinx
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "petab-select"
+project = "PEtab Select"
 copyright = "2024, The PEtab Select developers"
 author = "The PEtab Select developers"
+
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
