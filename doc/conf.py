@@ -12,7 +12,7 @@ import sphinx
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "petab-select"
-copyright = "2023, The PEtab Select developers"
+copyright = "2024, The PEtab Select developers"
 author = "The PEtab Select developers"
 
 # -- General configuration ---------------------------------------------------
