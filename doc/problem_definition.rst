@@ -43,8 +43,10 @@ A YAML file with a description of the model selection problem.
 2. Model space
 --------------
 
-A TSV file with candidate models, in compressed or uncompressed format. Each row
-defines a model subspace.
+A TSV file with candidate models, in compressed or uncompressed format.
+Each row defines a model subspace, by specifying value(s) that each parameter
+can take. The models in a model subspace are all combinations of values across
+all parameters.
 
 .. list-table::
    :header-rows: 1
@@ -56,26 +58,50 @@ defines a model subspace.
      - ``parameter_id_n``
    * - (unique) [string]
      - [string]
-     - [string/float] OR [; delimited list of string/float]
+     - (``;``-delimited list) [string/float]
      - ...
-     - [string/float] OR [; delimited list of string/float]
+     - ...
 
 - ``model_subspace_id``: An ID for the model subspace.
 - ``petab_yaml``: The PEtab YAML filename that serves as the basis of all
   models in this subspace.
-- ``parameter_id_1`` ... ``parameter_id_n``: Parameter IDs that are specified to
-  take specific values or be estimated. Example valid values are:
+- ``parameter_id_1`` ... ``parameter_id_n``: Specify the values that a
+  parameter can take in the model subspace. For example, this could be:
 
-  - uncompressed format:
+  - a single value
 
     - ``0.0``
     - ``1.0``
     - ``estimate``
 
-  - compressed format:
+  - one of several possible values, as a ``;``-delimited list
 
     - ``0.0;1.1;estimate`` (the parameter can take the values ``0.0`` or
       ``1.1``, or be estimated)
+
+Using the ``;``-delimited list format, a model subspace that has two parameters
+(``p1, p2``) and six models:
+
+- ``p1:=0, p2:=10``
+- ``p1:=0, p2:=20``
+- ``p1:=0, p2:=estimate``
+- ``p1:=estimate, p2:=10``
+- ``p1:=estimate, p2:=20``
+- ``p1:=estimate, p2:=estimate``
+
+can be specified like
+
+.. list-table::
+   :header-rows: 1
+
+   * - ``model_subspace_id``
+     - ``petab_yaml``
+     - ``p1``
+     - ``p2``
+   * - subspace1
+     - petab_problem.yaml
+     - 0;estimate
+     - 10;20;estimate
 
 3. Model(s) (Predecessor models / model interchange / report)
 -------------------------------------------------------------
