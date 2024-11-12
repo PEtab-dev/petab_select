@@ -1,16 +1,97 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
-[tool.black]
-line-length = 79
-target-version = ['py37', 'py38', 'py39']
-skip-string-normalization = true
+[project]
+name = "petab_select"
+dynamic = ["version"]
+maintainers = [
+    {name = "Dilan Pathirana", email = "dilan.pathirana@uni-bonn.de"},
+]
+authors = [
+    {name = "The PEtab Select developers"},
+]
+description = "PEtab Select: an extension to PEtab for model selection."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "BSD-3-Clause"}
+dependencies = [
+    # TODO minimum versions
+    "more-itertools",
+    "numpy",
+    "pandas",
+    "petab",
+    "pyyaml",
+    "click",
+    "dill",
+    # TODO: move to [vis]? not required for cli-only usage?!
+    "matplotlib>=2.2.3",
+    "toposort",
+    "networkx",
+]
+[project.optional-dependencies]
+test = [
+    "pytest >= 5.4.3",
+    "pytest-cov >= 2.10.0",
+    "amici >= 0.11.25",
+    "fides >= 0.7.5",
+    "pypesto > 0.2.13",
+    "tox >= 3.12.4",
+]
+doc = [
+    "sphinx>=3.5.3,<7",
+    "sphinxcontrib-napoleon>=0.7",
+    "sphinx-markdown-tables>=0.0.15",
+    "sphinx-rtd-theme>=0.5.1",
+    "recommonmark>=0.7.1",
+    # pin until ubuntu comes with newer pandoc:
+    # /home/docs/checkouts/readthedocs.org/user_builds/petab-select/envs/63/lib/python3.11/site-packages/nbsphinx/__init__.py:1058: RuntimeWarning: You are using an unsupported version of pandoc (2.9.2.1).
+    # Your version must be at least (2.14.2) but less than (4.0.0).
+    "nbsphinx==0.9.1",
+    "nbconvert<7.5.0",
+    "ipython>=7.21.0",
+    "readthedocs-sphinx-ext>=2.2.5",
+    "sphinx-autodoc-typehints",
+]
 
-[tool.isort]
-profile = "black"
-line_length = 79
-multi_line_output = 3
+[project.scripts]
+petab_select = "petab_select.cli:cli"
+
+[tool.setuptools_scm]
+
+[tool.ruff]
+line-length = 79
+exclude = ["amici_models"]
+extend-include = ["*.ipynb"]
+lint.ignore = [
+    # FIXME: we should be able to remove move of those
+    "D103", # Missing docstring in public function
+    "S101", # Use of assert detected
+    "E501", # Line too long
+    "F403", # star import
+    "F821", # undefined name
+    "T201", # print statement
+    "S301", # pickle module used
+    "S102", # Use of exec detected
+    "S307", # Use of possibly insecure function
+    "B006",
+    "E722",
+    "B904",
+    "B007",
+    "F841",
+]
+lint.select = [
+    "F",  # Pyflakes
+    "I",  # isort
+    # "D",  # pydocstyle (PEP 257)  FIXME enable after https://github.com/PEtab-dev/petab_select/pull/67
+    "S",  # flake8-bandit
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "T20",  # flake8-print
+    "W",  # pycodestyle Warnings
+    "E",  # pycodestyle Errors
+    "UP",  # pyupgrade
+    # "ANN",  # flakes-annotations
+]
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"

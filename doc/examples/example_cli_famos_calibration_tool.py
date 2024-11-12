@@ -1,10 +1,8 @@
 import sys
 
-import pandas as pd
 from example_cli_famos_helpers import calibrate
 
 import petab_select
-from petab_select import ESTIMATE, Criterion, Model
 
 models_yaml = sys.argv[1]
 calibrated_models_yaml = sys.argv[2]
@@ -24,6 +22,6 @@ elif len(predecessor_model_hashes) == 1:
     (predecessor_model_hash,) = predecessor_model_hashes
 else:
     print(
-        'The models of this iteration somehow have different predecessor models.\n'
-        + '\n'.join(predecessor_model_hashes)
+        "The models of this iteration somehow have different predecessor models.\n"
+        + "\n".join(predecessor_model_hashes)
     )

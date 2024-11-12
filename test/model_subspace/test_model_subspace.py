@@ -13,7 +13,6 @@ from petab_select.candidate_space import (
 )
 from petab_select.constants import (
     ESTIMATE,
-    MODEL_SUBSPACE_ID,
     PARAMETER_VALUE_DELIMITER,
     PETAB_YAML,
     Criterion,
@@ -24,17 +23,17 @@ from petab_select.model_subspace import ModelSubspace
 
 @pytest.fixture
 def model_subspace_id_and_definition() -> pd.Series:
-    model_subspace_id = 'model_subspace_1'
+    model_subspace_id = "model_subspace_1"
     data = {
         PETAB_YAML: Path(__file__).parent.parent.parent
-        / 'doc'
-        / 'examples'
-        / 'model_selection'
-        / 'petab_problem.yaml',
-        'k1': 0.2,
-        'k2': PARAMETER_VALUE_DELIMITER.join(['0.1', ESTIMATE]),
-        'k3': ESTIMATE,
-        'k4': PARAMETER_VALUE_DELIMITER.join(['0', '0.1', ESTIMATE]),
+        / "doc"
+        / "examples"
+        / "model_selection"
+        / "petab_problem.yaml",
+        "k1": 0.2,
+        "k2": PARAMETER_VALUE_DELIMITER.join(["0.1", ESTIMATE]),
+        "k3": ESTIMATE,
+        "k4": PARAMETER_VALUE_DELIMITER.join(["0", "0.1", ESTIMATE]),
     }
     return model_subspace_id, pd.Series(data=data, dtype=str)
 
@@ -50,16 +49,16 @@ def model_subspace(model_subspace_id_and_definition) -> ModelSubspace:
 
 @pytest.fixture
 def initial_model(model_subspace) -> Model:
-    estimated_parameters = ['k3', 'k4']
+    estimated_parameters = ["k3", "k4"]
     model = one(
         model_subspace.get_models(estimated_parameters=estimated_parameters)
     )
     # Initial model is parameterized as expected.
     assert model.parameters == {
-        'k1': 0.2,
-        'k2': 0.1,
-        'k3': ESTIMATE,
-        'k4': ESTIMATE,
+        "k1": 0.2,
+        "k2": 0.1,
+        "k3": ESTIMATE,
+        "k4": ESTIMATE,
     }
     return model
 
@@ -67,50 +66,46 @@ def initial_model(model_subspace) -> Model:
 def test_from_definition(model_subspace):
     """A model subspace definition is parsed correctly."""
     # Model subspace ID is parsed
-    assert model_subspace.model_subspace_id == 'model_subspace_1'
+    assert model_subspace.model_subspace_id == "model_subspace_1"
     # PEtab YAML is parsed
     assert model_subspace.petab_yaml.samefile(
         Path(__file__).parent.parent.parent
-        / 'doc'
-        / 'examples'
-        / 'model_selection'
-        / 'petab_problem.yaml',
+        / "doc"
+        / "examples"
+        / "model_selection"
+        / "petab_problem.yaml",
     )
     # Fixed parameters are parsed
-    assert model_subspace.parameters['k1'] == [0.2]
+    assert model_subspace.parameters["k1"] == [0.2]
     # Parameters with multiple values are parsed
     assert (
-        0.1 in model_subspace.parameters['k2']
-        and ESTIMATE in model_subspace.parameters['k2']
+        0.1 in model_subspace.parameters["k2"]
+        and ESTIMATE in model_subspace.parameters["k2"]
     )
     # Estimated parameters are parsed
-    assert model_subspace.parameters['k3'] == [ESTIMATE]
+    assert model_subspace.parameters["k3"] == [ESTIMATE]
 
 
 def test_get_models(model_subspace):
     """The getter for models with specific estimated parameters works."""
-    estimated_parameters = ['k2', 'k3']
+    estimated_parameters = ["k2", "k3"]
     models = list(
         model_subspace.get_models(estimated_parameters=estimated_parameters)
     )
     expected_parameterizations = [
-        {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.0},
-        {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.1},
+        {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0.0},
+        {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0.1},
     ]
     test_parameterizations = [model.parameters for model in models]
     # Getter gets only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in expected_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in expected_parameterizations
     )
     # Getter gets all expected models.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
 
@@ -125,10 +120,10 @@ def test_search_forward(model_subspace, initial_model):
     assert len(candidate_space.models) == 1
     # The one model has the expected parameterization.
     expected_parameterization = {
-        'k1': 0.2,
-        'k2': ESTIMATE,
-        'k3': ESTIMATE,
-        'k4': ESTIMATE,
+        "k1": 0.2,
+        "k2": ESTIMATE,
+        "k3": ESTIMATE,
+        "k4": ESTIMATE,
     }
     assert one(candidate_space.models).parameters == expected_parameterization
 
@@ -156,25 +151,21 @@ def test_search_backward(model_subspace, initial_model):
     # Only two models are possible in the backward direction.
     assert len(candidate_space.models) == 2
     expected_parameterizations = [
-        {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0},
-        {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0.1},
+        {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": 0},
+        {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": 0.1},
     ]
     test_parameterizations = [
         model.parameters for model in candidate_space.models
     ]
     # Search found only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in test_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in test_parameterizations
     )
     # Search found all expected models.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
     # Test limit via model subspace
@@ -199,29 +190,25 @@ def test_search_brute_force(model_subspace):
     assert len(candidate_space.models) == 6
 
     expected_parameterizations = [
-        {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0},
-        {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0.1},
-        {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': ESTIMATE},
-        {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0},
-        {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.1},
-        {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': ESTIMATE},
+        {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": 0},
+        {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": 0.1},
+        {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": ESTIMATE},
+        {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0},
+        {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0.1},
+        {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": ESTIMATE},
     ]
     test_parameterizations = [
         model.parameters for model in candidate_space.models
     ]
     # Search found only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in test_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in test_parameterizations
     )
     # Search found all expected models.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
     limit_accepted_candidates = 3
@@ -257,19 +244,15 @@ def test_search_brute_force(model_subspace):
     assert len(candidate_space.models) == limit_accepted_candidates
     # Search found only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in test_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in test_parameterizations
     )
     # Test exclusions: all models have now been added to the candidate space.
     # TODO ideally with only 3 additional calls to `candidate_space.consider`, assuming
     #      the model_subspace excluded the first three models it had already sent.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
     # Test limit via model subspace
@@ -296,25 +279,21 @@ def test_search_swap(model_subspace, initial_model):
     assert len(candidate_space.models) == 2
     # The two models have the expected parameterization.
     expected_parameterizations = [
-        {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0},
-        {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.1},
+        {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0},
+        {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0.1},
     ]
     test_parameterizations = [
         model.parameters for model in candidate_space.models
     ]
     # Search found only expected models.
     assert all(
-        [
-            test_parameterization in expected_parameterizations
-            for test_parameterization in test_parameterizations
-        ]
+        test_parameterization in expected_parameterizations
+        for test_parameterization in test_parameterizations
     )
     # Search found all expected models.
     assert all(
-        [
-            expected_parameterization in test_parameterizations
-            for expected_parameterization in expected_parameterizations
-        ]
+        expected_parameterization in test_parameterizations
+        for expected_parameterization in expected_parameterizations
     )
 
     # Test limit via model subspace
