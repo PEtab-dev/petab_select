@@ -43,7 +43,7 @@ A YAML file with a description of the model selection problem.
 2. Model space
 --------------
 
-A TSV with candidate models, in compressed or uncompressed format. Each row
+A TSV file with candidate models, in compressed or uncompressed format. Each row
 defines a model subspace.
 
 .. list-table::
@@ -63,7 +63,7 @@ defines a model subspace.
 - ``model_subspace_id``: An ID for the model subspace.
 - ``petab_yaml``: The PEtab YAML filename that serves as the basis of all
   models in this subspace.
-- ``parameter_id_1``...``parameter_id_n``: Parameter IDs that are specified to
+- ``parameter_id_1`` ... ``parameter_id_n``: Parameter IDs that are specified to
   take specific values or be estimated. Example valid values are:
 
   - uncompressed format:
