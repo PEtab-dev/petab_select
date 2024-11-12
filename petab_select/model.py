@@ -1,11 +1,11 @@
 """The `Model` class."""
+
 from __future__ import annotations
 
-import string
 import warnings
 from os.path import relpath
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any
 
 import petab.v1 as petab
 import yaml
@@ -24,7 +24,6 @@ from .constants import (
     MODEL_SUBSPACE_INDICES_HASH_MAP,
     PARAMETERS,
     PETAB_ESTIMATE_TRUE,
-    PETAB_HASH_DIGEST_SIZE,
     PETAB_PROBLEM,
     PETAB_YAML,
     PREDECESSOR_MODEL_HASH,
@@ -36,9 +35,6 @@ from .constants import (
 )
 from .criteria import CriterionComputer
 from .misc import (
-    hash_list,
-    hash_parameter_dict,
-    hash_str,
     parameter_string_to_value,
 )
 from .petab import PetabMixin
@@ -47,11 +43,11 @@ if TYPE_CHECKING:
     from .problem import Problem
 
 __all__ = [
-    'Model',
-    'default_compare',
-    'models_from_yaml_list',
-    'models_to_yaml_list',
-    'ModelHash',
+    "Model",
+    "default_compare",
+    "models_from_yaml_list",
+    "models_to_yaml_list",
+    "ModelHash",
 ]
 
 
@@ -139,14 +135,14 @@ class Model(PetabMixin):
         petab_yaml: TYPE_PATH,
         model_subspace_id: str = None,
         model_id: str = None,
-        model_subspace_indices: List[int] = None,
+        model_subspace_indices: list[int] = None,
         predecessor_model_hash: str = None,
-        parameters: Dict[str, Union[int, float]] = None,
-        estimated_parameters: Dict[str, Union[int, float]] = None,
-        criteria: Dict[str, float] = None,
+        parameters: dict[str, int | float] = None,
+        estimated_parameters: dict[str, int | float] = None,
+        criteria: dict[str, float] = None,
         # Optionally provided to reduce repeated parsing of `petab_yaml`.
-        petab_problem: Optional[petab.Problem] = None,
-        model_hash: Optional[Any] = None,
+        petab_problem: petab.Problem | None = None,
+        model_hash: Any | None = None,
     ):
         self.model_id = model_id
         self.model_subspace_id = model_subspace_id
@@ -196,14 +192,15 @@ class Model(PetabMixin):
         """
         if criterion in self.criteria:
             warnings.warn(
-                'Overwriting saved criterion value. '
-                f'Criterion: {criterion}. Value: {self.get_criterion(criterion)}.'
+                "Overwriting saved criterion value. "
+                f"Criterion: {criterion}. Value: {self.get_criterion(criterion)}.",
+                stacklevel=2,
             )
             # FIXME debug why value is overwritten during test case 0002.
             if False:
                 print(
-                    'Overwriting saved criterion value. '
-                    f'Criterion: {criterion}. Value: {self.get_criterion(criterion)}.'
+                    "Overwriting saved criterion value. "
+                    f"Criterion: {criterion}. Value: {self.get_criterion(criterion)}."
                 )
                 breakpoint()
         self.criteria[criterion] = value
@@ -223,7 +220,7 @@ class Model(PetabMixin):
         criterion: Criterion,
         compute: bool = True,
         raise_on_failure: bool = True,
-    ) -> Union[TYPE_CRITERION, None]:
+    ) -> TYPE_CRITERION | None:
         """Get a criterion value for the model.
 
         Args:
@@ -285,7 +282,7 @@ class Model(PetabMixin):
 
     def set_estimated_parameters(
         self,
-        estimated_parameters: Dict[str, float],
+        estimated_parameters: dict[str, float],
         scaled: bool = False,
     ) -> None:
         """Set the estimated parameters.
@@ -306,10 +303,10 @@ class Model(PetabMixin):
 
     @staticmethod
     def from_dict(
-        model_dict: Dict[str, Any],
+        model_dict: dict[str, Any],
         base_path: TYPE_PATH = None,
         petab_problem: petab.Problem = None,
-    ) -> 'Model':
+    ) -> Model:
         """Generate a model from a dictionary of attributes.
 
         Args:
@@ -334,7 +331,9 @@ class Model(PetabMixin):
         unknown_attributes = set(model_dict).difference(Model.converters_load)
         if unknown_attributes:
             warnings.warn(
-                'Ignoring unknown attributes: ' + ', '.join(unknown_attributes)
+                "Ignoring unknown attributes: "
+                + ", ".join(unknown_attributes),
+                stacklevel=2,
             )
 
         if base_path is not None:
@@ -349,7 +348,7 @@ class Model(PetabMixin):
         return Model(**model_dict)
 
     @staticmethod
-    def from_yaml(model_yaml: TYPE_PATH) -> 'Model':
+    def from_yaml(model_yaml: TYPE_PATH) -> Model:
         """Generate a model from a PEtab Select model YAML file.
 
         Args:
@@ -369,10 +368,10 @@ class Model(PetabMixin):
                 if len(model_dict) <= 1:
                     raise
                 raise ValueError(
-                    'The provided YAML file contains a list with greater than '
-                    'one element. Use the `models_from_yaml_list` method or '
-                    'provide a PEtab Select model YAML file with only one '
-                    'model specified.'
+                    "The provided YAML file contains a list with greater than "
+                    "one element. Use the `models_from_yaml_list` method or "
+                    "provide a PEtab Select model YAML file with only one "
+                    "model specified."
                 )
 
         return Model.from_dict(model_dict, base_path=Path(model_yaml).parent)
@@ -380,8 +379,8 @@ class Model(PetabMixin):
     def to_dict(
         self,
         resolve_paths: bool = True,
-        paths_relative_to: Union[str, Path] = None,
-    ) -> Dict[str, Any]:
+        paths_relative_to: str | Path = None,
+    ) -> dict[str, Any]:
         """Generate a dictionary from the attributes of a :class:`Model` instance.
 
         Args:
@@ -429,15 +428,15 @@ class Model(PetabMixin):
         # FIXME change `getattr(self, PETAB_YAML)` to be relative to
         # destination?
         # kind of fixed, as the path will be resolved in `to_dict`.
-        with open(petab_yaml, 'w') as f:
+        with open(petab_yaml, "w") as f:
             yaml.dump(self.to_dict(*args, **kwargs), f)
         # yaml.dump(self.to_dict(), str(petab_yaml))
 
     def to_petab(
         self,
         output_path: TYPE_PATH = None,
-        set_estimated_parameters: Optional[bool] = None,
-    ) -> Dict[str, Union[petab.Problem, TYPE_PATH]]:
+        set_estimated_parameters: bool | None = None,
+    ) -> dict[str, petab.Problem | TYPE_PATH]:
         """Generate a PEtab problem.
 
         Args:
@@ -483,9 +482,9 @@ class Model(PetabMixin):
             # Else the parameter is to be fixed.
             else:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 0
-                petab_problem.parameter_df.loc[
-                    parameter_id, NOMINAL_VALUE
-                ] = parameter_string_to_value(parameter_value)
+                petab_problem.parameter_df.loc[parameter_id, NOMINAL_VALUE] = (
+                    parameter_string_to_value(parameter_value)
+                )
                 # parameter_value
 
         petab_yaml = None
@@ -520,7 +519,7 @@ class Model(PetabMixin):
 
     def __hash__(self) -> None:
         """Use `Model.get_hash` instead."""
-        raise NotImplementedError('Use `Model.get_hash() instead.`')
+        raise NotImplementedError("Use `Model.get_hash() instead.`")
 
     def __str__(self):
         """Get a print-ready string representation of the model.
@@ -528,17 +527,17 @@ class Model(PetabMixin):
         Returns:
             The print-ready string representation, in TSV format.
         """
-        parameter_ids = '\t'.join(self.parameters.keys())
-        parameter_values = '\t'.join(str(v) for v in self.parameters.values())
-        header = '\t'.join([MODEL_ID, PETAB_YAML, parameter_ids])
-        data = '\t'.join(
+        parameter_ids = "\t".join(self.parameters.keys())
+        parameter_values = "\t".join(str(v) for v in self.parameters.values())
+        header = "\t".join([MODEL_ID, PETAB_YAML, parameter_ids])
+        data = "\t".join(
             [self.model_id, str(self.petab_yaml), parameter_values]
         )
         # header = f'{MODEL_ID}\t{PETAB_YAML}\t{parameter_ids}'
         # data = f'{self.model_id}\t{self.petab_yaml}\t{parameter_values}'
-        return f'{header}\n{data}'
+        return f"{header}\n{data}"
 
-    def get_mle(self) -> Dict[str, float]:
+    def get_mle(self) -> dict[str, float]:
         """Get the maximum likelihood estimate of the model."""
         """
         FIXME(dilpath)
@@ -574,7 +573,7 @@ class Model(PetabMixin):
         # TODO
         pass
 
-    def get_estimated_parameter_ids_all(self) -> List[str]:
+    def get_estimated_parameter_ids_all(self) -> list[str]:
         estimated_parameter_ids = []
 
         # Add all estimated parameters in the PEtab problem.
@@ -609,8 +608,8 @@ class Model(PetabMixin):
 
     def get_parameter_values(
         self,
-        parameter_ids: Optional[List[str]] = None,
-    ) -> List[TYPE_PARAMETER]:
+        parameter_ids: list[str] | None = None,
+    ) -> list[TYPE_PARAMETER]:
         """Get parameter values.
 
         Includes ``ESTIMATE`` for parameters that should be estimated.
@@ -666,14 +665,18 @@ def default_compare(
     """
     if not model1.has_criterion(criterion):
         warnings.warn(
-            f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".'
+            f'Model "{model1.model_id}" does not provide a value for the '
+            f'criterion "{criterion}".',
+            stacklevel=2,
         )
         return False
     if model0 == VIRTUAL_INITIAL_MODEL or model0 is None:
         return True
     if criterion_threshold < 0:
         warnings.warn(
-            'The provided criterion threshold is negative. The absolute value will be used instead.'
+            "The provided criterion threshold is negative. "
+            "The absolute value will be used instead.",
+            stacklevel=2,
         )
         criterion_threshold = abs(criterion_threshold)
     if criterion in [
@@ -695,14 +698,14 @@ def default_compare(
             > model0.get_criterion(criterion) + criterion_threshold
         )
     else:
-        raise NotImplementedError(f'Unknown criterion: {criterion}.')
+        raise NotImplementedError(f"Unknown criterion: {criterion}.")
 
 
 def models_from_yaml_list(
     model_list_yaml: TYPE_PATH,
     petab_problem: petab.Problem = None,
     allow_single_model: bool = True,
-) -> List[Model]:
+) -> list[Model]:
     """Generate a model from a PEtab Select list of model YAML file.
 
     Args:
@@ -733,7 +736,7 @@ def models_from_yaml_list(
                     petab_problem=petab_problem,
                 )
             ]
-        raise ValueError('The YAML file does not contain a list of models.')
+        raise ValueError("The YAML file does not contain a list of models.")
 
     return [
         Model.from_dict(
@@ -770,7 +773,7 @@ def models_to_yaml_list(
             continue
         if model == VIRTUAL_INITIAL_MODEL:
             continue
-        warnings.warn(f"Unexpected model, skipping: {model}.")
+        warnings.warn(f"Unexpected model, skipping: {model}.", stacklevel=2)
         skipped_indices.append(index)
     models = [
         model
@@ -785,7 +788,7 @@ def models_to_yaml_list(
         model.to_dict(paths_relative_to=paths_relative_to) for model in models
     ]
     model_dicts = None if not model_dicts else model_dicts
-    with open(output_yaml, 'w') as f:
+    with open(output_yaml, "w") as f:
         yaml.dump(model_dicts, f)
 
 
@@ -870,8 +873,8 @@ class ModelHash(str):
         return (
             (),
             {
-                'model_subspace_id': self.model_subspace_id,
-                'model_subspace_indices_hash': self.model_subspace_indices_hash,
+                "model_subspace_id": self.model_subspace_id,
+                "model_subspace_indices_hash": self.model_subspace_indices_hash,
                 # 'petab_hash': self.petab_hash,
             },
         )
@@ -923,7 +926,7 @@ class ModelHash(str):
     #     )
 
     @staticmethod
-    def from_hash(model_hash: Union[str, ModelHash]) -> ModelHash:
+    def from_hash(model_hash: str | ModelHash) -> ModelHash:
         """Reconstruct a :class:`ModelHash` object.
 
         Args:
@@ -939,7 +942,7 @@ class ModelHash(str):
         if model_hash == VIRTUAL_INITIAL_MODEL:
             return ModelHash(
                 model_subspace_id=VIRTUAL_INITIAL_MODEL,
-                model_subspace_indices_hash='',
+                model_subspace_indices_hash="",
                 # petab_hash=VIRTUAL_INITIAL_MODEL,
             )
 
@@ -955,7 +958,7 @@ class ModelHash(str):
         )
 
     @staticmethod
-    def from_model(model: Model) -> "ModelHash":
+    def from_model(model: Model) -> ModelHash:
         """Create a hash for a model.
 
         Args:
@@ -965,8 +968,8 @@ class ModelHash(str):
         Returns:
             The model hash.
         """
-        model_subspace_id = ''
-        model_subspace_indices_hash = ''
+        model_subspace_id = ""
+        model_subspace_indices_hash = ""
         if model.model_subspace_id is not None:
             model_subspace_id = model.model_subspace_id
             model_subspace_indices_hash = (
@@ -993,12 +996,12 @@ class ModelHash(str):
             The hash.
         """
         try:
-            return ''.join(
+            return "".join(
                 MODEL_SUBSPACE_INDICES_HASH_MAP[index]
                 for index in model_subspace_indices
             )
         except KeyError:
-            return MODEL_SUBSPACE_INDICES_HAS_HASH_DELIMITER.join(
+            return MODEL_SUBSPACE_INDICES_HASH_DELIMITER.join(
                 str(i) for i in model_subspace_indices
             )
 

@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pandas as pd
 import yaml
 
 import petab_select
@@ -12,16 +11,16 @@ from petab_select import (
     PREDECESSOR_MODEL_HASH,
 )
 
-test_cases_path = Path(__file__).resolve().parent.parent.parent / 'test_cases'
+test_cases_path = Path(__file__).resolve().parent.parent.parent / "test_cases"
 
 
-for test_case_path in test_cases_path.glob('*'):
+for test_case_path in test_cases_path.glob("*"):
     petab_select_problem = petab_select.Problem.from_yaml(
-        test_case_path / 'petab_select_problem.yaml',
+        test_case_path / "petab_select_problem.yaml",
     )
-    expected_model_yaml = test_case_path / 'expected.yaml'
+    expected_model_yaml = test_case_path / "expected.yaml"
 
-    with open(expected_model_yaml, "r") as f:
+    with open(expected_model_yaml) as f:
         model_dict = yaml.safe_load(f)
 
     model = petab_select_problem.model_space.model_subspaces[

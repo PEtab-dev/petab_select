@@ -1,7 +1,6 @@
 import copy
-import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import numpy as np
 import petab.v1 as petab
@@ -23,12 +22,12 @@ from .model import Model, ModelHash, default_compare
 from .problem import Problem
 
 __all__ = [
-    'start_iteration',
-    'end_iteration',
-    'model_to_petab',
-    'models_to_petab',
-    'get_best',
-    'write_summary_tsv',
+    "start_iteration",
+    "end_iteration",
+    "model_to_petab",
+    "models_to_petab",
+    "get_best",
+    "write_summary_tsv",
 ]
 
 
@@ -42,14 +41,12 @@ def get_iteration(candidate_space: CandidateSpace) -> dict[str, Any]:
 
 def start_iteration(
     problem: Problem,
-    candidate_space: Optional[CandidateSpace] = None,
-    limit: Union[float, int] = np.inf,
-    limit_sent: Union[float, int] = np.inf,
-    excluded_hashes: Optional[list[ModelHash]] = None,
-    criterion: Optional[Criterion] = None,
-    user_calibrated_models: Optional[
-        Union[list[Model], dict[ModelHash, Model]]
-    ] = None,
+    candidate_space: CandidateSpace | None = None,
+    limit: float | int = np.inf,
+    limit_sent: float | int = np.inf,
+    excluded_hashes: list[ModelHash] | None = None,
+    criterion: Criterion | None = None,
+    user_calibrated_models: list[Model] | dict[ModelHash, Model] | None = None,
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
@@ -93,7 +90,6 @@ def start_iteration(
             :const:`petab_select.constants.MODELS`:
                 The uncalibrated models of the current iteration.
     """
-
     """
     FIXME(dilpath)
     - currently takes predecessor model from
@@ -288,8 +284,8 @@ def end_iteration(
 
 def model_to_petab(
     model: Model,
-    output_path: Optional[TYPE_PATH] = None,
-) -> Dict[str, Union[petab.Problem, TYPE_PATH]]:
+    output_path: TYPE_PATH | None = None,
+) -> dict[str, petab.Problem | TYPE_PATH]:
     """Generate the PEtab problem for a model.
 
     Args:
@@ -306,9 +302,9 @@ def model_to_petab(
 
 
 def models_to_petab(
-    models: List[Model],
-    output_path_prefix: Optional[List[TYPE_PATH]] = None,
-) -> List[Dict[str, Union[petab.Problem, TYPE_PATH]]]:
+    models: list[Model],
+    output_path_prefix: list[TYPE_PATH] | None = None,
+) -> list[dict[str, petab.Problem | TYPE_PATH]]:
     """Generate the PEtab problems for a list of models.
 
     Args:
@@ -332,8 +328,8 @@ def models_to_petab(
 
 def get_best(
     problem: Problem,
-    models: List[Model],
-    criterion: Optional[Union[str, None]] = None,
+    models: list[Model],
+    criterion: str | None | None = None,
 ) -> Model:
     """Get the best model from a list of models.
 
@@ -355,9 +351,9 @@ def get_best(
 
 def write_summary_tsv(
     problem: Problem,
-    candidate_space: Optional[CandidateSpace] = None,
-    previous_predecessor_model: Optional[Union[str, Model]] = None,
-    predecessor_model: Optional[Model] = None,
+    candidate_space: CandidateSpace | None = None,
+    previous_predecessor_model: str | Model | None = None,
+    predecessor_model: Model | None = None,
 ) -> None:
     if candidate_space.summary_tsv is None:
         return
@@ -406,7 +402,7 @@ def write_summary_tsv(
         and isinstance(candidate_space.predecessor_model, Model)
         and candidate_space.predecessor_model.predecessor_model_hash is None
     ):
-        with open(candidate_space.summary_tsv, 'r') as f:
+        with open(candidate_space.summary_tsv) as f:
             if sum(1 for _ in f) > 1:
                 method = Method.MOST_DISTANT
 

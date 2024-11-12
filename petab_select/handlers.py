@@ -1,7 +1,7 @@
-from typing import Callable, Union
+from collections.abc import Callable
 
 # `float` for `np.inf`
-TYPE_LIMIT = Union[float, int]
+TYPE_LIMIT = float | int
 
 
 # TODO exclusions handler

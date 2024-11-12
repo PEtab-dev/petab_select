@@ -9,10 +9,10 @@ import petab_select
 from .constants import PETAB_PROBLEM, Criterion  # LH,; LLH,; NLLH,
 
 __all__ = [
-    'calculate_aic',
-    'calculate_aicc',
-    'calculate_bic',
-    'CriterionComputer',
+    "calculate_aic",
+    "calculate_aicc",
+    "calculate_bic",
+    "CriterionComputer",
 ]
 
 
@@ -22,7 +22,7 @@ class CriterionComputer:
 
     def __init__(
         self,
-        model: 'petab_select.model.Model',
+        model: "petab_select.model.Model",
     ):
         self.model = model
         self._petab_problem = None
@@ -54,7 +54,7 @@ class CriterionComputer:
         Returns:
             The criterion value.
         """
-        return getattr(self, 'get_' + criterion.value.lower())()
+        return getattr(self, "get_" + criterion.value.lower())()
 
     def get_aic(self) -> float:
         """Get the Akaike information criterion."""
@@ -109,7 +109,7 @@ class CriterionComputer:
             return np.exp(-1 * nllh)
 
         raise ValueError(
-            'Please supply the likelihood (LH) or a compatible transformation. Compatible transformations: log(LH), -log(LH).'
+            "Please supply the likelihood (LH) or a compatible transformation. Compatible transformations: log(LH), -log(LH)."
         )
 
     def get_n_estimated(self) -> int:
@@ -135,7 +135,7 @@ class CriterionComputer:
             OBJECTIVE_PRIOR_TYPE in df and OBJECTIVE_PRIOR_PARAMETERS in df
         ):
             raise NotImplementedError(
-                'Currently expect that prior types are specified with prior parameters (no default values). Please provide an example for implementation.'
+                "Currently expect that prior types are specified with prior parameters (no default values). Please provide an example for implementation."
             )
 
         # Expect that the number of non-empty values in both objective prior columns
@@ -145,7 +145,7 @@ class CriterionComputer:
             == df[OBJECTIVE_PRIOR_PARAMETERS].notna().sum()
         ):
             raise NotImplementedError(
-                'Some objective prior values are missing.'
+                "Some objective prior values are missing."
             )
 
         number_of_priors = df[OBJECTIVE_PRIOR_TYPE].notna().sum()

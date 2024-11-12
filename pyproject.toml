@@ -33,7 +33,6 @@ test = [
     "fides >= 0.7.5",
     "pypesto > 0.2.13",
     "tox >= 3.12.4",
-    "flake8 >= 4.0.1",
 ]
 doc = [
     "sphinx>=3.5.3,<7",
@@ -56,12 +55,39 @@ petab_select = "petab_select.cli:cli"
 
 [tool.setuptools_scm]
 
-[tool.black]
+[tool.ruff]
 line-length = 79
-target-version = ['py37', 'py38', 'py39']
-skip-string-normalization = true
-
-[tool.isort]
-profile = "black"
-line_length = 79
-multi_line_output = 3
+exclude = ["amici_models"]
+extend-include = ["*.ipynb"]
+lint.ignore = [
+    # FIXME: we should be able to remove move of those
+    "D103", # Missing docstring in public function
+    "S101", # Use of assert detected
+    "E501", # Line too long
+    "F403", # star import
+    "F821", # undefined name
+    "T201", # print statement
+    "S301", # pickle module used
+    "S102", # Use of exec detected
+    "S307", # Use of possibly insecure function
+    "B006",
+    "E722",
+    "B904",
+    "B007",
+    "F841",
+]
+lint.select = [
+    "F",  # Pyflakes
+    "I",  # isort
+    # "D",  # pydocstyle (PEP 257)  FIXME enable after https://github.com/PEtab-dev/petab_select/pull/67
+    "S",  # flake8-bandit
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "T20",  # flake8-print
+    "W",  # pycodestyle Warnings
+    "E",  # pycodestyle Errors
+    "UP",  # pyupgrade
+    # "ANN",  # flakes-annotations
+]
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
