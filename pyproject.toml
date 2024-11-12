@@ -10,7 +10,7 @@ line-length = 79
 exclude = ["amici_models"]
 extend-include = ["*.ipynb"]
 lint.ignore = [
-    # FIXME: we should be able to remive move of those
+    # FIXME: we should be able to remove move of those
     "D103", # Missing docstring in public function
     "S101", # Use of assert detected
     "E501", # Line too long

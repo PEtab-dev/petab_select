@@ -15,7 +15,6 @@ def read(fname):
 
 def absolute_links(txt):
     """Replace relative petab github links by absolute links."""
-
     raw_base = f"(https://raw.githubusercontent.com/{org}/{repo}/main/"
     embedded_base = f"(https://github.com/{org}/{repo}/tree/main/"
     # iterate over links

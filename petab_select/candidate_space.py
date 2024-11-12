@@ -1035,7 +1035,6 @@ class FamosCandidateSpace(CandidateSpace):
         **kwargs,
     ) -> None:
         """See `CandidateSpace.update_after_calibration`."""
-
         super().update_after_calibration(
             *args,
             iteration_calibrated_models=iteration_calibrated_models,
@@ -1073,8 +1072,8 @@ class FamosCandidateSpace(CandidateSpace):
     ) -> bool:
         """Update ``self.best_models`` with the latest ``iteration_calibrated_models``
         and determine if there was a new best model. If so, return
-        ``False``. ``True`` otherwise."""
-
+        ``False``. ``True`` otherwise.
+        """
         go_into_switch_method = True
         for model in iteration_calibrated_models.values():
             if (
@@ -1112,7 +1111,8 @@ class FamosCandidateSpace(CandidateSpace):
 
     def insert_model_into_best_models(self, model_to_insert: Model) -> None:
         """Inserts a model into the list of best_models which are sorted
-        w.r.t. the criterion specified."""
+        w.r.t. the criterion specified.
+        """
         insert_index = bisect.bisect_left(
             [
                 model.get_criterion(self.criterion)
@@ -1125,8 +1125,8 @@ class FamosCandidateSpace(CandidateSpace):
     def consider(self, model: Union[Model, None]) -> bool:
         """Re-define ``consider`` of FAMoS to be the ``consider`` method
         of the ``inner_candidate_space``. Update all the attributes
-        changed in the ``consider`` method."""
-
+        changed in the ``consider`` method.
+        """
         if self.limit.reached():
             return False
 
@@ -1157,7 +1157,8 @@ class FamosCandidateSpace(CandidateSpace):
 
     def check_swap(self, model: Model) -> bool:
         """Check if parameters that are swapped are contained in the
-        same swap parameter set."""
+        same swap parameter set.
+        """
         if self.method != Method.LATERAL:
             return True
 
@@ -1177,7 +1178,6 @@ class FamosCandidateSpace(CandidateSpace):
 
     def check_critical(self, model: Model) -> bool:
         """Check if the model contains all necessary critical parameters"""
-
         estimated_parameters_ids = set(model.get_estimated_parameter_ids_all())
         for critical_set in self.critical_parameter_sets:
             if not estimated_parameters_ids.intersection(set(critical_set)):
@@ -1188,8 +1188,8 @@ class FamosCandidateSpace(CandidateSpace):
         self,
     ) -> None:
         """Switch to the next method with respect to the history
-        of methods used and the switching scheme in ``self.method_scheme``."""
-
+        of methods used and the switching scheme in ``self.method_scheme``.
+        """
         previous_method = self.method
         next_method = previous_method
         logging.info("SWITCHING", self.method_history)
@@ -1248,7 +1248,6 @@ class FamosCandidateSpace(CandidateSpace):
 
     def update_method(self, method: Method):
         """Update ``self.method`` to ``method``."""
-
         self.method = method
 
     def switch_inner_candidate_space(
@@ -1261,7 +1260,6 @@ class FamosCandidateSpace(CandidateSpace):
             excluded_hashes:
                 Hashes of excluded models.
         """
-
         # if self.method != Method.MOST_DISTANT:
         self.inner_candidate_space = self.inner_candidate_spaces[self.method]
         # reset the next inner candidate space with the current history of all
@@ -1275,8 +1273,8 @@ class FamosCandidateSpace(CandidateSpace):
         self,
     ):
         """Jump to most distant model with respect to the history of all
-        calibrated models."""
-
+        calibrated models.
+        """
         predecessor_model = self.get_most_distant()
 
         logging.info("JUMPING: ", predecessor_model.parameters)
@@ -1319,7 +1317,6 @@ class FamosCandidateSpace(CandidateSpace):
         If not we choose the model in a subspace that has least distance to this
         complement model.
         """
-
         most_distance = 0
         most_distant_indices = []
 

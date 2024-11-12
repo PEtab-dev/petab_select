@@ -92,7 +92,6 @@ def start_iteration(
             :const:`petab_select.constants.MODELS`:
                 The uncalibrated models of the current iteration.
     """
-
     """
     FIXME(dilpath)
     - currently takes predecessor model from
