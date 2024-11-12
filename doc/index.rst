@@ -19,22 +19,25 @@ algorithms and criteria.
 Supported model selection algorithms:
 
 * brute force
-* forward selection
-* backward selection
-* FAMoS
+* `forward selection <https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches>`_
+* `backward selection <https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches>`_
+* `FAMoS <https://doi.org/10.1371/journal.pcbi.1007230>`_
 
 Supported model selection criteria:
 
-* (corrected) Akaike Information Criterion (AIC / AICc)
-* Bayesian Information Criterion (BIC)
+* (`corrected <https://en.wikipedia.org/wiki/Akaike_information_criterion#Modification_for_small_sample_size>`_)
+  `Akaike Information Criterion <https://en.wikipedia.org/wiki/Akaike_information_criterion#Definition>`_ (AIC / AICc)
+* `Bayesian Information Criterion <https://en.wikipedia.org/wiki/Bayesian_information_criterion#Definition>`_ (BIC)
 
 Model calibration is performed outside of PEtab Select. For example,
-PEtab Select is well-integrated with
+PEtab Select is well-integrated with:
 
-* `BasiCO <https://basico.readthedocs.io/>`_ (`example <https://basico.readthedocs.io/en/latest/notebooks/Working_with_PEtab.html#Model-Selection>`_)
-* `PEtab.jl <https://sebapersson.github.io/PEtab.jl>`_ (`example <https://sebapersson.github.io/PEtab.jl/stable/pest_select/>`_)
+* `BasiCO <https://basico.readthedocs.io/>`_
+  (`example <https://basico.readthedocs.io/en/latest/notebooks/Working_with_PEtab.html#Model-Selection>`_)
+* `PEtab.jl <https://sebapersson.github.io/PEtab.jl>`_
+  (`example <https://sebapersson.github.io/PEtab.jl/stable/pest_select/>`_)
 * `pyPESTO <https://pypesto.readthedocs.io/>`_
-(`example <https://pypesto.readthedocs.io/en/latest/example/model_selection.html>`_)
+  (`example <https://pypesto.readthedocs.io/en/latest/example/model_selection.html>`_)
 
 Other model calibration tools can easily be integrated using the provided
 Python library or command line interface.
@@ -43,7 +46,7 @@ Installation
 ------------
 
 The Python 3 package provides both the Python 3 and command-line (CLI)
-interfaces, and can be installed from PyPI, with
+interfaces, and can be installed from PyPI, with:
 
 .. code-block:: bash
 
