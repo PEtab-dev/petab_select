@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Optional
 
 import petab.v1 as petab
 from more_itertools import one
@@ -26,8 +25,8 @@ class PetabMixin:
 
     def __init__(
         self,
-        petab_yaml: Optional[TYPE_PATH] = None,
-        petab_problem: Optional[petab.Problem] = None,
+        petab_yaml: TYPE_PATH | None = None,
+        petab_problem: petab.Problem | None = None,
         parameters_as_lists: bool = False,
     ):
         if petab_yaml is None and petab_problem is None:
@@ -57,7 +56,7 @@ class PetabMixin:
             }
 
     @property
-    def petab_parameter_ids_estimated(self) -> List[str]:
+    def petab_parameter_ids_estimated(self) -> list[str]:
         """Get the IDs of all estimated parameters.
 
         Returns:
@@ -70,7 +69,7 @@ class PetabMixin:
         ]
 
     @property
-    def petab_parameter_ids_fixed(self) -> List[str]:
+    def petab_parameter_ids_fixed(self) -> list[str]:
         """Get the IDs of all fixed parameters.
 
         Returns:

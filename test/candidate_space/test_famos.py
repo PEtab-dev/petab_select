@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Tuple
 
 import pandas as pd
 import pytest
@@ -97,7 +96,7 @@ def test_famos(
             value=expected_criterion_values[model.get_hash()],
         )
 
-    def parse_summary_to_progress_list(summary_tsv: str) -> Tuple[Method, set]:
+    def parse_summary_to_progress_list(summary_tsv: str) -> tuple[Method, set]:
         """Get progress information from the summary file."""
         df_raw = pd.read_csv(summary_tsv, sep="\t")
         df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]
@@ -134,9 +133,10 @@ def test_famos(
     candidate_space.summary_tsv.unlink(missing_ok=True)
     candidate_space._setup_summary_tsv()
 
-    with pytest.raises(
-        StopIteration, match="No valid models found."
-    ), pytest.warns(RuntimeWarning) as warning_record:
+    with (
+        pytest.raises(StopIteration, match="No valid models found."),
+        pytest.warns(RuntimeWarning) as warning_record,
+    ):
         while True:
             # Initialize iteration
             iteration = petab_select.ui.start_iteration(

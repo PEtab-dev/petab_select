@@ -1,8 +1,9 @@
 import math
 import warnings
+from collections.abc import Iterable, Iterator
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -60,7 +61,7 @@ class ModelSubspace(PetabMixin):
         model_subspace_id: str,
         petab_yaml: str,
         parameters: TYPE_PARAMETER_OPTIONS_DICT,
-        exclusions: Optional[Union[List[Any], None]] = None,
+        exclusions: list[Any] | None | None = None,
     ):
         self.model_subspace_id = model_subspace_id
         self.parameters = parameters
@@ -109,7 +110,7 @@ class ModelSubspace(PetabMixin):
             return False
         return True
 
-    def get_models(self, estimated_parameters: List[str]) -> Iterator[Model]:
+    def get_models(self, estimated_parameters: list[str]) -> Iterator[Model]:
         """Get models in the subspace by estimated parameters.
 
         All models that have the provided ``estimated_parameters`` are returned.
@@ -169,6 +170,7 @@ class ModelSubspace(PetabMixin):
                 zip(
                     fixed_parameter_ids,
                     fixed_parameter_values,
+                    strict=False,
                 )
             )
             parameters = {
@@ -483,7 +485,9 @@ class ModelSubspace(PetabMixin):
         elif candidate_space.method == Method.BRUTE_FORCE:
             # TODO remove list?
             for parameterization in list(product(*self.parameters.values())):
-                parameters = dict(zip(self.parameters, parameterization))
+                parameters = dict(
+                    zip(self.parameters, parameterization, strict=False)
+                )
                 model = self.parameters_to_model(parameters)
                 # Skip models that are excluded.
                 if model is None:
@@ -591,7 +595,7 @@ class ModelSubspace(PetabMixin):
         self,
         model: Model,
         candidate_space: CandidateSpace,
-        exclude: Optional[bool] = False,
+        exclude: bool | None = False,
         # use_exclusions: Optional[bool] = True,
     ) -> bool:
         """Send a model to a candidate space for consideration.
@@ -675,7 +679,7 @@ class ModelSubspace(PetabMixin):
     def reset_exclusions(
         self,
         # TODO change typing with `List[Any]` to some `List[TYPE_MODEL_HASH]`
-        exclusions: Optional[Union[List[Any], None]] = None,
+        exclusions: list[Any] | None | None = None,
     ):
         self.exclusions = set()
         if exclusions is not None:
@@ -683,8 +687,8 @@ class ModelSubspace(PetabMixin):
 
     def reset(
         self,
-        exclusions: Optional[Union[List[Any], None]] = None,
-        limit: Optional[int] = None,
+        exclusions: list[Any] | None | None = None,
+        limit: int | None = None,
     ):
         self.reset_exclusions(exclusions=exclusions)
         if limit is not None:
@@ -693,7 +697,7 @@ class ModelSubspace(PetabMixin):
     @staticmethod
     def from_definition(
         model_subspace_id: str,
-        definition: Union[Dict[str, str], pd.Series],
+        definition: dict[str, str] | pd.Series,
         parent_path: TYPE_PATH = None,
     ) -> "ModelSubspace":
         """Create a :class:`ModelSubspace` from a definition.
@@ -724,7 +728,7 @@ class ModelSubspace(PetabMixin):
             parameters=parameters,
         )
 
-    def indices_to_model(self, indices: List[int]) -> Union[Model, None]:
+    def indices_to_model(self, indices: list[int]) -> Model | None:
         """Get a model from the subspace, by indices of possible parameter values.
 
         Model exclusions are handled here.
@@ -752,7 +756,7 @@ class ModelSubspace(PetabMixin):
 
     def indices_to_parameters(
         self,
-        indices: List[int],
+        indices: list[int],
     ) -> TYPE_PARAMETER_DICT:
         """Convert parameter indices to values.
 
@@ -765,7 +769,9 @@ class ModelSubspace(PetabMixin):
         """
         parameters = {
             parameter_id: self.parameters[parameter_id][index]
-            for parameter_id, index in zip(self.parameters, indices)
+            for parameter_id, index in zip(
+                self.parameters, indices, strict=False
+            )
         }
         return parameters
 
@@ -800,7 +806,7 @@ class ModelSubspace(PetabMixin):
     def parameters_to_model(
         self,
         parameters: TYPE_PARAMETER_DICT,
-    ) -> Union[Model, None]:
+    ) -> Model | None:
         """Convert parameter values to a model.
 
         Args:
@@ -825,7 +831,7 @@ class ModelSubspace(PetabMixin):
         return {**self.petab_parameters, **self.parameters}
 
     @property
-    def can_fix(self) -> List[str]:
+    def can_fix(self) -> list[str]:
         """Parameters that can be fixed, according to the subspace.
 
         Parameters that are fixed as part of the PEtab problem are not
@@ -842,7 +848,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def can_estimate(self) -> List[str]:
+    def can_estimate(self) -> list[str]:
         """Parameters that can be estimated, according to the subspace.
 
         Parameters that are estimated as part of the PEtab problem are not
@@ -855,7 +861,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def can_estimate_all(self) -> List[str]:
+    def can_estimate_all(self) -> list[str]:
         """All parameters than can be estimated in this subspace."""
         return [
             parameter_id
@@ -864,7 +870,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def must_fix(self) -> List[str]:
+    def must_fix(self) -> list[str]:
         """Subspace parameters that must be fixed.
 
         Parameters that are fixed as part of the PEtab problem are not
@@ -877,7 +883,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def must_fix_all(self) -> List[str]:
+    def must_fix_all(self) -> list[str]:
         """All parameters that must be fixed in this subspace."""
         return [
             parameter_id
@@ -886,7 +892,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def must_estimate(self) -> List[str]:
+    def must_estimate(self) -> list[str]:
         """Subspace parameters that must be estimated.
 
         Does not include parameters that are estimated in the PEtab
@@ -899,7 +905,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def must_estimate_all(self) -> List[str]:
+    def must_estimate_all(self) -> list[str]:
         """All parameters that must be estimated in this subspace."""
         must_estimate_petab = [
             parameter_id
@@ -910,8 +916,8 @@ class ModelSubspace(PetabMixin):
 
     def get_estimated(
         self,
-        additional_parameters: Optional[TYPE_PARAMETER_DICT] = None,
-    ) -> List[str]:
+        additional_parameters: TYPE_PARAMETER_DICT | None = None,
+    ) -> list[str]:
         """Get the IDs of parameters that are estimated.
 
         Args:
@@ -968,7 +974,7 @@ class ModelSubspace(PetabMixin):
 
 
 def decompress_parameter_values(
-    values: Union[float, int, str],
+    values: float | int | str,
 ) -> TYPE_PARAMETER_OPTIONS:
     """Decompress parameter values.
 
@@ -981,7 +987,7 @@ def decompress_parameter_values(
     Returns:
         Parameter values, decompressed into a list.
     """
-    if isinstance(values, (float, int)):
+    if isinstance(values, float | int):
         return [values]
 
     parameter_strings = list(values.split(PARAMETER_VALUE_DELIMITER))

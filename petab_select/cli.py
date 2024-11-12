@@ -1,7 +1,7 @@
 """The PEtab Select command-line interface."""
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import click
 import dill
@@ -17,7 +17,7 @@ from .model import ModelHash, models_from_yaml_list, models_to_yaml_list
 from .problem import Problem
 
 
-def read_state(filename: str) -> Dict[str, Any]:
+def read_state(filename: str) -> dict[str, Any]:
     with open(filename, "rb") as f:
         state = dill.load(f)
 
@@ -28,9 +28,9 @@ def read_state(filename: str) -> Dict[str, Any]:
 
 
 def write_state(
-    state: Dict[str, Any],
+    state: dict[str, Any],
     filename: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     with open(filename, "wb") as f:
         dill.dump(state, f)
 
@@ -38,7 +38,7 @@ def write_state(
 def get_state(
     problem: Problem,
     candidate_space: CandidateSpace,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     state = {
         "problem": dill.dumps(problem),
         "candidate_space": dill.dumps(candidate_space),
@@ -164,8 +164,8 @@ def start_iteration(
     limit: float = np.inf,
     limit_sent: float = np.inf,
     relative_paths: bool = False,
-    excluded_model_files: List[str] = None,
-    excluded_model_hash_files: List[str] = None,
+    excluded_model_files: list[str] = None,
+    excluded_model_hash_files: list[str] = None,
 ) -> None:
     """Search for candidate models in the model space.
 
@@ -319,7 +319,7 @@ def end_iteration(
     state_dill: str,
     models_yaml: str,
     metadata_yaml: str,
-    calibrated_models_yamls: List[str] = None,
+    calibrated_models_yamls: list[str] = None,
     relative_paths: bool = False,
 ) -> None:
     """Finalize a model selection iteration.
@@ -398,7 +398,7 @@ def end_iteration(
     ),
 )
 def model_to_petab(
-    models_yamls: List[str],
+    models_yamls: list[str],
     output_path: str,
     model_id: str = None,
 ) -> None:
@@ -454,7 +454,7 @@ def model_to_petab(
     help="The directory where the PEtab files will be output. The PEtab files will be stored in a model-specific subdirectory.",
 )
 def models_to_petab(
-    models_yamls: List[str],
+    models_yamls: list[str],
     output_path_prefix: str,
 ) -> None:
     """Create a PEtab problem for each model in a PEtab Select model YAML file.
@@ -488,7 +488,7 @@ def models_to_petab(
     result_string = "\n".join(
         [
             "\t".join([model.model_id, result[PETAB_YAML]])
-            for model, result in zip(models, results)
+            for model, result in zip(models, results, strict=False)
         ]
     )
     print(result_string)
@@ -542,7 +542,7 @@ def models_to_petab(
 )
 def get_best(
     problem_yaml: str,
-    models_yamls: List[str],
+    models_yamls: list[str],
     output: str,
     state_filename: str = None,
     criterion: str = None,

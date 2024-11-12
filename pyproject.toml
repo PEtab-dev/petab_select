@@ -1,9 +1,59 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "petab_select"
+dynamic = ["version"]
+maintainers = [
+    {name = "Dilan Pathirana", email = "dilan.pathirana@uni-bonn.de"},
+]
+authors = [
+    {name = "The PEtab Select developers"},
+]
+description = "PEtab Select: an extension to PEtab for model selection."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "BSD-3-Clause"}
+dependencies = [
+    # TODO minimum versions
+    "more-itertools",
+    "numpy",
+    "pandas",
+    "petab",
+    "pyyaml",
+    "click",
+    "dill",
+]
+[project.optional-dependencies]
+test = [
+    "pytest >= 5.4.3",
+    "pytest-cov >= 2.10.0",
+    "amici >= 0.11.25",
+    "fides >= 0.7.5",
+    "pypesto > 0.2.13",
+    "tox >= 3.12.4",
+]
+doc = [
+    "sphinx>=3.5.3,<7",
+    "sphinxcontrib-napoleon>=0.7",
+    "sphinx-markdown-tables>=0.0.15",
+    "sphinx-rtd-theme>=0.5.1",
+    "recommonmark>=0.7.1",
+    # pin until ubuntu comes with newer pandoc:
+    # /home/docs/checkouts/readthedocs.org/user_builds/petab-select/envs/63/lib/python3.11/site-packages/nbsphinx/__init__.py:1058: RuntimeWarning: You are using an unsupported version of pandoc (2.9.2.1).
+    # Your version must be at least (2.14.2) but less than (4.0.0).
+    "nbsphinx==0.9.1",
+    "nbconvert<7.5.0",
+    "ipython>=7.21.0",
+    "readthedocs-sphinx-ext>=2.2.5",
+    "sphinx-autodoc-typehints",
+]
+
+[project.scripts]
+petab_select = "petab_select.cli:cli"
+
+[tool.setuptools_scm]
 
 [tool.ruff]
 line-length = 79

@@ -1,7 +1,7 @@
 import hashlib
 
 # import json
-from typing import Any, List, Union
+from typing import Any
 
 from .constants import (  # TYPE_PARAMETER_OPTIONS_DICT,
     ESTIMATE,
@@ -50,7 +50,7 @@ def hash_str(str_: str, **kwargs):
     return hashify(str_, **kwargs)
 
 
-def hash_list(list_: List, **kwargs):
+def hash_list(list_: list, **kwargs):
     return hashify(list(list_), **kwargs)
 
 
@@ -74,7 +74,7 @@ def snake_case_to_camel_case(string: str) -> str:
 def parameter_string_to_value(
     parameter_string: str,
     passthrough_estimate: bool = False,
-) -> Union[float, int, str]:
+) -> float | int | str:
     """Cast a parameter value from string to numeric.
 
     Args:

@@ -1,8 +1,9 @@
 """The model selection problem class."""
 
+from collections.abc import Callable, Iterable
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any
 
 import yaml
 
@@ -69,13 +70,13 @@ class Problem:
     def __init__(
         self,
         model_space: ModelSpace,
-        candidate_space_arguments: Dict[str, Any] = None,
+        candidate_space_arguments: dict[str, Any] = None,
         compare: Callable[[Model, Model], bool] = None,
         criterion: Criterion = None,
         problem_id: str = None,
         method: str = None,
         version: str = None,
-        yaml_path: Union[Path, str] = None,
+        yaml_path: Path | str = None,
     ):
         self.model_space = model_space
         self.criterion = criterion
@@ -100,7 +101,7 @@ class Problem:
             f"Version: {self.version}\n"
         )
 
-    def get_path(self, relative_path: Union[str, Path]) -> Path:
+    def get_path(self, relative_path: str | Path) -> Path:
         """Get the path to a resource, from a relative path.
 
         Args:
@@ -145,7 +146,7 @@ class Problem:
 
     @staticmethod
     def from_yaml(
-        yaml_path: Union[str, Path],
+        yaml_path: str | Path,
     ) -> "Problem":
         """Generate a problem from a PEtab Select problem YAML file.
 
@@ -211,8 +212,8 @@ class Problem:
 
     def get_best(
         self,
-        models: Optional[Union[list[Model], dict[ModelHash, Model]]],
-        criterion: Optional[Union[str, None]] = None,
+        models: list[Model] | dict[ModelHash, Model] | None,
+        criterion: str | None | None = None,
         compute_criterion: bool = False,
     ) -> Model:
         """Get the best model from a collection of models.
@@ -256,7 +257,7 @@ class Problem:
             )
         return best_model
 
-    def model_hash_to_model(self, model_hash: Union[str, ModelHash]) -> Model:
+    def model_hash_to_model(self, model_hash: str | ModelHash) -> Model:
         """Get the model that matches a model hash.
 
         Args:

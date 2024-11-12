@@ -4,7 +4,7 @@ import string
 import sys
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Literal, Union
+from typing import Literal
 
 # Zero-indexed column/row indices
 MODEL_ID_COLUMN = 0
@@ -21,7 +21,7 @@ PETAB_ESTIMATE_FALSE = 0
 PETAB_ESTIMATE_TRUE = 1
 
 # TYPING_PATH = Union[str, Path]
-TYPE_PATH = Union[str, Path]
+TYPE_PATH = str | Path
 
 # Model space file columns
 # TODO ensure none of these occur twice in the column header (this would
@@ -100,12 +100,12 @@ TERMINATE = "terminate"
 
 # Parameters can be fixed to a value, or estimated if indicated with the string
 # `ESTIMATE`.
-TYPE_PARAMETER = Union[float, int, Literal[ESTIMATE]]
-TYPE_PARAMETER_OPTIONS = List[TYPE_PARAMETER]
+TYPE_PARAMETER = float | int | Literal[ESTIMATE]
+TYPE_PARAMETER_OPTIONS = list[TYPE_PARAMETER]
 # Parameter ID -> parameter value mapping.
-TYPE_PARAMETER_DICT = Dict[str, TYPE_PARAMETER]
+TYPE_PARAMETER_DICT = dict[str, TYPE_PARAMETER]
 # Parameter ID -> multiple possible parameter values.
-TYPE_PARAMETER_OPTIONS_DICT = Dict[str, TYPE_PARAMETER_OPTIONS]
+TYPE_PARAMETER_OPTIONS_DICT = dict[str, TYPE_PARAMETER_OPTIONS]
 
 TYPE_CRITERION = float
 

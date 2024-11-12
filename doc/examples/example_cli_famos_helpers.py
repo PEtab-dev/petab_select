@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List, Tuple
 
 import pandas as pd
 from more_itertools import one
@@ -43,7 +42,7 @@ def calibrate(
 
 def parse_summary_to_progress_list(
     summary_tsv: str,
-) -> List[Tuple[Method, set]]:
+) -> list[tuple[Method, set]]:
     """Get progress information from the summary file."""
     df_raw = pd.read_csv(summary_tsv, sep="\t")
     df = df_raw.loc[~pd.isnull(df_raw["predecessor change"])]

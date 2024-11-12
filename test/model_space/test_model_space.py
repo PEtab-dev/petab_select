@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -18,7 +17,7 @@ base_dir = Path(__file__).parent
 
 
 @pytest.fixture
-def model_space_files() -> List[Path]:
+def model_space_files() -> list[Path]:
     return [
         base_dir / "model_space_file_1.tsv",
         base_dir / "model_space_file_2.tsv",

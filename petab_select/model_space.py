@@ -3,9 +3,10 @@
 import itertools
 import logging
 import warnings
+from collections.abc import Iterable
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Iterable, List, Optional, TextIO, Union, get_args
+from typing import Any, TextIO, get_args
 
 import numpy as np
 import pandas as pd
@@ -100,7 +101,7 @@ def line2row(
     delimiter: str = "\t",
     unpacked: bool = True,
     convert_parameters_to_float: bool = True,
-) -> List:
+) -> list:
     """Parse a line from a model space file.
 
     Args:
@@ -138,7 +139,7 @@ class ModelSpace:
 
     def __init__(
         self,
-        model_subspaces: List[ModelSubspace],
+        model_subspaces: list[ModelSubspace],
     ):
         self.model_subspaces = {
             model_subspace.model_subspace_id: model_subspace
@@ -147,7 +148,7 @@ class ModelSpace:
 
     @staticmethod
     def from_files(
-        filenames: List[TYPE_PATH],
+        filenames: list[TYPE_PATH],
     ):
         """Create a model space from model space files.
 
@@ -164,7 +165,7 @@ class ModelSpace:
         ]
         model_subspaces = []
         for model_space_df, model_space_filename in zip(
-            model_space_dfs, filenames
+            model_space_dfs, filenames, strict=False
         ):
             for model_subspace_id, definition in model_space_df.iterrows():
                 model_subspaces.append(
@@ -287,14 +288,14 @@ class ModelSpace:
 
     def reset_exclusions(
         self,
-        exclusions: Optional[Union[List[Any], None]] = None,
+        exclusions: list[Any] | None | None = None,
     ) -> None:
         """Reset the exclusions in the model subspaces."""
         for model_subspace in self.model_subspaces.values():
             model_subspace.reset_exclusions(exclusions)
 
 
-def get_model_space_df(df: Union[TYPE_PATH, pd.DataFrame]) -> pd.DataFrame:
+def get_model_space_df(df: TYPE_PATH | pd.DataFrame) -> pd.DataFrame:
     # model_space_df = pd.read_csv(filename, sep='\t', index_col=MODEL_SUBSPACE_ID)  # FIXME
     if isinstance(df, get_args(TYPE_PATH)):
         df = pd.read_csv(df, sep="\t")
