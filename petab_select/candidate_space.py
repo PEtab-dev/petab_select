@@ -921,16 +921,14 @@ class FamosCandidateSpace(CandidateSpace):
         # FIXME remove `None` from the resulting `inner_methods` set?
         inner_methods = set.union(
             *[
-                set(
-                    [
-                        *(
-                            method_pattern
-                            if method_pattern is not None
-                            else (None,)
-                        ),
-                        next_method,
-                    ]
-                )
+                {
+                    *(
+                        method_pattern
+                        if method_pattern is not None
+                        else (None,)
+                    ),
+                    next_method,
+                }
                 for method_pattern, next_method in self.method_scheme.items()
             ]
         )

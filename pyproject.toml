@@ -22,8 +22,6 @@ lint.ignore = [
     "S307", # Use of possibly insecure function
     "B026", # Star-arg unpacking after a keyword argument
     "B006",
-    "B027",
-    "C405",
     "E722",
     "B904",
     "B007",
