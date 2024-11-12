@@ -690,8 +690,8 @@ class ForwardCandidateSpace(CandidateSpace):
         if predecessor_model is None:
             predecessor_model = VIRTUAL_INITIAL_MODEL
         super().__init__(
-            method=Method.FORWARD if self.direction == 1 else Method.BACKWARD,
             *args,
+            method=Method.FORWARD if self.direction == 1 else Method.BACKWARD,
             predecessor_model=predecessor_model,
             **kwargs,
         )
@@ -976,8 +976,8 @@ class FamosCandidateSpace(CandidateSpace):
         ]
 
         super().__init__(
-            method=self.method,
             *args,
+            method=self.method,
             predecessor_model=predecessor_model,
             **kwargs,
         )
@@ -990,7 +990,8 @@ class FamosCandidateSpace(CandidateSpace):
             and (Method.LATERAL,) not in self.method_scheme
         ):
             raise ValueError(
-                "Please provide a method to switch to after a lateral search, if not enabling the `consecutive_laterals` option."
+                "Please provide a method to switch to after a lateral search, "
+                "if not enabling the `consecutive_laterals` option."
             )
 
         if self.n_reattempts:
@@ -1401,8 +1402,8 @@ class LateralCandidateSpace(CandidateSpace):
                 Maximal allowed number of swap moves. If 0 then there is no maximum.
         """
         super().__init__(
-            method=Method.LATERAL,
             *args,
+            method=Method.LATERAL,
             predecessor_model=predecessor_model,
             **kwargs,
         )
@@ -1453,8 +1454,8 @@ class BruteForceCandidateSpace(CandidateSpace):
         #        'brute force candidate space.'
         #    )
         super().__init__(
-            method=Method.BRUTE_FORCE,
             *args,
+            method=Method.BRUTE_FORCE,
             **kwargs,
         )
 

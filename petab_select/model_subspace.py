@@ -923,41 +923,42 @@ class ModelSubspace(PetabMixin):
             The parameter IDs.
         """
         raise NotImplementedError
-        parameters = []
-        for parameter_id, parameter_value in self.parameters_all.items():
-            if additional_parameters.get(parameter_id, None) == ESTIMATE:
-                parameters.append(parameter_id)
-                continue
 
-            if parameter_id in additional_parameters:
-                # Presumably not estimated.
-                continue
-
-        old_estimated_all = {
-            parameter_id
-            for parameter_id, parameter_values in self.parameters_all.items()
-            if
-            (
-                # Predecessor model sets the parameter to be estimated
-                (
-                    candidate_space.predecessor_model.parameters.get(
-                        parameter_id, None
-                    )
-                    == ESTIMATE
-                )
-                or (
-                    # Predecessor model takes the default PEtab parameter
-                    parameter_id
-                    not in candidate_space.predecessor_model.parameters
-                    and
-                    # And the default PEtab parameter is estimated
-                    # The PEtab problem of this subspace and the
-                    # `candidate_space` is the same, as verified earlier with
-                    # `self.check_compatibility_stepwise_method`.
-                    self.petab_parameters[parameter_id] == [ESTIMATE]
-                )
-            )
-        }
+        # parameters = []
+        # for parameter_id, parameter_value in self.parameters_all.items():
+        #     if additional_parameters.get(parameter_id, None) == ESTIMATE:
+        #         parameters.append(parameter_id)
+        #         continue
+        #
+        #     if parameter_id in additional_parameters:
+        #         # Presumably not estimated.
+        #         continue
+        #
+        # old_estimated_all = {
+        #     parameter_id
+        #     for parameter_id, parameter_values in self.parameters_all.items()
+        #     if
+        #     (
+        #         # Predecessor model sets the parameter to be estimated
+        #         (
+        #             candidate_space.predecessor_model.parameters.get(
+        #                 parameter_id, None
+        #             )
+        #             == ESTIMATE
+        #         )
+        #         or (
+        #             # Predecessor model takes the default PEtab parameter
+        #             parameter_id
+        #             not in candidate_space.predecessor_model.parameters
+        #             and
+        #             # And the default PEtab parameter is estimated
+        #             # The PEtab problem of this subspace and the
+        #             # `candidate_space` is the same, as verified earlier with
+        #             # `self.check_compatibility_stepwise_method`.
+        #             self.petab_parameters[parameter_id] == [ESTIMATE]
+        #         )
+        #     )
+        # }
 
     def __len__(self) -> int:
         """Get the number of models in this subspace."""

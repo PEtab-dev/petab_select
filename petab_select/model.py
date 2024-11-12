@@ -1001,7 +1001,7 @@ class ModelHash(str):
                 for index in model_subspace_indices
             )
         except KeyError:
-            return MODEL_SUBSPACE_INDICES_HAS_HASH_DELIMITER.join(
+            return MODEL_SUBSPACE_INDICES_HASH_DELIMITER.join(
                 str(i) for i in model_subspace_indices
             )
 

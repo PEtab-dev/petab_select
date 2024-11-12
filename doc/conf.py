@@ -2,8 +2,11 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
+from __future__ import annotations
 
 import inspect
+
+import sphinx
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -73,5 +76,5 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
     return None
 
 
-def setup(app: "sphinx.application.Sphinx"):
+def setup(app: sphinx.application.Sphinx):
     app.connect("autodoc-skip-member", autodoc_skip_member, priority=0)

@@ -20,7 +20,6 @@ lint.ignore = [
     "S301", # pickle module used
     "S102", # Use of exec detected
     "S307", # Use of possibly insecure function
-    "B026", # Star-arg unpacking after a keyword argument
     "B006",
     "E722",
     "B904",
