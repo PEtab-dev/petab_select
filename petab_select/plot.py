@@ -1,22 +1,20 @@
 """Visualization routines for model selection with pyPESTO."""
-from typing import Any, Dict, List, Optional, Tuple, Union
+
+from typing import Any
 
 import matplotlib.cm
 import matplotlib.colors
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import pandas as pd
-import petab
 from more_itertools import one
-from petab.C import PARAMETER_NAME
 from toposort import toposort
 
 from .constants import VIRTUAL_INITIAL_MODEL, Criterion
 from .model import Model
 
 RELATIVE_LABEL_FONTSIZE = -2
-NORMAL_NODE_COLOR = 'darkgrey'
+NORMAL_NODE_COLOR = "darkgrey"
 
 
 def default_label_maker(model: Model) -> str:
@@ -24,13 +22,13 @@ def default_label_maker(model: Model) -> str:
     return model.model_hash[:4]
 
 
-def get_model_hashes(models: List[Model]) -> Dict[str, Model]:
+def get_model_hashes(models: list[Model]) -> dict[str, Model]:
     model_hashes = {model.get_hash(): model for model in models}
     return model_hashes
 
 
 def get_selected_models(
-    models: List[Model],
+    models: list[Model],
     criterion: Criterion,
 ):
     criterion_value0 = np.inf
@@ -54,8 +52,8 @@ def get_selected_models(
 
 
 def get_relative_criterion_values(
-    criterion_values: Union[Dict[str, float], List[float]],
-) -> Union[Dict[str, float], List[float]]:
+    criterion_values: dict[str, float] | list[float],
+) -> dict[str, float] | list[float]:
     values = criterion_values
     if isinstance(criterion_values, dict):
         values = criterion_values.values()
@@ -71,12 +69,12 @@ def get_relative_criterion_values(
 
 
 def line_selected(
-    models: List[Model],
+    models: list[Model],
     criterion: Criterion,
     relative: bool = True,
     fz: int = 14,
-    size: Tuple[float, float] = (5, 4),
-    labels: Dict[str, str] = None,
+    size: tuple[float, float] = (5, 4),
+    labels: dict[str, str] = None,
     ax: plt.Axes = None,
 ) -> plt.Axes:
     """Plot criterion for calibrated models.
@@ -140,7 +138,7 @@ def line_selected(
     ax.get_xticks()
     ax.set_xticks(list(range(len(criterion_values))))
     ax.set_ylabel(
-        criterion + (' (relative)' if relative else ' (absolute)'), fontsize=fz
+        criterion + (" (relative)" if relative else " (absolute)"), fontsize=fz
     )
     # could change to compared_model_ids, if all models are plotted
     ax.set_xticklabels(
@@ -152,19 +150,19 @@ def line_selected(
     ytl = ax.get_yticks()
     ax.set_ylim([min(ytl), max(ytl)])
     # removing top and right borders
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
     return ax
 
 
 def graph_history(
-    models: List[Model],
+    models: list[Model],
     criterion: Criterion = None,
     ax: plt.Axes = None,
-    labels: Dict[str, str] = None,
-    colors: Dict[str, str] = None,
+    labels: dict[str, str] = None,
+    colors: dict[str, str] = None,
     optimal_distance: float = 1,
-    options: Dict = None,
+    options: dict = None,
     relative: bool = True,
 ) -> plt.Axes:
     """Plot all calibrated models in the model space, as a directed graph.
@@ -236,19 +234,19 @@ def graph_history(
                 )
         else:
             raise NotImplementedError(
-                'Plots for models with `None` as their predecessor model are '
-                'not yet implemented.'
+                "Plots for models with `None` as their predecessor model are "
+                "not yet implemented."
             )
-            from_ = 'None'
+            from_ = "None"
         to = labels.get(model.get_hash(), model.model_id)
         edges.append((from_, to))
 
     G.add_edges_from(edges)
     default_options = {
-        'node_color': NORMAL_NODE_COLOR,
-        'arrowstyle': '-|>',
-        'node_shape': 's',
-        'node_size': 2500,
+        "node_color": NORMAL_NODE_COLOR,
+        "arrowstyle": "-|>",
+        "node_shape": "s",
+        "node_size": 2500,
     }
     if options is None:
         options = default_options
@@ -260,10 +258,10 @@ def graph_history(
             )
 
         node_colors = [
-            colors.get(model_label, default_options['node_color'])
+            colors.get(model_label, default_options["node_color"])
             for model_label in list(G)
         ]
-        options.update({'node_color': node_colors})
+        options.update({"node_color": node_colors})
 
     if ax is None:
         _, ax = plt.subplots(figsize=(12, 12))
@@ -275,13 +273,13 @@ def graph_history(
 
 
 def bar_criterion_vs_models(
-    models: List[Model],
+    models: list[Model],
     criterion: Criterion = None,
-    labels: Dict[str, str] = None,
+    labels: dict[str, str] = None,
     relative: bool = True,
     ax: plt.Axes = None,
-    bar_kwargs: Dict[str, Any] = None,
-    colors: Dict[str, str] = None,
+    bar_kwargs: dict[str, Any] = None,
+    colors: dict[str, str] = None,
 ) -> plt.Axes:
     """Plot all calibrated models and their criterion value.
 
@@ -336,7 +334,7 @@ def bar_criterion_vs_models(
                 "these are not in the graph: {label_diff}"
             )
 
-        bar_kwargs['color'] = [
+        bar_kwargs["color"] = [
             colors.get(model_label, NORMAL_NODE_COLOR)
             for model_label in criterion_values
         ]
@@ -346,20 +344,20 @@ def bar_criterion_vs_models(
     ax.bar(criterion_values.keys(), criterion_values.values(), **bar_kwargs)
     ax.set_xlabel("Model labels")
     ax.set_ylabel(
-        criterion.value + (' (relative)' if relative else ' (absolute)')
+        criterion.value + (" (relative)" if relative else " (absolute)")
     )
 
     return ax
 
 
 def scatter_criterion_vs_n_estimated(
-    models: List[Model],
+    models: list[Model],
     criterion: Criterion = None,
     relative: bool = True,
     ax: plt.Axes = None,
-    colors: Dict[str, str] = None,
-    labels: Dict[str, str] = None,
-    scatter_kwargs: Dict[str, str] = None,
+    colors: dict[str, str] = None,
+    labels: dict[str, str] = None,
+    scatter_kwargs: dict[str, str] = None,
 ) -> plt.Axes:
     """Plot criterion values against number of estimated parameters.
 
@@ -397,7 +395,7 @@ def scatter_criterion_vs_n_estimated(
                 "Colors were provided for the following model labels, but "
                 "these are not in the graph: {label_diff}"
             )
-        scatter_kwargs['c'] = [
+        scatter_kwargs["c"] = [
             colors.get(model_label, NORMAL_NODE_COLOR)
             for model_label in labels.values()
         ]
@@ -421,21 +419,21 @@ def scatter_criterion_vs_n_estimated(
 
     ax.set_xlabel("Number of estimated parameters")
     ax.set_ylabel(
-        criterion.value + (' (relative)' if relative else ' (absolute)')
+        criterion.value + (" (relative)" if relative else " (absolute)")
     )
 
     return ax
 
 
 def graph_iteration_layers(
-    models: List[Model],
-    criterion: Optional[Criterion] = None,
-    labels: Dict[str, str] = None,
+    models: list[Model],
+    criterion: Criterion | None = None,
+    labels: dict[str, str] = None,
     relative: bool = True,
     ax: plt.Axes = None,
-    draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
+    draw_networkx_kwargs: dict[str, Any] | None = None,
     # colors: Dict[str, str] = None,
-    parameter_labels: Dict[str, str] = None,
+    parameter_labels: dict[str, str] = None,
     augment_labels: bool = True,
     use_tex: bool = True,
 ) -> plt.Axes:
@@ -473,12 +471,12 @@ def graph_iteration_layers(
     if use_tex:
         rcParams0 = dict(plt.rcParams)
         rcParams = {
-            'text.usetex': True,
+            "text.usetex": True,
             #'text.latex': {
             #    'preamble': r'\usepackage{color,xcolor}',
             # },
             "pgf.rcfonts": False,
-            "pgf.preamble": r'\usepackage{color}',
+            "pgf.preamble": r"\usepackage{color}",
         }
         plt.rcParams.update(rcParams)
         # for rcParam, rcParamValues in rcParams.items():
@@ -491,9 +489,9 @@ def graph_iteration_layers(
 
     default_draw_networkx_kwargs = {
         #'node_color': NORMAL_NODE_COLOR,
-        'arrowstyle': '-|>',
-        'node_shape': 's',
-        'node_size': 250,
+        "arrowstyle": "-|>",
+        "node_shape": "s",
+        "node_size": 250,
     }
     if draw_networkx_kwargs is None:
         draw_networkx_kwargs = default_draw_networkx_kwargs
@@ -501,7 +499,7 @@ def graph_iteration_layers(
     ancestry = {
         model.get_hash(): model.predecessor_model_hash for model in models
     }
-    ancestry_as_set = {k: set([v]) for k, v in ancestry.items()}
+    ancestry_as_set = {k: {v} for k, v in ancestry.items()}
     ordering = [list(hashes) for hashes in toposort(ancestry_as_set)]
 
     model_estimated_parameters = {
@@ -551,7 +549,7 @@ def graph_iteration_layers(
             parameter_labels = Identidict()
 
         model_added_parameters = {
-            model_hash: ';'.join(
+            model_hash: ";".join(
                 [
                     parameter_labels[parameter_id]
                     for parameter_id in sorted(
@@ -562,7 +560,7 @@ def graph_iteration_layers(
             for model_hash in model_estimated_parameters
         }
         model_removed_parameters = {
-            model_hash: ';'.join(
+            model_hash: ";".join(
                 [
                     parameter_labels[parameter_id]
                     for parameter_id in sorted(
@@ -584,21 +582,21 @@ def graph_iteration_layers(
                 + (
                     (
                         # f'\n' +
-                        r'\textcolor{green}{hi}'
+                        r"\textcolor{green}{hi}"
                         # + ('\\textcolor{green}{' if use_tex else '') +
                         # f'{model_added_parameters[model_hash]}'
                         # + ('}' if use_tex else '')
-                        if model_added_parameters.get(model_hash, '')
-                        else ''
+                        if model_added_parameters.get(model_hash, "")
+                        else ""
                     )
                     + (
                         # f'\n' +
-                        r'\textcolor{red}{hi}'
+                        r"\textcolor{red}{hi}"
                         # + ('\\textcolor{red}{' if use_tex else '') +
                         # f'{model_removed_parameters[model_hash]}'
                         # + ('}' if use_tex else '')
-                        if model_removed_parameters.get(model_hash, '')
-                        else ''
+                        if model_removed_parameters.get(model_hash, "")
+                        else ""
                     )
                 )
             )
@@ -609,7 +607,7 @@ def graph_iteration_layers(
         vmin=min(model_criterion_values.values()),
         vmax=max(model_criterion_values.values()),
     )
-    cmap = matplotlib.cm.get_cmap('cool')
+    cmap = matplotlib.cm.get_cmap("cool")
     scalar_mappable = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
     ax.get_figure().colorbar(scalar_mappable, ax=ax)
 
@@ -705,11 +703,11 @@ def graph_iteration_layers(
 
     # Add `n=...` labels
     N = [len(y) for y in Y]
-    for x, n in zip(X, N):
+    for x, n in zip(X, N, strict=False):
         ax.annotate(
-            f'n={n}',
+            f"n={n}",
             xy=(x, 1.1),
-            fontsize=draw_networkx_kwargs.get('font_size', 20),
+            fontsize=draw_networkx_kwargs.get("font_size", 20),
         )
 
     ## Get selected parameter IDs
