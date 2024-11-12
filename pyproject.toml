@@ -24,13 +24,10 @@ lint.ignore = [
     "B006",
     "B027",
     "C405",
-    "C416",
     "E722",
     "B904",
     "B007",
     "F841",
-    "B024",
-
 ]
 lint.select = [
     "F",  # Pyflakes

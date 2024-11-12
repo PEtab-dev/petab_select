@@ -1367,12 +1367,9 @@ class FamosCandidateSpace(CandidateSpace):
             str(index).replace("1", ESTIMATE) for index in most_distant_indices
         ]
 
-        most_distant_parameters = {
-            parameter_id: index
-            for parameter_id, index in zip(
-                parameter_ids, most_distant_parameter_values
-            )
-        }
+        most_distant_parameters = dict(
+            zip(parameter_ids, most_distant_parameter_values, strict=True)
+        )
 
         most_distant_model = Model(
             petab_yaml=model.petab_yaml,
