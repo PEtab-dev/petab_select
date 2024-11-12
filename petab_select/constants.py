@@ -49,7 +49,6 @@ PETAB_HASH_DIGEST_SIZE = None
 PREDECESSOR_MODEL_HASH = "predecessor_model_hash"
 PETAB_PROBLEM = "petab_problem"
 PETAB_YAML = "petab_yaml"
-SBML = "sbml"
 HASH = "hash"
 
 # MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
