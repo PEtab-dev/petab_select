@@ -1,21 +1,16 @@
 Problem definition and file formats
 ===================================
 
-Model selection problems for PEtab Select are defined by the following
-components:
+Model selection problems for PEtab Select are defined by the following files:
 
-* A general description of the model selection problem
-* Model space files that specify the initial set of candidate models
-* Constraints files that further restrict the model space
-* Predecessor model files that are used to initialize the model selection
-  process
+#. a general description of the model selection problem,
+#. a specification of the model space, and
+#. (optionally) a specification of the initial candidate model.
 
 The different file formats are described below.
-Column or key names that are surrounded by square brackets
-(e.g. \[constraint_files\]) are optional.
 
-Selection problem
------------------
+1. Selection problem
+--------------------
 
 A YAML file with a description of the model selection problem.
 
@@ -25,81 +20,105 @@ A YAML file with a description of the model selection problem.
    criterion: # string.
    method: # string.
    model_space_files: # list[string]. Filenames.
-   constraint_files: # list[string] (optional). Filenames.
-   predecessor_model_files: # list[string] (optional). Filenames.
+   candidate_space_arguments: # list[string] (optional). Filenames.
 
-- ``format_version``: The version of the model selection extension format (e.g. ``'beta_1'``)
-- ``criterion``: The criterion by which models should be compared (e.g. ``'AIC'``)
-- ``method``: The method by which model candidates should be generated (e.g. ``'forward'``)
+- ``format_version``: The version of the model selection extension format
+  (e.g. ``1``)
+- ``criterion``: The criterion by which models should be compared
+  (e.g. ``AIC``)
+- ``method``: The method by which model candidates should be generated
+  (e.g. ``forward``)
 - ``model_space_files``: The filenames of model space files.
-- ``constraint_files``: The filenames of constraint files.
-- ``predecessor_model_files``: The filenames of predecessor (initial) model files.
+- ``candidate_space_arguments``: Additional arguments used to generate
+  candidate models during model selection. For example, an initial candidate
+  model can be specified with the following code, where
+  ``predecessor_model.yaml`` is a valid model file. Additional arguments are
+  provided in the documentation of the ``CandidateSpace`` class.
 
-Model space
------------
+.. code-block:: yaml
 
-A TSV with candidate models, in compressed or uncompressed format.
+   candidate_space_arguments:
+     predecessor_model: predecessor_model.yaml
+
+2. Model space
+--------------
+
+A TSV file with candidate models, in compressed or uncompressed format.
+Each row defines a model subspace, by specifying value(s) that each parameter
+can take. The models in a model subspace are all combinations of values across
+all parameters.
 
 .. list-table::
    :header-rows: 1
 
    * - ``model_subspace_id``
      - ``petab_yaml``
-     - ``sbml``
      - ``parameter_id_1``
      - ...
      - ``parameter_id_n``
-   * - (Unique) [string]
+   * - (unique) [string]
      - [string]
-     - [string]
-     - [string/float] OR [; delimited list of string/float]
+     - (``;``-delimited list) [string/float]
      - ...
-     - [string/float] OR [; delimited list of string/float]
+     - ...
 
 - ``model_subspace_id``: An ID for the model subspace.
-- ``petab_yaml``: The PEtab YAML filename that serves as the base for a model.
-- ``sbml``: An SBML filename. If the PEtab YAML file specifies multiple SBML models, this can select a specific model by model filename.
-- ``parameter_id_1``...``parameter_id_n``: Parameter IDs that are specified to take specific values or be estimated. Example valid values are:
+- ``petab_yaml``: The PEtab YAML filename that serves as the basis of all
+  models in this subspace.
+- ``parameter_id_1`` ... ``parameter_id_n``: Specify the values that a
+  parameter can take in the model subspace. For example, this could be:
 
-  - uncompressed format:
+  - a single value
 
     - ``0.0``
     - ``1.0``
     - ``estimate``
 
-  - compressed format:
+  - one of several possible values, as a ``;``-delimited list
 
-    - ``0.0;1.1;estimate`` (the parameter can take the values ``0.0`` or ``1.1``, or be estimated according to the PEtab problem)
+    - ``0.0;1.1;estimate`` (the parameter can take the values ``0.0`` or
+      ``1.1``, or be estimated)
 
-Constraints
------------
+Using the ``;``-delimited list format, a model subspace that has two parameters
+(``p1, p2``) and six models:
 
-A TSV file with constraints.
+- ``p1:=0, p2:=10``
+- ``p1:=0, p2:=20``
+- ``p1:=0, p2:=estimate``
+- ``p1:=estimate, p2:=10``
+- ``p1:=estimate, p2:=20``
+- ``p1:=estimate, p2:=estimate``
+
+can be specified like
 
 .. list-table::
    :header-rows: 1
 
-   * - ``petab_yaml``
-     - ``if``
-     - ``constraint``
-   * - [string]
-     - [SBML L3 Formula expression]
-     - [SBML L3 Formula expression]
+   * - model_subspace_id
+     - petab_yaml
+     - p1
+     - p2
+   * - subspace1
+     - petab_problem.yaml
+     - 0;estimate
+     - 10;20;estimate
 
-- ``petab_yaml``: The filename of the PEtab YAML file that this constraint applies to.
-- ``if``: As a single YAML can relate to multiple models in the model space file, this ensures the constraint is only applied to the models that match this ``if`` statement
-- ``constraint``: If a model violates this constraint, it is skipped during the model selection process and not optimized.
+3. Model(s) (Predecessor models / model interchange / report)
+-------------------------------------------------------------
 
-Model(s) (Predecessor models / model interchange / report)
-----------------------------------------------------------
+- *Predecessor models* are used to initialize a compatible model selection
+  method.
+- *Model interchange* refers to the format used to transfer model information
+  between PEtab Select and a PEtab-compatible calibration tool, during the
+  model selection process.
+- *Report* refers to the final results of the model selection process, which
+  may include calibration results from any calibrated models, or just the
+  selected model.
 
-- *Predecessor models* are used to initialize an appropriate model selection method. Model IDs should be unique here and compared to model IDs in any model space files.
-- *Model interchange* refers to the format used to transfer model information between PEtab Select and a PEtab-compatible calibration tool, during the model selection process.
-- *Report* refers to the final results of the model selection process, which may include calibration results from any calibrated models, or just the select model.
-
-Here, the format for a single model is shown. Multiple models can be specified as a YAML list of the same format.
-
-The only required key is the PEtab YAML, as a model requires a PEtab problem. All other keys are maybe required, for the different uses of the format (e.g., the report format should include ``estimated_parameters``), or at different stages of the model selection process (the PEtab-compatible calibration tool should provide ``criteria`` for model comparison).
+Here, the format for a single model is shown. Multiple models can be specified
+as a YAML list of the same format. The only required key is the ``petab_yaml``,
+as a model requires a PEtab problem. Other keys are required in different
+contexts (for example, model comparison will require ``criteria``).
 
 .. code-block:: yaml
 
@@ -107,10 +126,11 @@ The only required key is the PEtab YAML, as a model requires a PEtab problem. Al
    estimated_parameters: # dict[string, float] (optional). Parameter ID => parameter value.
    model_hash: # string (optional).
    model_id: # string (optional).
+   model_subspace_id: # string (optional).
+   model_subspace_indices: # string (optional).
    parameters: # dict[string, float] (optional). Parameter ID => parameter value or "estimate".
    petab_yaml: # string.
    predecessor_model_hash: # string (optional).
-   sbml: # string (optional).
 
 - ``criteria``: The value of the criterion by which model selection was performed, at least. Optionally, other criterion values too.
 - ``estimated_parameters``: Parameter estimates, not only of parameters specified to be estimated in a model space file, but also parameters specified to be estimated in the original PEtab problem of the model.
@@ -121,4 +141,3 @@ The only required key is the PEtab YAML, as a model requires a PEtab problem. Al
 - ``parameters``: The parameters from the problem (either values or ``'estimate'``) (a specific combination from a model space file, but uncalibrated).
 - ``petab_yaml``: Same as in model space files.
 - ``predecessor_model_hash``: The hash of the model that preceded this model during the model selection process.
-- ``sbml``: Same as in model space files.
