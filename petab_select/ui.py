@@ -8,7 +8,6 @@ import petab.v1 as petab
 from .candidate_space import CandidateSpace, FamosCandidateSpace
 from .constants import (
     CANDIDATE_SPACE,
-    INITIAL_MODEL_METHODS,
     MODELS,
     PREDECESSOR_MODEL,
     TERMINATE,
@@ -76,12 +75,8 @@ def start_iteration(
             `dict`, the keys are model hashes. If a model in the
             candidates has the same hash as a model in
             `user_calibrated_models`, then the candidate will be replaced with
-            the calibrated version. This calibrated model will still exist in
-            the candidate space, so calibration tools should take care to skip
-            calibration of already-calibrated models. This is so that users
-            can still see that this model was "visited" during model selection.
-            If you do not want this, and want the model to be automatically
-            skipped, supply it in `calibrated_models` instead.
+            the calibrated version. Calibration tools will only receive uncalibrated
+            models from this method.
 
     Returns:
         A dictionary, with the following items:
@@ -174,15 +169,6 @@ def start_iteration(
         ):
             return get_iteration(candidate_space=candidate_space)
 
-    if (
-        predecessor_model is None
-        and candidate_space.method in INITIAL_MODEL_METHODS
-        and calibrated_models
-    ):
-        predecessor_model = problem.get_best(
-            models=calibrated_models.values(),
-            criterion=criterion,
-        )
     if predecessor_model is not None:
         candidate_space.reset(predecessor_model)
 
