@@ -109,7 +109,7 @@ def upset(
             The criterion.
 
     Returns:
-        The plot axes (see documentation from the `upsetplot` package).
+        The plot axes (see documentation from the `upsetplot <https://upsetplot.readthedocs.io/>`__ package).
     """
     # Get delta criterion values
     values = np.array(
@@ -318,7 +318,7 @@ def graph_history(
         if label_diff := set(colors).difference(list(G)):
             raise ValueError(
                 "Colors were provided for the following model labels, but "
-                "these are not in the graph: {label_diff}"
+                f"these are not in the graph: {label_diff}"
             )
 
         node_colors = [
@@ -395,7 +395,7 @@ def bar_criterion_vs_models(
         if label_diff := set(colors).difference(criterion_values):
             raise ValueError(
                 "Colors were provided for the following model labels, but "
-                "these are not in the graph: {label_diff}"
+                f"these are not in the graph: {label_diff}"
             )
 
         bar_kwargs["color"] = [
@@ -467,7 +467,7 @@ def scatter_criterion_vs_n_estimated(
         if label_diff := set(colors).difference(labels.values()):
             raise ValueError(
                 "Colors were provided for the following model labels, but "
-                "these are not in the graph: {label_diff}"
+                f"these are not in the graph: {label_diff}"
             )
         scatter_kwargs["c"] = [
             colors.get(model_label, NORMAL_NODE_COLOR)
