@@ -31,12 +31,16 @@ __all__ = [
 ]
 
 
-def default_label_maker(model: Model) -> str:
-    """Create a model label, for plotting."""
-    return model.model_hash[:4]
-
-
 def get_model_hashes(models: list[Model]) -> dict[str, Model]:
+    """Get the model hash to model mapping.
+
+    Args:
+        models:
+            The models.
+
+    Returns:
+        The mapping.
+    """
     model_hashes = {model.get_hash(): model for model in models}
     return model_hashes
 
@@ -44,7 +48,18 @@ def get_model_hashes(models: list[Model]) -> dict[str, Model]:
 def get_selected_models(
     models: list[Model],
     criterion: Criterion,
-):
+) -> list[Model]:
+    """Get the models that strictly improved on their predecessors.
+
+    Args:
+        models:
+            The models.
+        criterion:
+            The criterion
+
+    Returns:
+        The strictly improving models.
+    """
     criterion_value0 = np.inf
     model0 = None
     model_hashes = get_model_hashes(models)
@@ -127,7 +142,6 @@ def line_selected(
     criterion: Criterion,
     relative: bool = True,
     fz: int = 14,
-    size: tuple[float, float] = (5, 4),
     labels: dict[str, str] = None,
     ax: plt.Axes = None,
 ) -> plt.Axes:
@@ -140,13 +154,10 @@ def line_selected(
         criterion:
             The criterion by which models are selected.
         relative:
-            If `True`, criterion values are plotted relative to the lowest
-            criterion value. TODO is the lowest value, always the best? May not
-            be for different criterion.
+            If ``True``, criterion values are plotted relative to the lowest
+            criterion value.
         fz:
             fontsize
-        size:
-            Figure size in inches.
         labels:
             A dictionary of model labels, where keys are model hashes, and
             values are model labels, for plotting. If a model label is not
@@ -164,7 +175,7 @@ def line_selected(
 
     # FIGURE
     if ax is None:
-        _, ax = plt.subplots(figsize=size)
+        _, ax = plt.subplots(figsize=(5, 4))
     linewidth = 3
 
     models = [model for model in models if model != VIRTUAL_INITIAL_MODEL]
@@ -211,41 +222,43 @@ def line_selected(
 def graph_history(
     models: list[Model],
     criterion: Criterion = None,
-    ax: plt.Axes = None,
     labels: dict[str, str] = None,
     colors: dict[str, str] = None,
-    optimal_distance: float = 1,
-    options: dict = None,
+    draw_networkx_kwargs: dict[str, Any] = None,
     relative: bool = True,
+    spring_layout_kwargs: dict[str, Any] = None,
+    ax: plt.Axes = None,
 ) -> plt.Axes:
     """Plot all calibrated models in the model space, as a directed graph.
-
-    TODO replace magic numbers with options/constants
 
     Args:
         models:
             A list of models.
         criterion:
             The criterion.
-        optimal_distance:
-            See docs for argument `k` in `networkx.spring_layout`.
-        relative:
-            If `True`, criterion values are offset by the minimum criterion
-            value.
-        options:
-            Additional keyword arguments for `networkx.draw_networkx`.
         labels:
             A dictionary of model labels, where keys are model hashes, and
             values are model labels, for plotting. If a model label is not
             provided, it will be generated from its model ID.
         colors:
             Colors for each model, using their labels.
+        draw_networkx_kwargs:
+            Forwarded to ``networkx.draw_networkx``.
+        relative:
+            If ``True``, criterion values are offset by the minimum criterion
+            value.
+        spring_layout_kwargs:
+            Forwarded to ``networkx.spring_layout``.
         ax:
             The axis to use for plotting.
+
 
     Returns:
         The plot axes.
     """
+    default_spring_layout_kwargs = {"k": 1, "iterations": 20}
+    if spring_layout_kwargs is None:
+        spring_layout_kwargs = default_spring_layout_kwargs
     model_hashes = get_model_hashes(models)
 
     criterion_values = {
@@ -292,15 +305,15 @@ def graph_history(
         edges.append((from_, to))
 
     G.add_edges_from(edges)
-    default_options = {
+    default_draw_networkx_kwargs = {
         "node_color": NORMAL_NODE_COLOR,
         "arrowstyle": "-|>",
         "node_shape": "s",
         "node_size": 2500,
         "edgecolors": "k",
     }
-    if options is None:
-        options = default_options
+    if draw_networkx_kwargs is None:
+        draw_networkx_kwargs = default_draw_networkx_kwargs
     if colors is not None:
         if label_diff := set(colors).difference(list(G)):
             raise ValueError(
@@ -309,16 +322,16 @@ def graph_history(
             )
 
         node_colors = [
-            colors.get(model_label, default_options["node_color"])
+            colors.get(model_label, default_draw_networkx_kwargs["node_color"])
             for model_label in list(G)
         ]
-        options.update({"node_color": node_colors})
+        draw_networkx_kwargs.update({"node_color": node_colors})
 
     if ax is None:
         _, ax = plt.subplots(figsize=(12, 12))
 
-    pos = nx.spring_layout(G, k=optimal_distance, iterations=20)
-    nx.draw_networkx(G, pos, ax=ax, **options)
+    pos = nx.spring_layout(G, **spring_layout_kwargs)
+    nx.draw_networkx(G, pos, ax=ax, **draw_networkx_kwargs)
 
     return ax
 
