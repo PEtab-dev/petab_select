@@ -297,6 +297,7 @@ def graph_history(
         "arrowstyle": "-|>",
         "node_shape": "s",
         "node_size": 2500,
+        "edgecolors": "k",
     }
     if options is None:
         options = default_options
@@ -349,6 +350,9 @@ def bar_criterion_vs_models(
             The axis to use for plotting.
         bar_kwargs:
             Passed to the matplotlib `ax.bar` call.
+        colors:
+            Custom colors. Keys are model hashes or ``labels`` (if provided),
+            values are matplotlib colors.
 
     Returns:
         The plot axes.
@@ -405,6 +409,7 @@ def scatter_criterion_vs_n_estimated(
     colors: dict[str, str] = None,
     labels: dict[str, str] = None,
     scatter_kwargs: dict[str, str] = None,
+    max_jitter: float = 0.2,
 ) -> plt.Axes:
     """Plot criterion values against number of estimated parameters.
 
@@ -413,11 +418,24 @@ def scatter_criterion_vs_n_estimated(
             A list of models.
         criterion:
             The criterion.
-        ax:
-            The axis to use for plotting.
         relative:
             If `True`, criterion values are offset by the minimum criterion
             value.
+        ax:
+            The axis to use for plotting.
+        colors:
+            Custom colors. Keys are model hashes or ``labels`` (if provided),
+            values are matplotlib colors.
+        labels:
+            A dictionary of model labels, where keys are model hashes, and
+            values are model labels, for plotting. If a model label is not
+            provided, it will be generated from its model ID.
+        scatter_kwargs:
+            Forwarded to ``matplotlib.axes.Axes.scatter``.
+        max_jitter:
+            Add noise to distinguish models with the same number of parameters
+            and similar criterion values. This is a positive value that is the
+            maximal difference to the original value.
 
     Returns:
         The plot axes.
@@ -450,6 +468,13 @@ def scatter_criterion_vs_n_estimated(
         criterion_values.append(model.get_criterion(criterion))
     if relative:
         criterion_values = get_relative_criterion_values(criterion_values)
+
+    if max_jitter:
+        n_estimated = np.array(n_estimated, dtype=float)
+        rng = np.random.default_rng()
+        n_estimated += rng.uniform(
+            -max_jitter, max_jitter, size=n_estimated.size
+        )
 
     if ax is None:
         _, ax = plt.subplots()
