@@ -97,7 +97,7 @@ def upset(
     """
     # Get delta criterion values
     values = get_relative_criterion_values(
-        [model.get_criterion(Criterion.AICC) for model in models]
+        [model.get_criterion(criterion) for model in models]
     )
 
     # Sort by criterion value
