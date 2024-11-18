@@ -141,6 +141,8 @@ class Criterion(str, Enum):
     LLH = "LLH"
     #: The negative log-likelihood.
     NLLH = "NLLH"
+    #: The sum of squared residuals.
+    SSR = "SSR"
 
 
 #: Methods that move through model space by taking steps away from some model.
