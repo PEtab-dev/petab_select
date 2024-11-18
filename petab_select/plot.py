@@ -488,22 +488,22 @@ def graph_iteration_layers(
             values are model labels, for plotting. If a model label is not
             provided, it will be generated from its model ID.
         relative:
-            If `True`, criterion values are offset by the minimum criterion
+            If ``True``, criterion values are offset by the minimum criterion
             value.
         ax:
             The axis to use for plotting.
         draw_networkx_kwargs:
-            Passed to the `networkx.draw_networkx` call.
+            Passed to the ``networkx.draw_networkx`` call.
         parameter_labels:
             A dictionary of parameter labels, where keys are parameter IDs, and
             values are parameter labels, for plotting. Defaults to parameter IDs.
         augment_labels:
-            If ``True'', provided labels will be augmented with the relative
+            If ``True``, provided labels will be augmented with the relative
             change in parameters.
         colorbar_mappable:
             Customize the colors.
             See documentation for the `mappable` argument of
-            `matplotlib.pyplot.colorbar`.
+            ``matplotlib.pyplot.colorbar``.
 
     Returns:
         The plot axes.

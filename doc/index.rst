@@ -33,11 +33,11 @@ Model calibration is performed outside of PEtab Select. For example,
 PEtab Select is well-integrated with:
 
 * `BasiCO <https://basico.readthedocs.io/>`_
-  (`example <https://basico.readthedocs.io/en/latest/notebooks/Working_with_PEtab.html#Model-Selection>`_)
+  (`example <https://basico.readthedocs.io/en/latest/notebooks/Working_with_PEtab.html#Model-Selection>`__)
 * `PEtab.jl <https://sebapersson.github.io/PEtab.jl>`_
-  (`example <https://sebapersson.github.io/PEtab.jl/stable/pest_select/>`_)
+  (`example <https://sebapersson.github.io/PEtab.jl/stable/pest_select/>`__)
 * `pyPESTO <https://pypesto.readthedocs.io/>`_
-  (`example <https://pypesto.readthedocs.io/en/latest/example/model_selection.html>`_)
+  (`example <https://pypesto.readthedocs.io/en/latest/example/model_selection.html>`__)
 
 Other model calibration tools can easily be integrated using the provided
 Python library or command line interface.
