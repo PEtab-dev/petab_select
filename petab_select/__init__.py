@@ -2,7 +2,6 @@
 
 import sys
 
-from . import plot  # noqa: F401
 from .candidate_space import *
 from .constants import *
 from .criteria import *
