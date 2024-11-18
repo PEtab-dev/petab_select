@@ -20,6 +20,16 @@ RELATIVE_LABEL_FONTSIZE = -2
 NORMAL_NODE_COLOR = "darkgrey"
 
 
+__all__ = [
+    "bar_criterion_vs_models",
+    "graph_history",
+    "graph_iteration_layers",
+    "line_selected",
+    "scatter_criterion_vs_n_estimated",
+    "upset",
+]
+
+
 def default_label_maker(model: Model) -> str:
     """Create a model label, for plotting."""
     return model.model_hash[:4]
@@ -86,10 +96,9 @@ def upset(
         The plot axes (see documentation from the `upsetplot` package).
     """
     # Get delta criterion values
-    values = np.array(
+    values = get_relative_criterion_values(
         [model.get_criterion(Criterion.AICC) for model in models]
     )
-    values -= values.min()
 
     # Sort by criterion value
     index = np.argsort(values)
