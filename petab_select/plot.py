@@ -7,6 +7,7 @@ import matplotlib
 import matplotlib.cm
 import matplotlib.colors
 import matplotlib.pyplot as plt
+import matplotlib.ticker
 import networkx as nx
 import numpy as np
 import upsetplot
@@ -96,8 +97,10 @@ def upset(
         The plot axes (see documentation from the `upsetplot` package).
     """
     # Get delta criterion values
-    values = get_relative_criterion_values(
-        [model.get_criterion(criterion) for model in models]
+    values = np.array(
+        get_relative_criterion_values(
+            [model.get_criterion(criterion) for model in models]
+        )
     )
 
     # Sort by criterion value
@@ -128,7 +131,7 @@ def line_selected(
     labels: dict[str, str] = None,
     ax: plt.Axes = None,
 ) -> plt.Axes:
-    """Plot criterion for calibrated models.
+    """Plot the improvement in criterion across iterations.
 
     Args:
         models:
@@ -180,14 +183,16 @@ def line_selected(
         criterion_values.values(),
         linewidth=linewidth,
         color=NORMAL_NODE_COLOR,
+        marker="x",
+        markersize=10,
+        markeredgewidth=2,
+        markeredgecolor="red",
         # edgecolor='k'
     )
 
     ax.get_xticks()
     ax.set_xticks(list(range(len(criterion_values))))
-    ax.set_ylabel(
-        criterion + (" (relative)" if relative else " (absolute)"), fontsize=fz
-    )
+    ax.set_ylabel((r"$\Delta$" if relative else "") + criterion, fontsize=fz)
     # could change to compared_model_ids, if all models are plotted
     ax.set_xticklabels(
         criterion_values.keys(),
@@ -386,7 +391,7 @@ def bar_criterion_vs_models(
     ax.bar(criterion_values.keys(), criterion_values.values(), **bar_kwargs)
     ax.set_xlabel("Model labels")
     ax.set_ylabel(
-        criterion.value + (" (relative)" if relative else " (absolute)")
+        (r"$\Delta$" if relative else "") + criterion,
     )
 
     return ax
@@ -455,9 +460,11 @@ def scatter_criterion_vs_n_estimated(
         **scatter_kwargs,
     )
 
+    ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+
     ax.set_xlabel("Number of estimated parameters")
     ax.set_ylabel(
-        criterion.value + (" (relative)" if relative else " (absolute)")
+        (r"$\Delta$" if relative else "") + criterion,
     )
 
     return ax
@@ -519,6 +526,7 @@ def graph_iteration_layers(
         "arrowstyle": "-|>",
         "node_shape": "s",
         "node_size": 250,
+        "edgecolors": "k",
     }
     if draw_networkx_kwargs is None:
         draw_networkx_kwargs = default_draw_networkx_kwargs
