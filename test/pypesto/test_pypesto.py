@@ -19,9 +19,10 @@ os.environ["AMICI_EXPERIMENTAL_SBML_NONCONST_CLS"] = "1"
 
 # Set to `[]` to test all
 test_cases = [
-    #'0006',
-    #'0002',
-    #'0008',
+    # '0006',
+    # '0002',
+    # '0008',
+    # "0009",
 ]
 
 # Do not use computationally-expensive test cases in CI
