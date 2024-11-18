@@ -1,11 +1,11 @@
 - criteria:
-    AICc: 37.97523003111247
-    NLLH: 17.487615015556234
+    AICc: 37.97523003111246
+    NLLH: 17.48761501555623
   estimated_parameters:
-    sigma_x2: 4.462298342504554
-  model_hash: 649bcd92d8da15883a6709f3233e277e173aa6ce7ff1eda3f32d342a0f3a0e63ddd6e3764eab0c730dfb96440bab731ee67d412295a48e1e9949b3cc10935f28
-  model_id: 649bcd92d8da15883a6709f3233e277e173aa6ce7ff1eda3f32d342a0f3a0e63ddd6e3764eab0c730dfb96440bab731ee67d412295a48e1e9949b3cc10935f28
-  model_subspace_id: M1_0
+    sigma_x2: 4.462298385653177
+  model_hash: M_0-000
+  model_id: M_0-000
+  model_subspace_id: M_0
   model_subspace_indices:
   - 0
   - 0
@@ -17,14 +17,14 @@
   petab_yaml: petab_problem.yaml
   predecessor_model_hash: virtual_initial_model
 - criteria:
-    AICc: -0.17540608110890332
-    NLLH: -4.087703040554452
+    AICc: -0.1754060811089051
+    NLLH: -4.0877030405544525
   estimated_parameters:
     k3: 0.0
-    sigma_x2: 0.12242920045980682
-  model_hash: 9202aceb387014e83f48a27e577758cd84f682df40dc52b5e79c99b150a27cc997276b7584be893fc59723e1eaa10dff9ba2bc0da53404996fa886aefdc08812
-  model_id: 9202aceb387014e83f48a27e577758cd84f682df40dc52b5e79c99b150a27cc997276b7584be893fc59723e1eaa10dff9ba2bc0da53404996fa886aefdc08812
-  model_subspace_id: M1_1
+    sigma_x2: 0.12242920113658744
+  model_hash: M_1-000
+  model_id: M_1-000
+  model_subspace_id: M_1
   model_subspace_indices:
   - 0
   - 0
@@ -34,17 +34,16 @@
     k2: 0.1
     k3: estimate
   petab_yaml: petab_problem.yaml
-  predecessor_model_hash: 649bcd92d8da15883a6709f3233e277e173aa6ce7ff1eda3f32d342a0f3a0e63ddd6e3764eab0c730dfb96440bab731ee67d412295a48e1e9949b3cc10935f28
+  predecessor_model_hash: M_0-000
 - criteria:
-    AICc: 9.72548629466802
-    NLLH: -4.13725685266599
+    AICc: -0.27451405630430337
+    NLLH: -4.137257028152152
   estimated_parameters:
-    k2: 0.10147820365454563
-    k3: 0.0
-    sigma_x2: 0.12142173031067148
-  model_hash: 3d668e2ad009b34fe1a46fc87d799f94a946c2b411e18d814d90f935b041c2c31c09a1fa346ac1b2ace69de4cfa1d4319939a8505256bed734e53e276b73fe21
-  model_id: 3d668e2ad009b34fe1a46fc87d799f94a946c2b411e18d814d90f935b041c2c31c09a1fa346ac1b2ace69de4cfa1d4319939a8505256bed734e53e276b73fe21
-  model_subspace_id: M1_4
+    k2: 0.10147827639089564
+    sigma_x2: 0.12142256779953603
+  model_hash: M_2-000
+  model_id: M_2-000
+  model_subspace_id: M_2
   model_subspace_indices:
   - 0
   - 0
@@ -52,19 +51,38 @@
   parameters:
     k1: 0.2
     k2: estimate
-    k3: estimate
+    k3: 0
   petab_yaml: petab_problem.yaml
-  predecessor_model_hash: 9202aceb387014e83f48a27e577758cd84f682df40dc52b5e79c99b150a27cc997276b7584be893fc59723e1eaa10dff9ba2bc0da53404996fa886aefdc08812
+  predecessor_model_hash: M_0-000
 - criteria:
-    AICc: 9.294673635222654
-    NLLH: -4.352663182388673
+    AICc: -0.7053270517931587
+    NLLH: -4.352663525896579
   estimated_parameters:
-    k1: 0.20160877940548563
+    k1: 0.20160888007873565
+    sigma_x2: 0.11713858557052499
+  model_hash: M_3-000
+  model_id: M_3-000
+  model_subspace_id: M_3
+  model_subspace_indices:
+  - 0
+  - 0
+  - 0
+  parameters:
+    k1: estimate
+    k2: 0.1
+    k3: 0
+  petab_yaml: petab_problem.yaml
+  predecessor_model_hash: M_0-000
+- criteria:
+    AICc: 9.294672948206841
+    NLLH: -4.352663525896579
+  estimated_parameters:
+    k1: 0.20160888007873565
     k3: 0.0
-    sigma_x2: 0.11714036406481404
-  model_hash: d2503eb370a02bfae839b66cc207ed4a04833e609d9cbe70bc956ed1bb79158bbf5f4634a74369704085375deffafc03498754bce2a5ffd1064c7bdb7e549c95
-  model_id: d2503eb370a02bfae839b66cc207ed4a04833e609d9cbe70bc956ed1bb79158bbf5f4634a74369704085375deffafc03498754bce2a5ffd1064c7bdb7e549c95
-  model_subspace_id: M1_5
+    sigma_x2: 0.11713858557052499
+  model_hash: M_5-000
+  model_id: M_5-000
+  model_subspace_id: M_5
   model_subspace_indices:
   - 0
   - 0
@@ -74,18 +92,17 @@
     k2: 0.1
     k3: estimate
   petab_yaml: petab_problem.yaml
-  predecessor_model_hash: 9202aceb387014e83f48a27e577758cd84f682df40dc52b5e79c99b150a27cc997276b7584be893fc59723e1eaa10dff9ba2bc0da53404996fa886aefdc08812
+  predecessor_model_hash: M_3-000
 - criteria:
-    AICc: 35.94352922200498
-    NLLH: -6.028235388997507
+    AICc: 7.852170288089528
+    NLLH: -5.073914855955236
   estimated_parameters:
-    k1: 0.6223035502886127
-    k2: 0.02020974032591268
-    k3: 0.0010856659773303976
-    sigma_x2: 0.08859827826030148
-  model_hash: afa580ef5a7e93e44eaa2901643913761bacd32b35b07d821b91da033bc6dae6ffbfb87d4ba49139d4c68f04921a720063c535cfa9966457d53382d89edc696d
-  model_id: afa580ef5a7e93e44eaa2901643913761bacd32b35b07d821b91da033bc6dae6ffbfb87d4ba49139d4c68f04921a720063c535cfa9966457d53382d89edc696d
-  model_subspace_id: M1_7
+    k1: 0.20924739987621038
+    k2: 0.0859065470362628
+    sigma_x2: 0.1038731029818225
+  model_hash: M_6-000
+  model_id: M_6-000
+  model_subspace_id: M_6
   model_subspace_indices:
   - 0
   - 0
@@ -93,6 +110,6 @@
   parameters:
     k1: estimate
     k2: estimate
-    k3: estimate
+    k3: 0
   petab_yaml: petab_problem.yaml
-  predecessor_model_hash: 9202aceb387014e83f48a27e577758cd84f682df40dc52b5e79c99b150a27cc997276b7584be893fc59723e1eaa10dff9ba2bc0da53404996fa886aefdc08812
+  predecessor_model_hash: M_3-000

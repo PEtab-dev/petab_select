@@ -26,6 +26,7 @@ dependencies = [
     "dill",
     # TODO: move to [vis]? not required for cli-only usage?!
     "matplotlib>=2.2.3",
+    "upsetplot",
     "toposort",
     "networkx",
 ]
