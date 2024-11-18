@@ -274,9 +274,11 @@ class Model(PetabMixin):
             criterion_value = self.criterion_computer(criterion)
             self.set_criterion(criterion, criterion_value)
             result = criterion_value
-        except ValueError:
+        except ValueError as err:
             if raise_on_failure:
-                raise
+                raise ValueError(
+                    f"Insufficient information to compute criterion `{criterion}`."
+                ) from err
             result = None
         return result
 
@@ -684,6 +686,7 @@ def default_compare(
         Criterion.AICC,
         Criterion.BIC,
         Criterion.NLLH,
+        Criterion.SSR,
     ]:
         return (
             model1.get_criterion(criterion)
