@@ -1,21 +1,27 @@
 """The `Model` class."""
+
+from __future__ import annotations
+
 import warnings
 from os.path import relpath
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any
 
-import petab
+import petab.v1 as petab
 import yaml
 from more_itertools import one
-from petab.C import ESTIMATE, NOMINAL_VALUE
+from petab.v1.C import ESTIMATE, NOMINAL_VALUE
 
 from .constants import (
     CRITERIA,
     ESTIMATED_PARAMETERS,
     MODEL_HASH,
+    MODEL_HASH_DELIMITER,
     MODEL_ID,
     MODEL_SUBSPACE_ID,
     MODEL_SUBSPACE_INDICES,
+    MODEL_SUBSPACE_INDICES_HASH_DELIMITER,
+    MODEL_SUBSPACE_INDICES_HASH_MAP,
     PARAMETERS,
     PETAB_ESTIMATE_TRUE,
     PETAB_PROBLEM,
@@ -29,18 +35,19 @@ from .constants import (
 )
 from .criteria import CriterionComputer
 from .misc import (
-    hash_list,
-    hash_parameter_dict,
-    hash_str,
     parameter_string_to_value,
 )
 from .petab import PetabMixin
 
+if TYPE_CHECKING:
+    from .problem import Problem
+
 __all__ = [
-    'Model',
-    'default_compare',
-    'models_from_yaml_list',
-    'models_to_yaml_list',
+    "Model",
+    "default_compare",
+    "models_from_yaml_list",
+    "models_to_yaml_list",
+    "ModelHash",
 ]
 
 
@@ -58,14 +65,6 @@ class Model(PetabMixin):
             Functions to convert attributes from :class:`Model` to YAML.
         criteria:
             The criteria values of the calibrated model (e.g. AIC).
-        hash_attributes:
-            This attribute is currently not used.
-            Attributes that will be used to calculate the hash of the
-            :class:`Model` instance. NB: this hash is used during pairwise comparison
-            to determine whether any two :class:`Model` instances are unique. The
-            model instances are compared by their parameter estimation
-            problems, as opposed to parameter estimation results, which may
-            differ due to e.g. floating-point arithmetic.
         model_id:
             The model ID.
         petab_yaml:
@@ -130,42 +129,20 @@ class Model(PetabMixin):
             for criterion_id, criterion_value in x.items()
         },
     }
-    hash_attributes = {
-        # MODEL_ID: lambda x: hash(x),  # possible circular dependency on hash
-        # MODEL_SUBSPACE_ID: lambda x: hash(x),
-        # MODEL_SUBSPACE_INDICES: hash_list,
-        # TODO replace `YAML` with `PETAB_PROBLEM_HASH`, as YAML could refer to
-        #      different problems if used on different filesystems or sometimes
-        #      absolute and other times relative. Better to check whether the
-        #      PEtab problem itself is unique.
-        # TODO replace `PARAMETERS` with `PARAMETERS_ALL`, which should be al
-        #      parameters in the PEtab problem. This avoids treating the PEtab problem
-        #      differently to the model (in a subspace with the PEtab problem) that has
-        #      all nominal values defined in the subspace.
-        # TODO add `estimated_parameters`? Needs to be clarified whether this hash
-        #      should be unique amongst only not-yet-calibrated models, or may also
-        #      return the same value between differently parameterized models that ended
-        #      up being calibrated to be the same... probably should be the former.
-        #      Currently, the hash is stored, hence will "persist" after calibration
-        #      if the same `Model` instance is used.
-        # PETAB_YAML: lambda x: hash(x),
-        PETAB_YAML: hash_str,
-        PARAMETERS: hash_parameter_dict,
-    }
 
     def __init__(
         self,
         petab_yaml: TYPE_PATH,
         model_subspace_id: str = None,
         model_id: str = None,
-        model_subspace_indices: List[int] = None,
+        model_subspace_indices: list[int] = None,
         predecessor_model_hash: str = None,
-        parameters: Dict[str, Union[int, float]] = None,
-        estimated_parameters: Dict[str, Union[int, float]] = None,
-        criteria: Dict[str, float] = None,
+        parameters: dict[str, int | float] = None,
+        estimated_parameters: dict[str, int | float] = None,
+        criteria: dict[str, float] = None,
         # Optionally provided to reduce repeated parsing of `petab_yaml`.
-        petab_problem: Optional[petab.Problem] = None,
-        model_hash: Optional[Any] = None,
+        petab_problem: petab.Problem | None = None,
+        model_hash: Any | None = None,
     ):
         self.model_id = model_id
         self.model_subspace_id = model_subspace_id
@@ -174,9 +151,12 @@ class Model(PetabMixin):
         self.parameters = parameters
         self.estimated_parameters = estimated_parameters
         self.criteria = criteria
-        self.model_hash = model_hash
 
         self.predecessor_model_hash = predecessor_model_hash
+        if self.predecessor_model_hash is not None:
+            self.predecessor_model_hash = ModelHash.from_hash(
+                self.predecessor_model_hash
+            )
 
         if self.parameters is None:
             self.parameters = {}
@@ -187,6 +167,15 @@ class Model(PetabMixin):
 
         super().__init__(petab_yaml=petab_yaml, petab_problem=petab_problem)
 
+        self.model_hash = None
+        self.get_hash()
+        if model_hash is not None:
+            model_hash = ModelHash.from_hash(model_hash)
+            if self.model_hash != model_hash:
+                raise ValueError(
+                    "The supplied model hash does not match the computed "
+                    "model hash."
+                )
         if self.model_id is None:
             self.model_id = self.get_hash()
 
@@ -203,14 +192,15 @@ class Model(PetabMixin):
         """
         if criterion in self.criteria:
             warnings.warn(
-                'Overwriting saved criterion value. '
-                f'Criterion: {criterion}. Value: {self.get_criterion(criterion)}.'
+                "Overwriting saved criterion value. "
+                f"Criterion: {criterion}. Value: {self.get_criterion(criterion)}.",
+                stacklevel=2,
             )
             # FIXME debug why value is overwritten during test case 0002.
             if False:
                 print(
-                    'Overwriting saved criterion value. '
-                    f'Criterion: {criterion}. Value: {self.get_criterion(criterion)}.'
+                    "Overwriting saved criterion value. "
+                    f"Criterion: {criterion}. Value: {self.get_criterion(criterion)}."
                 )
                 breakpoint()
         self.criteria[criterion] = value
@@ -230,7 +220,7 @@ class Model(PetabMixin):
         criterion: Criterion,
         compute: bool = True,
         raise_on_failure: bool = True,
-    ) -> Union[TYPE_CRITERION, None]:
+    ) -> TYPE_CRITERION | None:
         """Get a criterion value for the model.
 
         Args:
@@ -284,15 +274,17 @@ class Model(PetabMixin):
             criterion_value = self.criterion_computer(criterion)
             self.set_criterion(criterion, criterion_value)
             result = criterion_value
-        except ValueError:
+        except ValueError as err:
             if raise_on_failure:
-                raise
+                raise ValueError(
+                    f"Insufficient information to compute criterion `{criterion}`."
+                ) from err
             result = None
         return result
 
     def set_estimated_parameters(
         self,
-        estimated_parameters: Dict[str, float],
+        estimated_parameters: dict[str, float],
         scaled: bool = False,
     ) -> None:
         """Set the estimated parameters.
@@ -313,10 +305,10 @@ class Model(PetabMixin):
 
     @staticmethod
     def from_dict(
-        model_dict: Dict[str, Any],
+        model_dict: dict[str, Any],
         base_path: TYPE_PATH = None,
         petab_problem: petab.Problem = None,
-    ) -> 'Model':
+    ) -> Model:
         """Generate a model from a dictionary of attributes.
 
         Args:
@@ -341,7 +333,9 @@ class Model(PetabMixin):
         unknown_attributes = set(model_dict).difference(Model.converters_load)
         if unknown_attributes:
             warnings.warn(
-                'Ignoring unknown attributes: ' + ', '.join(unknown_attributes)
+                "Ignoring unknown attributes: "
+                + ", ".join(unknown_attributes),
+                stacklevel=2,
             )
 
         if base_path is not None:
@@ -356,7 +350,7 @@ class Model(PetabMixin):
         return Model(**model_dict)
 
     @staticmethod
-    def from_yaml(model_yaml: TYPE_PATH) -> 'Model':
+    def from_yaml(model_yaml: TYPE_PATH) -> Model:
         """Generate a model from a PEtab Select model YAML file.
 
         Args:
@@ -376,10 +370,10 @@ class Model(PetabMixin):
                 if len(model_dict) <= 1:
                     raise
                 raise ValueError(
-                    'The provided YAML file contains a list with greater than '
-                    'one element. Use the `models_from_yaml_list` method or '
-                    'provide a PEtab Select model YAML file with only one '
-                    'model specified.'
+                    "The provided YAML file contains a list with greater than "
+                    "one element. Use the `models_from_yaml_list` method or "
+                    "provide a PEtab Select model YAML file with only one "
+                    "model specified."
                 )
 
         return Model.from_dict(model_dict, base_path=Path(model_yaml).parent)
@@ -387,8 +381,8 @@ class Model(PetabMixin):
     def to_dict(
         self,
         resolve_paths: bool = True,
-        paths_relative_to: Union[str, Path] = None,
-    ) -> Dict[str, Any]:
+        paths_relative_to: str | Path = None,
+    ) -> dict[str, Any]:
         """Generate a dictionary from the attributes of a :class:`Model` instance.
 
         Args:
@@ -436,15 +430,15 @@ class Model(PetabMixin):
         # FIXME change `getattr(self, PETAB_YAML)` to be relative to
         # destination?
         # kind of fixed, as the path will be resolved in `to_dict`.
-        with open(petab_yaml, 'w') as f:
+        with open(petab_yaml, "w") as f:
             yaml.dump(self.to_dict(*args, **kwargs), f)
         # yaml.dump(self.to_dict(), str(petab_yaml))
 
     def to_petab(
         self,
         output_path: TYPE_PATH = None,
-        set_estimated_parameters: Optional[bool] = None,
-    ) -> Dict[str, Union[petab.Problem, TYPE_PATH]]:
+        set_estimated_parameters: bool | None = None,
+    ) -> dict[str, petab.Problem | TYPE_PATH]:
         """Generate a PEtab problem.
 
         Args:
@@ -490,9 +484,9 @@ class Model(PetabMixin):
             # Else the parameter is to be fixed.
             else:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 0
-                petab_problem.parameter_df.loc[
-                    parameter_id, NOMINAL_VALUE
-                ] = parameter_string_to_value(parameter_value)
+                petab_problem.parameter_df.loc[parameter_id, NOMINAL_VALUE] = (
+                    parameter_string_to_value(parameter_value)
+                )
                 # parameter_value
 
         petab_yaml = None
@@ -508,32 +502,26 @@ class Model(PetabMixin):
             PETAB_YAML: petab_yaml,
         }
 
-    def get_hash(self) -> int:
+    def get_hash(self) -> str:
         """Get the model hash.
 
-        Currently designed to only use pre-calibration information, such that if a model
-        is calibrated twice and the two calibrated models differ in their parameter
-        estimates, then they will still have the same hash.
+        See the documentation for :class:`ModelHash` for more information.
 
-        This is not implemented as ``__hash__`` because Python automatically truncates
-        values in a system-dependent manner, which reduces interoperability
+        This is not implemented as ``__hash__`` because Python automatically
+        truncates values in a system-dependent manner, which reduces
+        interoperability
         ( https://docs.python.org/3/reference/datamodel.html#object.__hash__ ).
 
         Returns:
             The hash.
         """
         if self.model_hash is None:
-            self.model_hash = hash_list(
-                [
-                    method(getattr(self, attribute))
-                    for attribute, method in Model.hash_attributes.items()
-                ]
-            )
+            self.model_hash = ModelHash.from_model(model=self)
         return self.model_hash
 
     def __hash__(self) -> None:
         """Use `Model.get_hash` instead."""
-        raise NotImplementedError('Use `Model.get_hash() instead.`')
+        raise NotImplementedError("Use `Model.get_hash() instead.`")
 
     def __str__(self):
         """Get a print-ready string representation of the model.
@@ -541,17 +529,17 @@ class Model(PetabMixin):
         Returns:
             The print-ready string representation, in TSV format.
         """
-        parameter_ids = '\t'.join(self.parameters.keys())
-        parameter_values = '\t'.join(str(v) for v in self.parameters.values())
-        header = '\t'.join([MODEL_ID, PETAB_YAML, parameter_ids])
-        data = '\t'.join(
+        parameter_ids = "\t".join(self.parameters.keys())
+        parameter_values = "\t".join(str(v) for v in self.parameters.values())
+        header = "\t".join([MODEL_ID, PETAB_YAML, parameter_ids])
+        data = "\t".join(
             [self.model_id, str(self.petab_yaml), parameter_values]
         )
         # header = f'{MODEL_ID}\t{PETAB_YAML}\t{parameter_ids}'
         # data = f'{self.model_id}\t{self.petab_yaml}\t{parameter_values}'
-        return f'{header}\n{data}'
+        return f"{header}\n{data}"
 
-    def get_mle(self) -> Dict[str, float]:
+    def get_mle(self) -> dict[str, float]:
         """Get the maximum likelihood estimate of the model."""
         """
         FIXME(dilpath)
@@ -587,7 +575,7 @@ class Model(PetabMixin):
         # TODO
         pass
 
-    def get_estimated_parameter_ids_all(self) -> List[str]:
+    def get_estimated_parameter_ids_all(self) -> list[str]:
         estimated_parameter_ids = []
 
         # Add all estimated parameters in the PEtab problem.
@@ -622,8 +610,8 @@ class Model(PetabMixin):
 
     def get_parameter_values(
         self,
-        parameter_ids: Optional[List[str]] = None,
-    ) -> List[TYPE_PARAMETER]:
+        parameter_ids: list[str] | None = None,
+    ) -> list[TYPE_PARAMETER]:
         """Get parameter values.
 
         Includes ``ESTIMATE`` for parameters that should be estimated.
@@ -679,14 +667,18 @@ def default_compare(
     """
     if not model1.has_criterion(criterion):
         warnings.warn(
-            f'Model "{model1.model_id}" does not provide a value for the criterion "{criterion}".'
+            f'Model "{model1.model_id}" does not provide a value for the '
+            f'criterion "{criterion}".',
+            stacklevel=2,
         )
         return False
     if model0 == VIRTUAL_INITIAL_MODEL or model0 is None:
         return True
     if criterion_threshold < 0:
         warnings.warn(
-            'The provided criterion threshold is negative. The absolute value will be used instead.'
+            "The provided criterion threshold is negative. "
+            "The absolute value will be used instead.",
+            stacklevel=2,
         )
         criterion_threshold = abs(criterion_threshold)
     if criterion in [
@@ -694,6 +686,7 @@ def default_compare(
         Criterion.AICC,
         Criterion.BIC,
         Criterion.NLLH,
+        Criterion.SSR,
     ]:
         return (
             model1.get_criterion(criterion)
@@ -708,14 +701,14 @@ def default_compare(
             > model0.get_criterion(criterion) + criterion_threshold
         )
     else:
-        raise NotImplementedError(f'Unknown criterion: {criterion}.')
+        raise NotImplementedError(f"Unknown criterion: {criterion}.")
 
 
 def models_from_yaml_list(
     model_list_yaml: TYPE_PATH,
     petab_problem: petab.Problem = None,
     allow_single_model: bool = True,
-) -> List[Model]:
+) -> list[Model]:
     """Generate a model from a PEtab Select list of model YAML file.
 
     Args:
@@ -734,7 +727,7 @@ def models_from_yaml_list(
     """
     with open(str(model_list_yaml)) as f:
         model_dict_list = yaml.safe_load(f)
-    if model_dict_list is None:
+    if not model_dict_list:
         return []
 
     if not isinstance(model_dict_list, list):
@@ -746,7 +739,7 @@ def models_from_yaml_list(
                     petab_problem=petab_problem,
                 )
             ]
-        raise ValueError('The YAML file does not contain a list of models.')
+        raise ValueError("The YAML file does not contain a list of models.")
 
     return [
         Model.from_dict(
@@ -759,10 +752,38 @@ def models_from_yaml_list(
 
 
 def models_to_yaml_list(
-    models: List[Model],
+    models: list[Model | str] | dict[ModelHash, Model | str],
     output_yaml: TYPE_PATH,
     relative_paths: bool = True,
-):
+) -> None:
+    """Generate a YAML listing of models.
+
+    Args:
+        models:
+            The models.
+        output_yaml:
+            The location where the YAML will be saved.
+        relative_paths:
+            Whether to rewrite the paths in each model (e.g. the path to the
+            model's PEtab problem) relative to the `output_yaml` location.
+    """
+    if isinstance(models, dict):
+        models = list(models.values())
+
+    skipped_indices = []
+    for index, model in enumerate(models):
+        if isinstance(model, Model):
+            continue
+        if model == VIRTUAL_INITIAL_MODEL:
+            continue
+        warnings.warn(f"Unexpected model, skipping: {model}.", stacklevel=2)
+        skipped_indices.append(index)
+    models = [
+        model
+        for index, model in enumerate(models)
+        if index not in skipped_indices
+    ]
+
     paths_relative_to = None
     if relative_paths:
         paths_relative_to = Path(output_yaml).parent
@@ -770,5 +791,287 @@ def models_to_yaml_list(
         model.to_dict(paths_relative_to=paths_relative_to) for model in models
     ]
     model_dicts = None if not model_dicts else model_dicts
-    with open(output_yaml, 'w') as f:
+    with open(output_yaml, "w") as f:
         yaml.dump(model_dicts, f)
+
+
+class ModelHash(str):
+    """A class to handle model hash functionality.
+
+    The model hash is designed to be human-readable and able to be converted
+    back into the corresponding model. Currently, if two models from two
+    different model subspaces are actually the same PEtab problem, they will
+    still have different model hashes.
+
+    Attributes:
+        model_subspace_id:
+            The ID of the model subspace of the model. Unique up to a single
+            PEtab Select problem model space.
+        model_subspace_indices_hash:
+            A hash of the location of the model in its model
+            subspace. Unique up to a single model subspace.
+    """
+
+    # FIXME petab problem--specific hashes that are cross-platform?
+    """
+    The model hash is designed to be: human-readable; able to be converted
+    back into the corresponding model, and unique up to the same PEtab
+    problem and parameters.
+
+    Consider two different models in different model subspaces, with
+    `ModelHash`s `model_hash0` and `model_hash1`, respectively. Assume that
+    these two models end up encoding the same PEtab problem (e.g. they set the
+    same parameters to be estimated).
+    The string representation will be different,
+    `str(model_hash0) != str(model_hash1)`, but their hashes will pass the
+    equality check: `model_hash0 == model_hash1` and
+    `hash(model_hash0) == hash(model_hash1)`.
+
+    This means that different models in different model subspaces that end up
+    being the same PEtab problem will have different human-readable hashes,
+    but if these models arise during model selection, then only one of them
+    will be calibrated.
+
+    The PEtab hash size is computed automatically as the smallest size that
+    ensures a collision probability of less than $2^{-64}$.
+    N.B.: this assumes only one model subspace, and only 2 options for each
+    parameter (e.g. `0` and `estimate`). You can manually set the size with
+    :const:`petab_select.constants.PETAB_HASH_DIGEST_SIZE`.
+
+    petab_hash:
+        A hash that is unique up to the same PEtab problem, which is
+        determined by: the PEtab problem YAML file location, nominal
+        parameter values, and parameters set to be estimated. This means
+        that different models may have the same `unique_petab_hash`,
+        because they are the same estimation problem.
+    """
+
+    def __init__(
+        self,
+        model_subspace_id: str,
+        model_subspace_indices_hash: str,
+        # petab_hash: str,
+    ):
+        self.model_subspace_id = model_subspace_id
+        self.model_subspace_indices_hash = model_subspace_indices_hash
+        # self.petab_hash = petab_hash
+
+    def __new__(
+        cls,
+        model_subspace_id: str,
+        model_subspace_indices_hash: str,
+        # petab_hash: str,
+    ):
+        hash_str = MODEL_HASH_DELIMITER.join(
+            [
+                model_subspace_id,
+                model_subspace_indices_hash,
+                # petab_hash,
+            ]
+        )
+        instance = super().__new__(cls, hash_str)
+        return instance
+
+    def __getnewargs_ex__(self):
+        return (
+            (),
+            {
+                "model_subspace_id": self.model_subspace_id,
+                "model_subspace_indices_hash": self.model_subspace_indices_hash,
+                # 'petab_hash': self.petab_hash,
+            },
+        )
+
+    def __copy__(self):
+        return ModelHash(
+            model_subspace_id=self.model_subspace_id,
+            model_subspace_indices_hash=self.model_subspace_indices_hash,
+            # petab_hash=self.petab_hash,
+        )
+
+    def __deepcopy__(self, memo):
+        return self.__copy__()
+
+    # @staticmethod
+    # def get_petab_hash(model: Model) -> str:
+    #     """Get a hash that is unique up to the same estimation problem.
+
+    #     See :attr:`petab_hash` for more information.
+
+    #     Args:
+    #         model:
+    #             The model.
+
+    #     Returns:
+    #         The unique PEtab hash.
+    #     """
+    #     digest_size = PETAB_HASH_DIGEST_SIZE
+    #     if digest_size is None:
+    #         petab_info_bits = len(model.model_subspace_indices)
+    #         # Ensure <2^{-64} probability of collision
+    #         petab_info_bits += 64
+    #         # Convert to bytes, round up.
+    #         digest_size = int(petab_info_bits / 8) + 1
+
+    #     petab_yaml = str(model.petab_yaml.resolve())
+    #     model_parameter_df = model.to_petab(set_estimated_parameters=False)[
+    #         PETAB_PROBLEM
+    #     ].parameter_df
+    #     nominal_parameter_hash = hash_parameter_dict(
+    #         model_parameter_df[NOMINAL_VALUE].to_dict()
+    #     )
+    #     estimate_parameter_hash = hash_parameter_dict(
+    #         model_parameter_df[ESTIMATE].to_dict()
+    #     )
+    #     return hash_str(
+    #         petab_yaml + estimate_parameter_hash + nominal_parameter_hash,
+    #         digest_size=digest_size,
+    #     )
+
+    @staticmethod
+    def from_hash(model_hash: str | ModelHash) -> ModelHash:
+        """Reconstruct a :class:`ModelHash` object.
+
+        Args:
+            model_hash:
+                The model hash.
+
+        Returns:
+            The :class:`ModelHash` object.
+        """
+        if isinstance(model_hash, ModelHash):
+            return model_hash
+
+        if model_hash == VIRTUAL_INITIAL_MODEL:
+            return ModelHash(
+                model_subspace_id=VIRTUAL_INITIAL_MODEL,
+                model_subspace_indices_hash="",
+                # petab_hash=VIRTUAL_INITIAL_MODEL,
+            )
+
+        (
+            model_subspace_id,
+            model_subspace_indices_hash,
+            # petab_hash,
+        ) = model_hash.split(MODEL_HASH_DELIMITER)
+        return ModelHash(
+            model_subspace_id=model_subspace_id,
+            model_subspace_indices_hash=model_subspace_indices_hash,
+            # petab_hash=petab_hash,
+        )
+
+    @staticmethod
+    def from_model(model: Model) -> ModelHash:
+        """Create a hash for a model.
+
+        Args:
+            model:
+                The model.
+
+        Returns:
+            The model hash.
+        """
+        model_subspace_id = ""
+        model_subspace_indices_hash = ""
+        if model.model_subspace_id is not None:
+            model_subspace_id = model.model_subspace_id
+            model_subspace_indices_hash = (
+                ModelHash.hash_model_subspace_indices(
+                    model.model_subspace_indices
+                )
+            )
+
+        return ModelHash(
+            model_subspace_id=model_subspace_id,
+            model_subspace_indices_hash=model_subspace_indices_hash,
+            # petab_hash=ModelHash.get_petab_hash(model=model),
+        )
+
+    @staticmethod
+    def hash_model_subspace_indices(model_subspace_indices: list[int]) -> str:
+        """Hash the location of a model in its subspace.
+
+        Args:
+            model_subspace_indices:
+                The location (indices) of the model in its subspace.
+
+        Returns:
+            The hash.
+        """
+        try:
+            return "".join(
+                MODEL_SUBSPACE_INDICES_HASH_MAP[index]
+                for index in model_subspace_indices
+            )
+        except KeyError:
+            return MODEL_SUBSPACE_INDICES_HASH_DELIMITER.join(
+                str(i) for i in model_subspace_indices
+            )
+
+    def unhash_model_subspace_indices(self) -> list[int]:
+        """Get the location of a model in its subspace.
+
+        Returns:
+            The location, as indices of the subspace.
+        """
+        if (
+            MODEL_SUBSPACE_INDICES_HASH_DELIMITER
+            in self.model_subspace_indices_hash
+        ):
+            return [
+                int(s)
+                for s in self.model_subspace_indices_hash.split(
+                    MODEL_SUBSPACE_INDICES_HASH_DELIMITER
+                )
+            ]
+        else:
+            return [
+                MODEL_SUBSPACE_INDICES_HASH_MAP.index(s)
+                for s in self.model_subspace_indices_hash
+            ]
+
+    def get_model(self, petab_select_problem: Problem) -> Model:
+        """Get the model that a hash corresponds to.
+
+        Args:
+            petab_select_problem:
+                The PEtab Select problem. The model will be found in its model
+                space.
+
+        Returns:
+            The model.
+        """
+        # if self.petab_hash == VIRTUAL_INITIAL_MODEL:
+        #     return self.petab_hash
+
+        return petab_select_problem.model_space.model_subspaces[
+            self.model_subspace_id
+        ].indices_to_model(
+            self.unhash_model_subspace_indices(
+                self.model_subspace_indices_hash
+            )
+        )
+
+    def __hash__(self) -> str:
+        """The PEtab hash.
+
+        N.B.: this is not the model hash! As the equality between two models
+        is determined by their PEtab hash only, this method only returns the
+        PEtab hash. However, the model hash is the full string with the
+        human-readable elements as well. :func:`ModelHash.from_hash` does not
+        accept the PEtab hash as input, rather the full string.
+        """
+        return hash(str(self))
+
+    def __eq__(self, other_hash: str | ModelHash) -> bool:
+        """Check whether two model hashes are equivalent.
+
+        Returns:
+            Whether the two hashes correspond to equivalent PEtab problems.
+        """
+        # petab_hash = other_hash
+        # # Check whether the PEtab hash needs to be extracted
+        # if MODEL_HASH_DELIMITER in other_hash:
+        #     petab_hash = ModelHash.from_hash(other_hash).petab_hash
+        # return self.petab_hash == petab_hash
+        return str(self) == str(other_hash)

@@ -10,8 +10,8 @@ estimated_parameters:
   a_k12_k05k12: 8.26789880667234
   a_k12k16_k08k12k16: 33.038691003614964
   a_k16_k12k16: 10.424836834041892
-model_hash: b4b3d9243ed929dc84e4d0a007a5deac94612239089ebce31ed57a2aa5244467bf65a5035d7b5e77dfdb8d89a42a22a88ec68bc038da95a0aefb5f4cc6836692
-model_id: b4b3d9243ed929dc84e4d0a007a5deac94612239089ebce31ed57a2aa5244467bf65a5035d7b5e77dfdb8d89a42a22a88ec68bc038da95a0aefb5f4cc6836692
+model_hash: M-01000100001000010010000000010001
+model_id: M-01000100001000010010000000010001
 model_subspace_id: M
 model_subspace_indices:
 - 0
@@ -80,4 +80,4 @@ parameters:
   a_k16_k08k16: 1
   a_k16_k12k16: estimate
 petab_yaml: petab/petab_problem.yaml
-predecessor_model_hash: 388df9ee97062984a88432f56c52c3e5ee19ba6840c3375bb07625f8ffb5f0090413ed60b43cc4c90319b52bf26af7de7c876fdbf69544df6d551c8aef519e69
+predecessor_model_hash: null

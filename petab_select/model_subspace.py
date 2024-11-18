@@ -1,8 +1,9 @@
 import math
 import warnings
+from collections.abc import Iterable, Iterator
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -27,7 +28,7 @@ from .model import Model
 from .petab import PetabMixin
 
 __all__ = [
-    'ModelSubspace',
+    "ModelSubspace",
 ]
 
 
@@ -60,7 +61,7 @@ class ModelSubspace(PetabMixin):
         model_subspace_id: str,
         petab_yaml: str,
         parameters: TYPE_PARAMETER_OPTIONS_DICT,
-        exclusions: Optional[Union[List[Any], None]] = None,
+        exclusions: list[Any] | None | None = None,
     ):
         self.model_subspace_id = model_subspace_id
         self.parameters = parameters
@@ -95,20 +96,21 @@ class ModelSubspace(PetabMixin):
             != str(self.petab_yaml.resolve())
         ):
             warnings.warn(
-                'The supplied candidate space is initialized with a model '
-                'that has a different PEtab YAML to this model subspace. '
-                'This is currently not supported for stepwise methods '
-                '(e.g. forward or backward). '
-                f'This model subspace: `{self.model_subspace_id}`. '
-                'This model subspace PEtab YAML: '
-                f'`{self.petab_yaml}`. '
-                'The candidate space PEtab YAML: '
-                f'`{candidate_space.predecessor_model.petab_yaml}`. '
+                "The supplied candidate space is initialized with a model "
+                "that has a different PEtab YAML to this model subspace. "
+                "This is currently not supported for stepwise methods "
+                "(e.g. forward or backward). "
+                f"This model subspace: `{self.model_subspace_id}`. "
+                "This model subspace PEtab YAML: "
+                f"`{self.petab_yaml}`. "
+                "The candidate space PEtab YAML: "
+                f"`{candidate_space.predecessor_model.petab_yaml}`.",
+                stacklevel=2,
             )
             return False
         return True
 
-    def get_models(self, estimated_parameters: List[str]) -> Iterator[Model]:
+    def get_models(self, estimated_parameters: list[str]) -> Iterator[Model]:
         """Get models in the subspace by estimated parameters.
 
         All models that have the provided ``estimated_parameters`` are returned.
@@ -132,10 +134,10 @@ class ModelSubspace(PetabMixin):
         """
         if set(estimated_parameters).difference(self.parameters):
             raise ValueError(
-                'Some parameter IDs were provided that are not in the model '
-                'subspace definition. NB: parameters that are only in the '
-                'PEtab parameters table should not be included here. '
-                f'IDs: {set(estimated_parameters).difference(self.parameters)}'
+                "Some parameter IDs were provided that are not in the model "
+                "subspace definition. NB: parameters that are only in the "
+                "PEtab parameters table should not be included here. "
+                f"IDs: {set(estimated_parameters).difference(self.parameters)}"
             )
         fixed_parameter_ids = [
             parameter_id
@@ -149,9 +151,9 @@ class ModelSubspace(PetabMixin):
         ]
         if parameters_cannot_be_fixed_error:
             raise ValueError(
-                'Models with the following fixed parameters were requested; '
-                'however, there is no such model in this subspace: '
-                f'{parameters_cannot_be_fixed_error}.'
+                "Models with the following fixed parameters were requested; "
+                "however, there is no such model in this subspace: "
+                f"{parameters_cannot_be_fixed_error}."
             )
         # Identify possible values for each of the fixed parameters.
         fixed_options = [
@@ -168,6 +170,7 @@ class ModelSubspace(PetabMixin):
                 zip(
                     fixed_parameter_ids,
                     fixed_parameter_values,
+                    strict=False,
                 )
             )
             parameters = {
@@ -227,6 +230,8 @@ class ModelSubspace(PetabMixin):
         if not self.check_compatibility_stepwise_method(candidate_space):
             return
 
+        # TODO check inside `continue_searching` too? or move
+        # all limit handling to candidate space
         if candidate_space.limit.reached():
             return
 
@@ -244,15 +249,13 @@ class ModelSubspace(PetabMixin):
                 # Should already be handled elsewhere (e.g.
                 # `self.check_compatibility_stepwise_method`).
                 raise NotImplementedError(
-                    f'The default parameter set for a candidate space with the virtual initial model and method {candidate_space.method} is not implemented. Please report if this is desired.'
+                    f"The default parameter set for a candidate space with the virtual initial model and method {candidate_space.method} is not implemented. Please report if this is desired."
                 )
         else:
             old_estimated_all = set()
             old_fixed_all = set()
             if isinstance(candidate_space.predecessor_model, Model):
-                old_estimated_all = (
-                    candidate_space.predecessor_model.get_estimated_parameter_ids_all()
-                )
+                old_estimated_all = candidate_space.predecessor_model.get_estimated_parameter_ids_all()
                 old_fixed_all = [
                     parameter_id
                     for parameter_id in self.parameters_all
@@ -286,7 +289,7 @@ class ModelSubspace(PetabMixin):
             == new_must_estimate
         ):
             raise ValueError(
-                'Unexpected error (sets that should be equal are not).'
+                "Unexpected error (sets that should be equal are not)."
             )
         new_can_estimate_optional = (
             set(self.can_estimate)
@@ -482,7 +485,9 @@ class ModelSubspace(PetabMixin):
         elif candidate_space.method == Method.BRUTE_FORCE:
             # TODO remove list?
             for parameterization in list(product(*self.parameters.values())):
-                parameters = dict(zip(self.parameters, parameterization))
+                parameters = dict(
+                    zip(self.parameters, parameterization, strict=False)
+                )
                 model = self.parameters_to_model(parameters)
                 # Skip models that are excluded.
                 if model is None:
@@ -582,15 +587,15 @@ class ModelSubspace(PetabMixin):
 
         else:
             raise NotImplementedError(
-                'The requested method is not yet implemented in the model '
-                f'subspace interface: `{candidate_space.method}`.'
+                "The requested method is not yet implemented in the model "
+                f"subspace interface: `{candidate_space.method}`."
             )
 
     def send_model_to_candidate_space(
         self,
         model: Model,
         candidate_space: CandidateSpace,
-        exclude: Optional[bool] = False,
+        exclude: bool | None = False,
         # use_exclusions: Optional[bool] = True,
     ) -> bool:
         """Send a model to a candidate space for consideration.
@@ -674,7 +679,7 @@ class ModelSubspace(PetabMixin):
     def reset_exclusions(
         self,
         # TODO change typing with `List[Any]` to some `List[TYPE_MODEL_HASH]`
-        exclusions: Optional[Union[List[Any], None]] = None,
+        exclusions: list[Any] | None | None = None,
     ):
         self.exclusions = set()
         if exclusions is not None:
@@ -682,8 +687,8 @@ class ModelSubspace(PetabMixin):
 
     def reset(
         self,
-        exclusions: Optional[Union[List[Any], None]] = None,
-        limit: Optional[int] = None,
+        exclusions: list[Any] | None | None = None,
+        limit: int | None = None,
     ):
         self.reset_exclusions(exclusions=exclusions)
         if limit is not None:
@@ -692,9 +697,9 @@ class ModelSubspace(PetabMixin):
     @staticmethod
     def from_definition(
         model_subspace_id: str,
-        definition: Union[Dict[str, str], pd.Series],
+        definition: dict[str, str] | pd.Series,
         parent_path: TYPE_PATH = None,
-    ) -> 'ModelSubspace':
+    ) -> "ModelSubspace":
         """Create a :class:`ModelSubspace` from a definition.
 
         Args:
@@ -723,7 +728,7 @@ class ModelSubspace(PetabMixin):
             parameters=parameters,
         )
 
-    def indices_to_model(self, indices: List[int]) -> Union[Model, None]:
+    def indices_to_model(self, indices: list[int]) -> Model | None:
         """Get a model from the subspace, by indices of possible parameter values.
 
         Model exclusions are handled here.
@@ -751,7 +756,7 @@ class ModelSubspace(PetabMixin):
 
     def indices_to_parameters(
         self,
-        indices: List[int],
+        indices: list[int],
     ) -> TYPE_PARAMETER_DICT:
         """Convert parameter indices to values.
 
@@ -764,7 +769,9 @@ class ModelSubspace(PetabMixin):
         """
         parameters = {
             parameter_id: self.parameters[parameter_id][index]
-            for parameter_id, index in zip(self.parameters, indices)
+            for parameter_id, index in zip(
+                self.parameters, indices, strict=False
+            )
         }
         return parameters
 
@@ -780,9 +787,9 @@ class ModelSubspace(PetabMixin):
         """
         if set(self.parameters).symmetric_difference(parameters):
             raise ValueError(
-                'Parameter IDs differ between the stored and provided '
-                'values: '
-                f'{set(self.parameters).symmetric_difference(parameters)}'
+                "Parameter IDs differ between the stored and provided "
+                "values: "
+                f"{set(self.parameters).symmetric_difference(parameters)}"
             )
         indices = []
         for parameter_id, parameter_values in self.parameters.items():
@@ -790,8 +797,8 @@ class ModelSubspace(PetabMixin):
                 index = parameter_values.index(parameters[parameter_id])
             except ValueError:
                 raise ValueError(
-                    f'The following value for the parameter {parameter_id} is '
-                    f'not in the model subspace: {parameters[parameter_id]}.'
+                    f"The following value for the parameter {parameter_id} is "
+                    f"not in the model subspace: {parameters[parameter_id]}."
                 )
             indices.append(index)
         return indices
@@ -799,7 +806,7 @@ class ModelSubspace(PetabMixin):
     def parameters_to_model(
         self,
         parameters: TYPE_PARAMETER_DICT,
-    ) -> Union[Model, None]:
+    ) -> Model | None:
         """Convert parameter values to a model.
 
         Args:
@@ -824,7 +831,7 @@ class ModelSubspace(PetabMixin):
         return {**self.petab_parameters, **self.parameters}
 
     @property
-    def can_fix(self) -> List[str]:
+    def can_fix(self) -> list[str]:
         """Parameters that can be fixed, according to the subspace.
 
         Parameters that are fixed as part of the PEtab problem are not
@@ -841,7 +848,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def can_estimate(self) -> List[str]:
+    def can_estimate(self) -> list[str]:
         """Parameters that can be estimated, according to the subspace.
 
         Parameters that are estimated as part of the PEtab problem are not
@@ -854,7 +861,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def can_estimate_all(self) -> List[str]:
+    def can_estimate_all(self) -> list[str]:
         """All parameters than can be estimated in this subspace."""
         return [
             parameter_id
@@ -863,7 +870,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def must_fix(self) -> List[str]:
+    def must_fix(self) -> list[str]:
         """Subspace parameters that must be fixed.
 
         Parameters that are fixed as part of the PEtab problem are not
@@ -876,7 +883,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def must_fix_all(self) -> List[str]:
+    def must_fix_all(self) -> list[str]:
         """All parameters that must be fixed in this subspace."""
         return [
             parameter_id
@@ -885,7 +892,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def must_estimate(self) -> List[str]:
+    def must_estimate(self) -> list[str]:
         """Subspace parameters that must be estimated.
 
         Does not include parameters that are estimated in the PEtab
@@ -898,7 +905,7 @@ class ModelSubspace(PetabMixin):
         ]
 
     @property
-    def must_estimate_all(self) -> List[str]:
+    def must_estimate_all(self) -> list[str]:
         """All parameters that must be estimated in this subspace."""
         must_estimate_petab = [
             parameter_id
@@ -909,8 +916,8 @@ class ModelSubspace(PetabMixin):
 
     def get_estimated(
         self,
-        additional_parameters: Optional[TYPE_PARAMETER_DICT] = None,
-    ) -> List[str]:
+        additional_parameters: TYPE_PARAMETER_DICT | None = None,
+    ) -> list[str]:
         """Get the IDs of parameters that are estimated.
 
         Args:
@@ -922,40 +929,42 @@ class ModelSubspace(PetabMixin):
             The parameter IDs.
         """
         raise NotImplementedError
-        parameters = []
-        for parameter_id, parameter_value in self.parameters_all.items():
-            if additional_parameters.get(parameter_id, None) == ESTIMATE:
-                parameters.append(parameter_id)
-                continue
 
-            if parameter_id in additional_parameters:
-                # Presumably not estimated.
-                continue
-
-        old_estimated_all = {
-            parameter_id
-            for parameter_id, parameter_values in self.parameters_all.items()
-            if (
-                # Predecessor model sets the parameter to be estimated
-                (
-                    candidate_space.predecessor_model.parameters.get(
-                        parameter_id, None
-                    )
-                    == ESTIMATE
-                )
-                or (
-                    # Predecessor model takes the default PEtab parameter
-                    parameter_id
-                    not in candidate_space.predecessor_model.parameters
-                    and
-                    # And the default PEtab parameter is estimated
-                    # The PEtab problem of this subspace and the
-                    # `candidate_space` is the same, as verified earlier with
-                    # `self.check_compatibility_stepwise_method`.
-                    self.petab_parameters[parameter_id] == [ESTIMATE]
-                )
-            )
-        }
+        # parameters = []
+        # for parameter_id, parameter_value in self.parameters_all.items():
+        #     if additional_parameters.get(parameter_id, None) == ESTIMATE:
+        #         parameters.append(parameter_id)
+        #         continue
+        #
+        #     if parameter_id in additional_parameters:
+        #         # Presumably not estimated.
+        #         continue
+        #
+        # old_estimated_all = {
+        #     parameter_id
+        #     for parameter_id, parameter_values in self.parameters_all.items()
+        #     if
+        #     (
+        #         # Predecessor model sets the parameter to be estimated
+        #         (
+        #             candidate_space.predecessor_model.parameters.get(
+        #                 parameter_id, None
+        #             )
+        #             == ESTIMATE
+        #         )
+        #         or (
+        #             # Predecessor model takes the default PEtab parameter
+        #             parameter_id
+        #             not in candidate_space.predecessor_model.parameters
+        #             and
+        #             # And the default PEtab parameter is estimated
+        #             # The PEtab problem of this subspace and the
+        #             # `candidate_space` is the same, as verified earlier with
+        #             # `self.check_compatibility_stepwise_method`.
+        #             self.petab_parameters[parameter_id] == [ESTIMATE]
+        #         )
+        #     )
+        # }
 
     def __len__(self) -> int:
         """Get the number of models in this subspace."""
@@ -965,7 +974,7 @@ class ModelSubspace(PetabMixin):
 
 
 def decompress_parameter_values(
-    values: Union[float, int, str],
+    values: float | int | str,
 ) -> TYPE_PARAMETER_OPTIONS:
     """Decompress parameter values.
 
@@ -978,7 +987,7 @@ def decompress_parameter_values(
     Returns:
         Parameter values, decompressed into a list.
     """
-    if isinstance(values, (float, int)):
+    if isinstance(values, float | int):
         return [values]
 
     parameter_strings = list(values.split(PARAMETER_VALUE_DELIMITER))

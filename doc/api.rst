@@ -16,5 +16,6 @@ petab-select Python API
    petab_select.model_space
    petab_select.model_subspace
    petab_select.petab
+   petab_select.plot
    petab_select.problem
    petab_select.ui

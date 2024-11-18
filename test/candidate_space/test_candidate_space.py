@@ -2,9 +2,6 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from more_itertools import one
-
-import petab_select
 
 # from petab_select.candidate_space import (
 #    BackwardCandidateSpace,
@@ -14,39 +11,32 @@ import petab_select
 # )
 from petab_select.constants import (
     ESTIMATE,
-    MODEL_SUBSPACE_ID,
-    MODELS,
-    PARAMETER_VALUE_DELIMITER,
-    PETAB_YAML,
-    Criterion,
 )
-from petab_select.model import Model, default_compare
 from petab_select.model_space import ModelSpace, get_model_space_df
-from petab_select.model_subspace import ModelSubspace
 
 
 @pytest.fixture
 def ordered_model_parameterizations():
     good_models_ascending = [
         # forward
-        '00000',
-        '10000',
-        '11000',
-        '11100',
-        '11110',
+        "00000",
+        "10000",
+        "11000",
+        "11100",
+        "11110",
         # backward
-        '01110',
-        '01100',
+        "01110",
+        "01100",
         # forward
-        '01101',
-        '01111',
+        "01101",
+        "01111",
         # backward
-        '00111',
-        '00011',
+        "00111",
+        "00011",
     ]
     bad_models = [
-        '01011',
-        '11011',
+        "01011",
+        "11011",
     ]
 
     # All good models are unique
@@ -94,14 +84,14 @@ def model_space(calibrated_model_space) -> pd.DataFrame:
         data["model_subspace_id"].append(f"model_subspace_{model}")
         data["petab_yaml"].append(
             Path(__file__).parent.parent.parent
-            / 'doc'
-            / 'examples'
-            / 'model_selection'
-            / 'petab_problem.yaml'
+            / "doc"
+            / "examples"
+            / "model_selection"
+            / "petab_problem.yaml"
         )
-        k1, k2, k3, k4, k5 = [
-            '0' if parameter == '0' else ESTIMATE for parameter in model
-        ]
+        k1, k2, k3, k4, k5 = (
+            "0" if parameter == "0" else ESTIMATE for parameter in model
+        )
         data["k1"].append(k1)
         data["k2"].append(k2)
         data["k3"].append(k3)

@@ -1,32 +1,26 @@
 from pathlib import Path
-from typing import List
 
-import pandas as pd
 import pytest
 
 from petab_select.candidate_space import (
     BackwardCandidateSpace,
     BruteForceCandidateSpace,
     ForwardCandidateSpace,
-    LateralCandidateSpace,
 )
 from petab_select.constants import (
     ESTIMATE,
-    MODEL_SUBSPACE_ID,
-    PARAMETER_VALUE_DELIMITER,
-    PETAB_YAML,
+    Criterion,
 )
-from petab_select.model import Model
 from petab_select.model_space import ModelSpace
 
 base_dir = Path(__file__).parent
 
 
 @pytest.fixture
-def model_space_files() -> List[Path]:
+def model_space_files() -> list[Path]:
     return [
-        base_dir / 'model_space_file_1.tsv',
-        base_dir / 'model_space_file_2.tsv',
+        base_dir / "model_space_file_1.tsv",
+        base_dir / "model_space_file_2.tsv",
     ]
 
 
@@ -36,7 +30,7 @@ def model_space(model_space_files) -> ModelSpace:
 
 
 def test_model_space_forward_virtual(model_space):
-    candidate_space = ForwardCandidateSpace()
+    candidate_space = ForwardCandidateSpace(criterion=Criterion.NLLH)
     model_space.search(candidate_space)
 
     # The forward candidate space is initialized without a model, so a virtual initial
@@ -44,16 +38,16 @@ def test_model_space_forward_virtual(model_space):
     # fixed parameters as possible) in the model space.
     expected_models = [
         (
-            'model_subspace_1',
-            {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0.0},
+            "model_subspace_1",
+            {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": 0.0},
         ),
         (
-            'model_subspace_1',
-            {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0.1},
+            "model_subspace_1",
+            {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": 0.1},
         ),
         (
-            'model_subspace_2',
-            {'k1': 0.0, 'k2': 0.0, 'k3': 0.0, 'k4': ESTIMATE},
+            "model_subspace_2",
+            {"k1": 0.0, "k2": 0.0, "k3": 0.0, "k4": ESTIMATE},
         ),
     ]
 
@@ -63,27 +57,30 @@ def test_model_space_forward_virtual(model_space):
     ]
 
     # Search found only expected models.
-    assert all([model in expected_models for model in models])
+    assert all(model in expected_models for model in models)
     # All expected models have now been added to the candidate space.
-    assert all([model in models for model in expected_models])
+    assert all(model in models for model in expected_models)
     # Probably unnecessary: same number of models in expectation vs realization
     assert len(expected_models) == len(candidate_space.models)
 
 
-@pytest.mark.filterwarnings('ignore:Model has been previously excluded')
+@pytest.mark.filterwarnings("ignore:Model has been previously excluded")
 def test_model_space_backward_virtual(model_space):
-    candidate_space = BackwardCandidateSpace()
+    candidate_space = BackwardCandidateSpace(criterion=Criterion.NLLH)
     model_space.search(candidate_space)
 
-    # The forward candidate space is initialized without a model, so a virtual initial
-    # model is used. This means the expected models are the "smallest" models (as many
-    # fixed parameters as possible) in the model space.
+    # The backward candidate space is initialized without a model, so a virtual
+    # initial model is used. This means the expected models are the "smallest"
+    # models (as many fixed parameters as possible) in the model space.
     expected_models = [
-        ('model_subspace_1', {f'k{i}': ESTIMATE for i in range(1, 5)}),
+        ("model_subspace_1", {f"k{i}": ESTIMATE for i in range(1, 5)}),
+        # This model could be excluded, if the hashes/model comparisons enabled
+        # identification of identical models between different subspaces.
+        # TODO delete above, keep below comment, when implemented...
         # This model is not included because it is exactly the same as the
         # other model (same PEtab YAML and parameterization), hence has been
         # excluded from the candidate space.
-        # ('model_subspace_3', {f'k{i}': ESTIMATE for i in range(1,5)}),
+        ("model_subspace_3", {f"k{i}": ESTIMATE for i in range(1, 5)}),
     ]
 
     models = [
@@ -92,71 +89,71 @@ def test_model_space_backward_virtual(model_space):
     ]
 
     # Search found only expected models.
-    assert all([model in expected_models for model in models])
+    assert all(model in expected_models for model in models)
     # All expected models have now been added to the candidate space.
-    assert all([model in models for model in expected_models])
+    assert all(model in models for model in expected_models)
     # Probably unnecessary: same number of models in expectation vs realization
     assert len(expected_models) == len(candidate_space.models)
 
 
 def test_model_space_brute_force_limit(model_space):
-    candidate_space = BruteForceCandidateSpace()
+    candidate_space = BruteForceCandidateSpace(criterion=Criterion.NLLH)
     model_space.search(candidate_space, limit=13)
 
     # There are fifteen total models in the model space. Limiting to 13 models should
     # result in all models except the last two models in the last model subspace.
     expected_models = [
         (
-            'model_subspace_1',
-            {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0.0},
+            "model_subspace_1",
+            {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": 0.0},
         ),
         (
-            'model_subspace_1',
-            {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0.1},
+            "model_subspace_1",
+            {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": 0.1},
         ),
         (
-            'model_subspace_1',
-            {'k1': 0.2, 'k2': 0.1, 'k3': ESTIMATE, 'k4': ESTIMATE},
+            "model_subspace_1",
+            {"k1": 0.2, "k2": 0.1, "k3": ESTIMATE, "k4": ESTIMATE},
         ),
         (
-            'model_subspace_1',
-            {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.0},
+            "model_subspace_1",
+            {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0.0},
         ),
         (
-            'model_subspace_1',
-            {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.1},
+            "model_subspace_1",
+            {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0.1},
         ),
         (
-            'model_subspace_1',
-            {'k1': 0.2, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': ESTIMATE},
+            "model_subspace_1",
+            {"k1": 0.2, "k2": ESTIMATE, "k3": ESTIMATE, "k4": ESTIMATE},
         ),
         (
-            'model_subspace_1',
-            {'k1': ESTIMATE, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0.0},
+            "model_subspace_1",
+            {"k1": ESTIMATE, "k2": 0.1, "k3": ESTIMATE, "k4": 0.0},
         ),
         (
-            'model_subspace_1',
-            {'k1': ESTIMATE, 'k2': 0.1, 'k3': ESTIMATE, 'k4': 0.1},
+            "model_subspace_1",
+            {"k1": ESTIMATE, "k2": 0.1, "k3": ESTIMATE, "k4": 0.1},
         ),
         (
-            'model_subspace_1',
-            {'k1': ESTIMATE, 'k2': 0.1, 'k3': ESTIMATE, 'k4': ESTIMATE},
+            "model_subspace_1",
+            {"k1": ESTIMATE, "k2": 0.1, "k3": ESTIMATE, "k4": ESTIMATE},
         ),
         (
-            'model_subspace_1',
-            {'k1': ESTIMATE, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.0},
+            "model_subspace_1",
+            {"k1": ESTIMATE, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0.0},
         ),
         (
-            'model_subspace_1',
-            {'k1': ESTIMATE, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': 0.1},
+            "model_subspace_1",
+            {"k1": ESTIMATE, "k2": ESTIMATE, "k3": ESTIMATE, "k4": 0.1},
         ),
         (
-            'model_subspace_1',
-            {'k1': ESTIMATE, 'k2': ESTIMATE, 'k3': ESTIMATE, 'k4': ESTIMATE},
+            "model_subspace_1",
+            {"k1": ESTIMATE, "k2": ESTIMATE, "k3": ESTIMATE, "k4": ESTIMATE},
         ),
         (
-            'model_subspace_2',
-            {'k1': 0.0, 'k2': 0.0, 'k3': 0.0, 'k4': ESTIMATE},
+            "model_subspace_2",
+            {"k1": 0.0, "k2": 0.0, "k3": 0.0, "k4": ESTIMATE},
         ),
     ]
 
@@ -166,14 +163,14 @@ def test_model_space_brute_force_limit(model_space):
     ]
 
     # Search found only expected models.
-    assert all([model in expected_models for model in models])
+    assert all(model in expected_models for model in models)
     # All expected models have now been added to the candidate space.
-    assert all([model in models for model in expected_models])
+    assert all(model in models for model in expected_models)
     # Probably unnecessary: same number of models in expectation vs realization
     assert len(expected_models) == len(candidate_space.models)
 
 
-'''
+"""
 @pytest.fixture
 def e():
     return ESTIMATE
@@ -258,4 +255,4 @@ def test_distance(model_space, e):
     model_space.reset()
     neighbors = model_space.neighbors(brute_force_candidate_space)
     assert len(neighbors) == 16
-'''
+"""

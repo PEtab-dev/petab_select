@@ -1,7 +1,7 @@
 import hashlib
 
 # import json
-from typing import Any, List, Union
+from typing import Any
 
 from .constants import (  # TYPE_PARAMETER_OPTIONS_DICT,
     ESTIMATE,
@@ -10,12 +10,15 @@ from .constants import (  # TYPE_PARAMETER_OPTIONS_DICT,
 )
 
 __all__ = [
-    'parameter_string_to_value',
+    "parameter_string_to_value",
 ]
 
 
-def hashify(x: Any) -> str:
+def hashify(x: Any, **kwargs) -> str:
     """Generate a hash.
+
+    Currently uses the :func:`hashlib.blake2b` method. `**kwargs` are forwarded
+    to this method.
 
     Args:
         x:
@@ -23,29 +26,32 @@ def hashify(x: Any) -> str:
             hashed.
 
     Returns:
-        The hash.
+        The hash, as a hexadecimal string.
     """
     # return int(hashlib.sha256(str(x).encode('utf-8')).hexdigest(), 16)
-    return hashlib.blake2b(str(x).encode('utf-8')).hexdigest()
+    return hashlib.blake2b(
+        str(x).encode("utf-8"),
+        **kwargs,
+    ).hexdigest()
 
 
-def hash_parameter_dict(dict_: TYPE_PARAMETER_DICT):
+def hash_parameter_dict(dict_: TYPE_PARAMETER_DICT, **kwargs):
     """Hash a dictionary of parameter values."""
     value = tuple((k, dict_[k]) for k in sorted(dict_))
-    return hashify(value)
+    return hashify(value, **kwargs)
 
 
-def hash_parameter_options(list_: TYPE_PARAMETER_OPTIONS):
+def hash_parameter_options(list_: TYPE_PARAMETER_OPTIONS, **kwargs):
     """Hash parameter options."""
-    return hashify(list(list_))
+    return hashify(list(list_), **kwargs)
 
 
-def hash_str(str_: str):
-    return hashify(str_)
+def hash_str(str_: str, **kwargs):
+    return hashify(str_, **kwargs)
 
 
-def hash_list(list_: List):
-    return hashify(list(list_))
+def hash_list(list_: list, **kwargs):
+    return hashify(list(list_), **kwargs)
 
 
 def snake_case_to_camel_case(string: str) -> str:
@@ -58,8 +64,8 @@ def snake_case_to_camel_case(string: str) -> str:
     Returns:
         The string, in camel case.
     """
-    string_pieces = string.split('_')
-    string_camel = ''
+    string_pieces = string.split("_")
+    string_camel = ""
     for string_piece in string_pieces:
         string_camel += string_piece[0].upper() + string_piece[1:]
     return string_camel
@@ -68,7 +74,7 @@ def snake_case_to_camel_case(string: str) -> str:
 def parameter_string_to_value(
     parameter_string: str,
     passthrough_estimate: bool = False,
-) -> Union[float, int, str]:
+) -> float | int | str:
     """Cast a parameter value from string to numeric.
 
     Args:
@@ -84,7 +90,7 @@ def parameter_string_to_value(
     if parameter_string == ESTIMATE:
         if passthrough_estimate:
             return parameter_string
-        raise ValueError('Please handle estimated parameters differently.')
+        raise ValueError("Please handle estimated parameters differently.")
     float_value = float(parameter_string)
     int_value = int(float_value)
 
