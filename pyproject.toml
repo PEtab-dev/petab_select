@@ -71,7 +71,6 @@ lint.ignore = [
     "S101", # Use of assert detected
     "E501", # Line too long
     "F403", # star import
-    "F821", # undefined name
     "T201", # print statement
     "S301", # pickle module used
     "S102", # Use of exec detected
