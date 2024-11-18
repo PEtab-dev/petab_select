@@ -686,6 +686,7 @@ def default_compare(
         Criterion.AICC,
         Criterion.BIC,
         Criterion.NLLH,
+        Criterion.SSR,
     ]:
         return (
             model1.get_criterion(criterion)
