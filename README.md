@@ -1,6 +1,8 @@
-<img src="https://raw.githubusercontent.com/PEtab-dev/petab_select/logo/doc/logo/logo-wide.svg" height="200" alt="PEtab Select logo">
+<img src="https://raw.githubusercontent.com/PEtab-dev/petab_select/refs/heads/main/doc/logo/logo-wide.svg" height="200" alt="PEtab Select logo">
 
 [![PyPI - Version](https://img.shields.io/pypi/v/petab-select)](https://pypi.org/project/petab-select/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14183390.svg)](https://doi.org/10.5281/zenodo.14183390)
+
 
 The repository for the development of the extension to PEtab for model
 selection, including the additional file formats and Python 3 package.
