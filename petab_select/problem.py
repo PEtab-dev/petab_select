@@ -1,5 +1,6 @@
 """The model selection problem class."""
 
+import warnings
 from collections.abc import Callable, Iterable
 from functools import partial
 from pathlib import Path
@@ -21,6 +22,7 @@ from .constants import (
 )
 from .model import Model, ModelHash, default_compare
 from .model_space import ModelSpace
+from .models import Models
 
 __all__ = [
     "Problem",
@@ -122,7 +124,7 @@ class Problem:
 
     def exclude_models(
         self,
-        models: Iterable[Model],
+        models: Models,
     ) -> None:
         """Exclude models from the model space.
 
@@ -142,7 +144,13 @@ class Problem:
             model_hashes:
                 The model hashes.
         """
-        self.model_space.exclude_model_hashes(model_hashes)
+        # FIXME think about design here -- should we have exclude_models here?
+        warnings.warn(
+            "Use `exclude_models` instead. It also accepts hashes.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.exclude_models(models=Models(models=model_hashes, problem=self))
 
     @staticmethod
     def from_yaml(
@@ -212,7 +220,8 @@ class Problem:
 
     def get_best(
         self,
-        models: list[Model] | dict[ModelHash, Model] | None,
+        models: Models,
+        # models: list[Model] | dict[ModelHash, Model] | None,
         criterion: str | None | None = None,
         compute_criterion: bool = False,
     ) -> Model:
@@ -222,11 +231,9 @@ class Problem:
 
         Args:
             models:
-                The best model will be taken from these models.
+                The models.
             criterion:
-                The criterion by which models will be compared. Defaults to
-                ``self.criterion`` (e.g. as defined in the PEtab Select problem YAML
-                file).
+                The criterion. Defaults to the problem criterion.
             compute_criterion:
                 Whether to try computing criterion values, if sufficient
                 information is available (e.g., likelihood and number of
@@ -235,8 +242,6 @@ class Problem:
         Returns:
             The best model.
         """
-        if isinstance(models, dict):
-            models = list(models.values())
         if criterion is None:
             criterion = self.criterion
 

@@ -45,8 +45,6 @@ if TYPE_CHECKING:
 __all__ = [
     "Model",
     "default_compare",
-    "models_from_yaml_list",
-    "models_to_yaml_list",
     "ModelHash",
 ]
 
@@ -56,7 +54,7 @@ class Model(PetabMixin):
 
     NB: some of these attribute names correspond to constants defined in the
     `constants.py` file, to facilitate loading models from/saving models to
-    disk (see the `saved_attributes` attribute).
+    disk (see the `Model.saved_attributes` class attribute).
 
     Attributes:
         converters_load:
@@ -371,9 +369,8 @@ class Model(PetabMixin):
                     raise
                 raise ValueError(
                     "The provided YAML file contains a list with greater than "
-                    "one element. Use the `models_from_yaml_list` method or "
-                    "provide a PEtab Select model YAML file with only one "
-                    "model specified."
+                    "one element. Use the `Models.from_yaml` or provide a "
+                    "YAML file with only one model specified."
                 )
 
         return Model.from_dict(model_dict, base_path=Path(model_yaml).parent)
@@ -656,10 +653,10 @@ def default_compare(
         model1:
             The new model.
         criterion:
-            The criterion by which models will be compared.
+            The criterion.
         criterion_threshold:
             The value by which the new model must improve on the original
-            model. Should be non-negative.
+            model. Should be non-negative, regardless of the criterion.
 
     Returns:
         ``True` if ``model1`` has a better criterion value than ``model0``, else
@@ -702,97 +699,6 @@ def default_compare(
         )
     else:
         raise NotImplementedError(f"Unknown criterion: {criterion}.")
-
-
-def models_from_yaml_list(
-    model_list_yaml: TYPE_PATH,
-    petab_problem: petab.Problem = None,
-    allow_single_model: bool = True,
-) -> list[Model]:
-    """Generate a model from a PEtab Select list of model YAML file.
-
-    Args:
-        model_list_yaml:
-            The path to the PEtab Select list of model YAML file.
-        petab_problem:
-            See :meth:`Model.from_dict`.
-        allow_single_model:
-            Given a YAML file that contains a single model directly (not in
-            a 1-element list), if ``True`` then the single model will be read in,
-            else a ``ValueError`` will be raised.
-
-    Returns:
-        A list of model instances, initialized with the provided
-        attributes.
-    """
-    with open(str(model_list_yaml)) as f:
-        model_dict_list = yaml.safe_load(f)
-    if not model_dict_list:
-        return []
-
-    if not isinstance(model_dict_list, list):
-        if allow_single_model:
-            return [
-                Model.from_dict(
-                    model_dict_list,
-                    base_path=Path(model_list_yaml).parent,
-                    petab_problem=petab_problem,
-                )
-            ]
-        raise ValueError("The YAML file does not contain a list of models.")
-
-    return [
-        Model.from_dict(
-            model_dict,
-            base_path=Path(model_list_yaml).parent,
-            petab_problem=petab_problem,
-        )
-        for model_dict in model_dict_list
-    ]
-
-
-def models_to_yaml_list(
-    models: list[Model | str] | dict[ModelHash, Model | str],
-    output_yaml: TYPE_PATH,
-    relative_paths: bool = True,
-) -> None:
-    """Generate a YAML listing of models.
-
-    Args:
-        models:
-            The models.
-        output_yaml:
-            The location where the YAML will be saved.
-        relative_paths:
-            Whether to rewrite the paths in each model (e.g. the path to the
-            model's PEtab problem) relative to the `output_yaml` location.
-    """
-    if isinstance(models, dict):
-        models = list(models.values())
-
-    skipped_indices = []
-    for index, model in enumerate(models):
-        if isinstance(model, Model):
-            continue
-        if model == VIRTUAL_INITIAL_MODEL:
-            continue
-        warnings.warn(f"Unexpected model, skipping: {model}.", stacklevel=2)
-        skipped_indices.append(index)
-    models = [
-        model
-        for index, model in enumerate(models)
-        if index not in skipped_indices
-    ]
-
-    paths_relative_to = None
-    if relative_paths:
-        paths_relative_to = Path(output_yaml).parent
-    model_dicts = [
-        model.to_dict(paths_relative_to=paths_relative_to) for model in models
-    ]
-    model_dicts = None if not model_dicts else model_dicts
-    with open(output_yaml, "w") as f:
-        yaml.dump(model_dicts, f)
 
 
 class ModelHash(str):
