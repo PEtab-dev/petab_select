@@ -155,7 +155,11 @@ class CandidateSpace(abc.ABC):
         iteration_user_calibrated_models = Models()
         for model in self.models:
             if (
-                (user_model := user_calibrated_models[model.get_hash()])
+                (
+                    user_model := user_calibrated_models.get(
+                        model.get_hash(), None
+                    )
+                )
                 is not None
             ) and (
                 user_model.get_criterion(

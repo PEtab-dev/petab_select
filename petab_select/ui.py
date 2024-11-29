@@ -1,4 +1,5 @@
 import copy
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -93,6 +94,17 @@ def start_iteration(
     - add `Iteration` class to manage an iteration, append to
       `CandidateSpace.iterations`?
     """
+    if isinstance(user_calibrated_models, dict):
+        warnings.warn(
+            (
+                "`calibrated_models` should be a `petab_select.Models` object."
+                "e.g. `calibrated_models = "
+                "petab_select.Models(old_calibrated_models.values())`."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        user_calibrated_models = Models(user_calibrated_models.values())
     do_search = True
     # FIXME might be difficult for a CLI tool to specify a specific predecessor
     #       model if their candidate space has models. Need a way to empty
@@ -239,6 +251,17 @@ def end_iteration(
                 Whether PEtab Select has decided to end the model selection,
                 as a boolean.
     """
+    if isinstance(calibrated_models, dict):
+        warnings.warn(
+            (
+                "`calibrated_models` should be a `petab_select.Models` object."
+                "e.g. `calibrated_models = "
+                "petab_select.Models(old_calibrated_models.values())`."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        calibrated_models = Models(calibrated_models.values())
     iteration_results = {
         MODELS: candidate_space.get_iteration_calibrated_models(
             calibrated_models=calibrated_models,

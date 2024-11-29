@@ -19,6 +19,7 @@ os.environ["AMICI_EXPERIMENTAL_SBML_NONCONST_CLS"] = "1"
 
 # Set to `[]` to test all
 test_cases = [
+    # '0001',
     # '0006',
     # '0002',
     # '0008',
@@ -77,7 +78,7 @@ def test_pypesto(test_case_path_stem):
 
     # Get the best model
     best_model = petab_select_problem.get_best(
-        models=pypesto_select_problem.calibrated_models.values(),
+        models=pypesto_select_problem.calibrated_models,
     )
 
     # Load the expected model.
