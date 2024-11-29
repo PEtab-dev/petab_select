@@ -176,7 +176,10 @@ class ListDict(MutableSequence):
             self.append(item)
 
     def _update(self, index: int, item: ModelLike) -> None:
-        """Update the models by adding a new model or overwriting an old model.
+        """Update the models by adding a new model, with possible replacement.
+
+        If the instance contains a model with a matching hash, that model
+        will be replaced.
 
         Args:
             index:

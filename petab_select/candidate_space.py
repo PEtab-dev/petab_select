@@ -1002,7 +1002,13 @@ class FamosCandidateSpace(CandidateSpace):
         else:
             self.most_distant_max_number = 1
 
-        self.best_models = Models()
+        # TODO update to new `Models` type. Currently problematic because the
+        # order of `best_models` matters. This would be fine for `Models` to
+        # handle, except that `Models._update` will use a pre-existing index
+        # if there is a model with the same hash. FIXME regenerate the expected
+        # FAMoS models when `best_models` never contains duplicate models...
+        # Also add a `sort` method to `Models` to sort by criterion.
+        self.best_models = []
         self.best_model_of_current_run = predecessor_model
 
         self.jumped_to_most_distant = False
