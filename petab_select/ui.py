@@ -121,6 +121,9 @@ def start_iteration(
         raise ValueError("Please provide a criterion.")
     candidate_space.criterion = criterion
 
+    # Start a new iteration
+    candidate_space.iteration += 1
+
     # Set the predecessor model to the previous predecessor model.
     predecessor_model = candidate_space.previous_predecessor_model
 
