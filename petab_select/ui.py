@@ -97,7 +97,7 @@ def start_iteration(
     if isinstance(user_calibrated_models, dict):
         warnings.warn(
             (
-                "`calibrated_models` should be a `petab_select.Models` object."
+                "`calibrated_models` should be a `petab_select.Models` object. "
                 "e.g. `calibrated_models = "
                 "petab_select.Models(old_calibrated_models.values())`."
             ),
