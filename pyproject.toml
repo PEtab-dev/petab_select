@@ -16,14 +16,13 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "BSD-3-Clause"}
 dependencies = [
-    # TODO minimum versions
-    "more-itertools",
-    "numpy",
-    "pandas",
-    "petab",
-    "pyyaml",
-    "click",
-    "dill",
+    "more-itertools>=10.5.0",
+    "numpy>=1.15.1",
+    "pandas>=1.2.0",
+    "petab>=0.5.0",
+    "pyyaml>=6.0.2",
+    "click>=8.1.7",
+    "dill>=0.3.9",
 ]
 [project.optional-dependencies]
 plot = [
