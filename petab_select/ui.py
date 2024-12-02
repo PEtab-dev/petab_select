@@ -1,4 +1,5 @@
 import copy
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ from .constants import (
     Method,
 )
 from .model import Model, ModelHash, default_compare
+from .models import Models
 from .problem import Problem
 
 __all__ = [
@@ -45,7 +47,7 @@ def start_iteration(
     limit_sent: float | int = np.inf,
     excluded_hashes: list[ModelHash] | None = None,
     criterion: Criterion | None = None,
-    user_calibrated_models: list[Model] | dict[ModelHash, Model] | None = None,
+    user_calibrated_models: Models | None = None,
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
@@ -71,8 +73,7 @@ def start_iteration(
             The criterion by which models will be compared. Defaults to the criterion
             defined in the PEtab Select problem.
         user_calibrated_models:
-            Models that were already calibrated by the user. When supplied as a
-            `dict`, the keys are model hashes. If a model in the
+            Models that were already calibrated by the user. If a model in the
             candidates has the same hash as a model in
             `user_calibrated_models`, then the candidate will be replaced with
             the calibrated version. Calibration tools will only receive uncalibrated
@@ -93,6 +94,17 @@ def start_iteration(
     - add `Iteration` class to manage an iteration, append to
       `CandidateSpace.iterations`?
     """
+    if isinstance(user_calibrated_models, dict):
+        warnings.warn(
+            (
+                "`calibrated_models` should be a `petab_select.Models` object. "
+                "e.g. `calibrated_models = "
+                "petab_select.Models(old_calibrated_models.values())`."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        user_calibrated_models = Models(user_calibrated_models.values())
     do_search = True
     # FIXME might be difficult for a CLI tool to specify a specific predecessor
     #       model if their candidate space has models. Need a way to empty
@@ -124,7 +136,7 @@ def start_iteration(
             )
             is None
         ):
-            candidate_space.models = [copy.deepcopy(predecessor_model)]
+            candidate_space.models = Models([copy.deepcopy(predecessor_model)])
             # Dummy zero likelihood, which the predecessor model will
             # improve on after it's actually calibrated.
             predecessor_model.set_criterion(Criterion.LH, 0.0)
@@ -145,7 +157,7 @@ def start_iteration(
     # this is not the first step of the search.
     if candidate_space.latest_iteration_calibrated_models:
         predecessor_model = problem.get_best(
-            candidate_space.latest_iteration_calibrated_models.values(),
+            candidate_space.latest_iteration_calibrated_models,
             criterion=criterion,
         )
         # If the new predecessor model isn't better than the previous one,
@@ -194,7 +206,7 @@ def start_iteration(
         if isinstance(candidate_space, FamosCandidateSpace):
             try:
                 candidate_space.update_after_calibration(
-                    iteration_calibrated_models={},
+                    iteration_calibrated_models=Models(),
                 )
                 continue
             except StopIteration:
@@ -214,8 +226,8 @@ def start_iteration(
 
 def end_iteration(
     candidate_space: CandidateSpace,
-    calibrated_models: list[Model] | dict[str, Model],
-) -> dict[str, dict[ModelHash, Model] | bool | CandidateSpace]:
+    calibrated_models: Models,
+) -> dict[str, Models | bool | CandidateSpace]:
     """Finalize model selection iteration.
 
     All models from the current iteration are provided to the calibration tool.
@@ -234,17 +246,22 @@ def end_iteration(
     Returns:
         A dictionary, with the following items:
             :const:`petab_select.constants.MODELS`:
-                All calibrated models for the current iteration as a
-                dictionary, where keys are model hashes, and values are models.
+                All calibrated models for the current iteration.
             :const:`petab_select.constants.TERMINATE`:
                 Whether PEtab Select has decided to end the model selection,
                 as a boolean.
     """
-    if isinstance(calibrated_models, list):
-        calibrated_models = {
-            model.get_hash(): model for model in calibrated_models
-        }
-
+    if isinstance(calibrated_models, dict):
+        warnings.warn(
+            (
+                "`calibrated_models` should be a `petab_select.Models` object. "
+                "e.g. `calibrated_models = "
+                "petab_select.Models(old_calibrated_models.values())`."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        calibrated_models = Models(calibrated_models.values())
     iteration_results = {
         MODELS: candidate_space.get_iteration_calibrated_models(
             calibrated_models=calibrated_models,
@@ -288,7 +305,7 @@ def model_to_petab(
 
 
 def models_to_petab(
-    models: list[Model],
+    models: Models,
     output_path_prefix: list[TYPE_PATH] | None = None,
 ) -> list[dict[str, petab.Problem | TYPE_PATH]]:
     """Generate the PEtab problems for a list of models.

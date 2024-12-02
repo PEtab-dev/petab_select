@@ -1,5 +1,7 @@
 """Constants for the PEtab Select package."""
 
+from __future__ import annotations
+
 import string
 import sys
 from enum import Enum
@@ -84,6 +86,7 @@ METHOD = "method"
 VERSION = "version"
 MODEL_SPACE_FILES = "model_space_files"
 PROBLEM_ID = "problem_id"
+PROBLEM = "problem"
 
 CANDIDATE_SPACE = "candidate_space"
 CANDIDATE_SPACE_ARGUMENTS = "candidate_space_arguments"

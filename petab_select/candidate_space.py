@@ -27,6 +27,7 @@ from .constants import (
 )
 from .handlers import TYPE_LIMIT, LimitHandler
 from .model import Model, ModelHash, default_compare
+from .models import Models
 
 __all__ = [
     "BackwardCandidateSpace",
@@ -102,7 +103,7 @@ class CandidateSpace(abc.ABC):
         limit: TYPE_LIMIT = np.inf,
         summary_tsv: TYPE_PATH = None,
         previous_predecessor_model: Model | None = None,
-        calibrated_models: dict[ModelHash, Model] = None,
+        calibrated_models: Models | None = None,
     ):
         """See class attributes for arguments."""
         self.method = method
@@ -125,15 +126,13 @@ class CandidateSpace(abc.ABC):
         if self.previous_predecessor_model is None:
             self.previous_predecessor_model = self.predecessor_model
 
-        self.set_iteration_user_calibrated_models({})
+        self.set_iteration_user_calibrated_models(Models())
         self.criterion = criterion
-        self.calibrated_models = calibrated_models
-        if self.calibrated_models is None:
-            self.calibrated_models = {}
-        self.latest_iteration_calibrated_models = {}
+        self.calibrated_models = calibrated_models or Models()
+        self.latest_iteration_calibrated_models = Models()
 
     def set_iteration_user_calibrated_models(
-        self, user_calibrated_models: dict[str, Model] | None
+        self, user_calibrated_models: Models | None
     ) -> None:
         """Hide previously-calibrated models from the calibration tool.
 
@@ -146,18 +145,21 @@ class CandidateSpace(abc.ABC):
 
         Args:
             user_calibrated_models:
-                The previously-calibrated models. Keys are model hashes, values
-                are models.
+                The previously-calibrated models.
         """
         if not user_calibrated_models:
-            self.iteration_user_calibrated_models = {}
+            self.iteration_user_calibrated_models = Models()
             return
 
-        iteration_uncalibrated_models = []
-        iteration_user_calibrated_models = {}
+        iteration_uncalibrated_models = Models()
+        iteration_user_calibrated_models = Models()
         for model in self.models:
             if (
-                (user_model := user_calibrated_models.get(model.get_hash()))
+                (
+                    user_model := user_calibrated_models.get(
+                        model.get_hash(), None
+                    )
+                )
                 is not None
             ) and (
                 user_model.get_criterion(
@@ -209,11 +211,11 @@ class CandidateSpace(abc.ABC):
             The full list of calibrated models.
         """
         combined_calibrated_models = (
-            self.iteration_user_calibrated_models | calibrated_models
+            self.iteration_user_calibrated_models + calibrated_models
         )
         if reset:
             self.set_iteration_user_calibrated_models(
-                user_calibrated_models={}
+                user_calibrated_models=Models()
             )
         return combined_calibrated_models
 
@@ -418,7 +420,7 @@ class CandidateSpace(abc.ABC):
 
     def reset_accepted(self) -> None:
         """Reset the accepted models."""
-        self.models = []
+        self.models = Models()
         self.distances = []
 
     def set_predecessor_model(self, predecessor_model: Model | str | None):
@@ -452,6 +454,7 @@ class CandidateSpace(abc.ABC):
             extend:
                 Whether to replace or extend the current excluded hashes.
         """
+        # FIXME refactor to use `Models` and rename `set_excluded_models`?
         if isinstance(hashes, Model | ModelHash):
             hashes = [hashes]
         excluded_hashes = set()
@@ -642,7 +645,7 @@ class CandidateSpace(abc.ABC):
     def update_after_calibration(
         self,
         *args,
-        iteration_calibrated_models: dict[ModelHash, Model],
+        iteration_calibrated_models: Models,
         **kwargs,
     ):
         """Do work in the candidate space after calibration.
@@ -654,7 +657,7 @@ class CandidateSpace(abc.ABC):
         are here, to ensure candidate spaces can be switched easily and still
         receive sufficient arguments.
         """
-        self.calibrated_models |= iteration_calibrated_models
+        self.calibrated_models += iteration_calibrated_models
         self.latest_iteration_calibrated_models = iteration_calibrated_models
         self.set_excluded_hashes(
             self.latest_iteration_calibrated_models,
@@ -999,6 +1002,12 @@ class FamosCandidateSpace(CandidateSpace):
         else:
             self.most_distant_max_number = 1
 
+        # TODO update to new `Models` type. Currently problematic because the
+        # order of `best_models` matters. This would be fine for `Models` to
+        # handle, except that `Models._update` will use a pre-existing index
+        # if there is a model with the same hash. FIXME regenerate the expected
+        # FAMoS models when `best_models` never contains duplicate models...
+        # Also add a `sort` method to `Models` to sort by criterion.
         self.best_models = []
         self.best_model_of_current_run = predecessor_model
 
@@ -1030,7 +1039,7 @@ class FamosCandidateSpace(CandidateSpace):
     def update_after_calibration(
         self,
         *args,
-        iteration_calibrated_models: dict[str, Model],
+        iteration_calibrated_models: Models,
         **kwargs,
     ) -> None:
         """See `CandidateSpace.update_after_calibration`."""
@@ -1045,7 +1054,7 @@ class FamosCandidateSpace(CandidateSpace):
         # to False and continue to candidate generation
         if self.jumped_to_most_distant:
             self.jumped_to_most_distant = False
-            jumped_to_model = one(iteration_calibrated_models.values())
+            jumped_to_model = one(iteration_calibrated_models)
             self.set_predecessor_model(jumped_to_model)
             self.previous_predecessor_model = jumped_to_model
             self.best_model_of_current_run = jumped_to_model
@@ -1057,7 +1066,7 @@ class FamosCandidateSpace(CandidateSpace):
             logging.info("Switching method")
             self.switch_method()
             self.switch_inner_candidate_space(
-                excluded_hashes=list(self.calibrated_models),
+                excluded_hashes=self.calibrated_models,
             )
             logging.info(
                 "Method switched to ", self.inner_candidate_space.method
@@ -1067,14 +1076,14 @@ class FamosCandidateSpace(CandidateSpace):
 
     def update_from_iteration_calibrated_models(
         self,
-        iteration_calibrated_models: dict[str, Model],
+        iteration_calibrated_models: Models,
     ) -> bool:
         """Update ``self.best_models`` with the latest ``iteration_calibrated_models``
         and determine if there was a new best model. If so, return
         ``False``. ``True`` otherwise.
         """
         go_into_switch_method = True
-        for model in iteration_calibrated_models.values():
+        for model in iteration_calibrated_models:
             if (
                 self.best_model_of_current_run == VIRTUAL_INITIAL_MODEL
                 or default_compare(
@@ -1319,6 +1328,7 @@ class FamosCandidateSpace(CandidateSpace):
         most_distance = 0
         most_distant_indices = []
 
+        # FIXME for multiple PEtab problems?
         parameter_ids = self.best_models[0].petab_parameters
 
         for model in self.best_models:
@@ -1334,7 +1344,7 @@ class FamosCandidateSpace(CandidateSpace):
             # initialize the least distance to the maximal possible value of it
             complement_least_distance = len(complement_parameters)
             # get the complement least distance
-            for calibrated_model in self.calibrated_models.values():
+            for calibrated_model in self.calibrated_models:
                 calibrated_model_estimated_parameters = np.array(
                     [
                         p == ESTIMATE

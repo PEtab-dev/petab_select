@@ -4,6 +4,7 @@ import pytest
 from more_itertools import one
 
 import petab_select
+from petab_select import Models
 from petab_select.constants import (
     CANDIDATE_SPACE,
     MODELS,
@@ -30,7 +31,7 @@ def test_user_calibrated_models(petab_select_problem):
     model_M1_2.set_criterion(
         criterion=petab_select_problem.criterion, value=12.3
     )
-    user_calibrated_models = {model_M1_2.get_hash(): model_M1_2}
+    user_calibrated_models = Models([model_M1_2])
 
     # Initial iteration: expect the "empty" model. Set dummy criterion and continue.
     iteration = petab_select.ui.start_iteration(
