@@ -1,5 +1,10 @@
 - criteria: {}
   model_id: model_1
+  model_subspace_id: M
+  model_subspace_indices:
+  - 0
+  - 1
+  - 1
   parameters:
     k1: 0.2
     k2: estimate
@@ -10,6 +15,11 @@
   petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml
 - criteria: {}
   model_id: model_2
+  model_subspace_id: M
+  model_subspace_indices:
+  - 1
+  - 1
+  - 0
   parameters:
     k1: estimate
     k2: estimate
