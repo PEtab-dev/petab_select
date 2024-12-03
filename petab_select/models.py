@@ -112,7 +112,6 @@ class ListDict(MutableSequence):
                 case ModelHash() | str():
                     return self._models[self._hashes.index(key)]
                 case slice():
-                    print(key)
                     return self.__class__(self._models[key])
                 case Iterable():
                     # TODO sensible to yield here?

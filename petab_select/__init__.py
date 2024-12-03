@@ -2,6 +2,7 @@
 
 import sys
 
+from .analyze import *
 from .candidate_space import *
 from .constants import *
 from .criteria import *

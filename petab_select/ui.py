@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 import petab.v1 as petab
 
+from . import analyze
 from .candidate_space import CandidateSpace, FamosCandidateSpace
 from .constants import (
     CANDIDATE_SPACE,
@@ -121,6 +122,9 @@ def start_iteration(
         raise ValueError("Please provide a criterion.")
     candidate_space.criterion = criterion
 
+    # Start a new iteration
+    candidate_space.iteration += 1
+
     # Set the predecessor model to the previous predecessor model.
     predecessor_model = candidate_space.previous_predecessor_model
 
@@ -156,9 +160,10 @@ def start_iteration(
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
     if candidate_space.latest_iteration_calibrated_models:
-        predecessor_model = problem.get_best(
-            candidate_space.latest_iteration_calibrated_models,
+        predecessor_model = analyze.get_best(
+            models=candidate_space.latest_iteration_calibrated_models,
             criterion=criterion,
+            compare=problem.compare,
         )
         # If the new predecessor model isn't better than the previous one,
         # keep the previous one.
@@ -349,7 +354,9 @@ def get_best(
         The best model.
     """
     # TODO return list, when multiple models are equally "best"
-    return problem.get_best(models=models, criterion=criterion)
+    return analyze.get_best(
+        models=models, criterion=criterion, compare=problem.compare
+    )
 
 
 def write_summary_tsv(

@@ -49,6 +49,7 @@ PETAB_HASH_DIGEST_SIZE = None
 # PEtab Select model selection problem (but may be subsequently stored in the
 # PEtab Select model report format.
 PREDECESSOR_MODEL_HASH = "predecessor_model_hash"
+ITERATION = "iteration"
 PETAB_PROBLEM = "petab_problem"
 PETAB_YAML = "petab_yaml"
 HASH = "hash"
