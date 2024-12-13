@@ -69,10 +69,11 @@ def test_get_best_by_iteration(models: Models) -> None:
     assert groups[5].get_hash() == "M-110"
 
 
-def test_get_relative_criterion_values(models: Models) -> None:
+def test_relative_criterion_values(models: Models) -> None:
     """Test ``analyze.get_relative_criterion_values``."""
-    criterion_values = [model.get_criterion(Criterion.AIC) for model in models]
-    test_value = analyze.get_relative_criterion_values(criterion_values)
+    # TODO move to test_models.py?
+    criterion_values = models.get_criterion(criterion=Criterion.AIC)
+    test_value = models.get_criterion(criterion=Criterion.AIC, relative=True)
     expected_value = [
         criterion_value - min(criterion_values)
         for criterion_value in criterion_values
