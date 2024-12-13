@@ -15,7 +15,6 @@ from more_itertools import one
 
 from .analyze import (
     get_best_by_iteration,
-    get_relative_criterion_values,
     group_by_iteration,
 )
 from .constants import Criterion
@@ -51,11 +50,7 @@ def upset(
         The plot axes (see documentation from the `upsetplot <https://upsetplot.readthedocs.io/>`__ package).
     """
     # Get delta criterion values
-    values = np.array(
-        get_relative_criterion_values(
-            [model.get_criterion(criterion) for model in models]
-        )
-    )
+    values = np.array(models.get_criterion(criterion=criterion, relative=True))
 
     # Sort by criterion value
     index = np.argsort(values)
@@ -80,7 +75,7 @@ def upset(
 
 
 def line_best_by_iteration(
-    models: list[Model],
+    models: Models,
     criterion: Criterion,
     relative: bool = True,
     fz: int = 14,
@@ -123,17 +118,17 @@ def line_best_by_iteration(
     linewidth = 3
 
     iterations = sorted(best_by_iteration)
-    best_models = [best_by_iteration[iteration] for iteration in iterations]
+    best_models = Models(
+        [best_by_iteration[iteration] for iteration in iterations]
+    )
     iteration_labels = [
         str(iteration) + f"\n({labels.get(model.get_hash(), model.model_id)})"
         for iteration, model in zip(iterations, best_models, strict=True)
     ]
 
-    criterion_values = [
-        model.get_criterion(criterion) for model in best_models
-    ]
-    if relative:
-        criterion_values = get_relative_criterion_values(criterion_values)
+    criterion_values = best_models.get_criterion(
+        criterion=criterion, relative=relative
+    )
 
     ax.plot(
         iteration_labels,
@@ -207,15 +202,9 @@ def graph_history(
     if spring_layout_kwargs is None:
         spring_layout_kwargs = default_spring_layout_kwargs
 
-    criterion_values = [model.get_criterion(criterion) for model in models]
-    if relative:
-        criterion_values = get_relative_criterion_values(criterion_values)
-    criterion_values = {
-        model.get_hash(): criterion_value
-        for model, criterion_value in zip(
-            models, criterion_values, strict=False
-        )
-    }
+    criterion_values = models.get_criterion(
+        criterion=criterion, relative=relative, as_dict=True
+    )
 
     if labels is None:
         labels = {
@@ -328,12 +317,12 @@ def bar_criterion_vs_models(
     if ax is None:
         _, ax = plt.subplots()
 
-    criterion_values = [model.get_criterion(criterion) for model in models]
     bar_model_labels = [
         labels.get(model.get_hash(), model.model_id) for model in models
     ]
-    if relative:
-        criterion_values = get_relative_criterion_values(criterion_values)
+    criterion_values = models.get_criterion(
+        criterion=criterion, relative=relative
+    )
 
     if colors is not None:
         if label_diff := set(colors).difference(bar_model_labels):
@@ -415,12 +404,12 @@ def scatter_criterion_vs_n_estimated(
         ]
 
     n_estimated = []
-    criterion_values = []
     for model in models:
         n_estimated.append(len(model.get_estimated_parameter_ids_all()))
-        criterion_values.append(model.get_criterion(criterion))
-    if relative:
-        criterion_values = get_relative_criterion_values(criterion_values)
+
+    criterion_values = models.get_criterion(
+        criterion=criterion, relative=relative
+    )
 
     if max_jitter:
         n_estimated = np.array(n_estimated, dtype=float)
@@ -521,15 +510,9 @@ def graph_iteration_layers(
     model_estimated_parameters = {
         model.get_hash(): set(model.estimated_parameters) for model in models
     }
-    model_criterion_values = None
-    model_criterion_values = {
-        model.get_hash(): model.get_criterion(criterion) for model in models
-    }
-
-    min_criterion_value = min(model_criterion_values.values())
-    model_criterion_values = {
-        k: v - min_criterion_value for k, v in model_criterion_values.items()
-    }
+    model_criterion_values = models.get_criterion(
+        criterion=criterion, relative=relative, as_dict=True
+    )
 
     model_parameter_diffs = {
         model.get_hash(): (

@@ -11,7 +11,6 @@ __all__ = [
     "group_by_predecessor_model",
     "group_by_iteration",
     "get_best_by_iteration",
-    "get_relative_criterion_values",
 ]
 
 
@@ -127,7 +126,7 @@ def get_best_by_iteration(
     models: Models,
     *args,
     **kwargs,
-) -> Models:
+) -> dict[int, Models]:
     """Get the best model of each iteration.
 
     See :func:``get_best`` for additional required arguments.
@@ -139,7 +138,7 @@ def get_best_by_iteration(
             Forwarded to :func:``get_best``.
 
     Returns:
-        The strictly improving models.
+        The strictly improving models. Keys are iteration, values are models.
     """
     iterations_models = group_by_iteration(models=models)
     best_by_iteration = {
@@ -151,19 +150,3 @@ def get_best_by_iteration(
         for iteration, iteration_models in iterations_models.items()
     }
     return best_by_iteration
-
-
-def get_relative_criterion_values(
-    criterion_values: list[float],
-) -> list[float]:
-    """Offset criterion values by their minimum value.
-
-    Args:
-        criterion_values:
-            The criterion values.
-
-    Returns:
-        The relative criterion values.
-    """
-    minimum = min(criterion_values)
-    return [criterion_value - minimum for criterion_value in criterion_values]
