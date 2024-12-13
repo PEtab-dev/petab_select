@@ -53,12 +53,16 @@ def group_by_predecessor_model(models: Models) -> dict[ModelHash, Models]:
     return result
 
 
-def group_by_iteration(models: Models) -> dict[int | None, Models]:
+def group_by_iteration(
+    models: Models, sort: bool = True
+) -> dict[int | None, Models]:
     """Group models by their iteration.
 
     Args:
         models:
             The models.
+        sort:
+            Whether to sort the iterations.
 
     Returns:
         Key is iteration, value is models.
@@ -68,6 +72,8 @@ def group_by_iteration(models: Models) -> dict[int | None, Models]:
         if model.iteration not in result:
             result[model.iteration] = Models()
         result[model.iteration].append(model)
+    if sort:
+        result = {iteration: result[iteration] for iteration in sorted(result)}
     return result
 
 
