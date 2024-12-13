@@ -47,6 +47,7 @@ __all__ = [
     "Model",
     "default_compare",
     "ModelHash",
+    "VIRTUAL_INITIAL_MODEL_HASH",
 ]
 
 
@@ -990,3 +991,6 @@ class ModelHash(str):
         #     petab_hash = ModelHash.from_hash(other_hash).petab_hash
         # return self.petab_hash == petab_hash
         return str(self) == str(other_hash)
+
+
+VIRTUAL_INITIAL_MODEL_HASH = ModelHash.from_hash(VIRTUAL_INITIAL_MODEL)
