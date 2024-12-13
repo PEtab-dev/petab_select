@@ -6,6 +6,7 @@ from collections.abc import Iterable, MutableSequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeAlias
 
+import numpy as np
 import pandas as pd
 import yaml
 
@@ -315,6 +316,15 @@ class ListDict(MutableSequence):
         except KeyError:
             return default
 
+    def values(self) -> Models:
+        """Get the models. DEPRECATED."""
+        warnings.warn(
+            "`models.values()` is deprecated. Use `models` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self
+
 
 class Models(ListDict):
     """A collection of models.
@@ -416,6 +426,33 @@ class Models(ListDict):
         ]
         with open(output_yaml, "w") as f:
             yaml.safe_dump(model_dicts, f)
+
+    def get_criterion(
+        self,
+        criterion: Criterion,
+        as_dict: bool = False,
+        relative: bool = False,
+    ) -> list[float] | dict[ModelHash, float]:
+        """Get the criterion value for all models.
+
+        Args:
+            criterion:
+                The criterion.
+            as_dict:
+                Whether to return a dictionary, with model hashes for keys.
+            relative:
+                Whether to compute criterion values relative to the
+                smallest criterion value.
+
+        Returns:
+            The criterion values.
+        """
+        result = [model.get_criterion(criterion=criterion) for model in self]
+        if relative:
+            result = list(np.array(result) - min(result))
+        if as_dict:
+            result = dict(zip(self._hashes, result, strict=False))
+        return result
 
     def _getattr(
         self,

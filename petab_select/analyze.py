@@ -12,7 +12,6 @@ __all__ = [
     "group_by_predecessor_model",
     "group_by_iteration",
     "get_best_by_iteration",
-    "get_relative_criterion_values",
 ]
 
 
@@ -128,7 +127,7 @@ def get_best_by_iteration(
     models: Models,
     *args,
     **kwargs,
-) -> Models:
+) -> dict[int, Models]:
     """Get the best model of each iteration.
 
     See :func:``get_best`` for additional required arguments.
@@ -140,7 +139,7 @@ def get_best_by_iteration(
             Forwarded to :func:``get_best``.
 
     Returns:
-        The strictly improving models.
+        The strictly improving models. Keys are iteration, values are models.
     """
     iterations_models = group_by_iteration(models=models)
     best_by_iteration = {
@@ -153,46 +152,31 @@ def get_best_by_iteration(
     }
     return best_by_iteration
 
-
-def get_relative_criterion_values(
-    criterion_values: list[float],
-) -> list[float]:
-    """Offset criterion values by their minimum value.
+def compute_weights(
+    models: Models,
+    criterion: Criterion,
+    as_dict: bool = True,
+) -> list[float] | dict[ModelHash, float]:
+    """Compute criterion weights.
 
     Args:
-        criterion_values:
-            The criterion values.
+        models:
+            The models.
+        criterion:
+            The criterion.
+        as_dict:
+            Whether to return a dictionary, with model hashes for keys.
 
     Returns:
-        The relative criterion values.
-    """
-    minimum = min(criterion_values)
-    return [criterion_value - minimum for criterion_value in criterion_values]
-
-def get_weights(
-    models: list[Model],
-    criterion: Criterion
-) -> dict[ModelHash, float]:
-    """Calculate weights for a model based on different criteria.
-
-    Parameters
-    ----------
-    model:
-        The calibrated petab-select model.
-    criterion:
-        Criterion to calculate weights of.
-
-    Returns
+        The criterion weights.
     -------
     dict:
         Dictionary with model hashes as keys and weights as values.
     """
-    weights = {}
-    criterion_values = [model.get_criterion(criterion) for model in models]
-    delta_criterion_values = np.array([criterion_values[i] - np.min(criterion_values) for i in range(len(criterion_values))])
-
-    for i, model in enumerate(models):
-        weight = np.exp(-0.5*(criterion_values[i] - np.min(criterion_values)))/np.sum(np.exp(-0.5*delta_criterion_values))
-        weights[model.get_hash()] = weight
-
+    relative_criterion_values = models.get_criterion(criterion=criterion, relative=True, as_dict=True)
+    sum_of_weights = np.exp(-0.5*np.array(relative_criterion_values.values())).sum()
+    weights = {
+        model.get_hash(): np.exp(-0.5*relative_criterion_values[model.get_hash()]) / sum_of_weights
+        for model_hash, relative_criterion_value in relative_criterion_values.items()
+    }
     return weights
