@@ -1,4 +1,5 @@
 """Methods to analyze results of model selection."""
+import numpy as np
 
 from collections.abc import Callable
 
@@ -11,6 +12,7 @@ __all__ = [
     "group_by_predecessor_model",
     "group_by_iteration",
     "get_best_by_iteration",
+    "compute_weights",
 ]
 
 
@@ -150,3 +152,29 @@ def get_best_by_iteration(
         for iteration, iteration_models in iterations_models.items()
     }
     return best_by_iteration
+
+def compute_weights(
+    models: Models,
+    criterion: Criterion,
+    as_dict: bool = False,
+) -> list[float] | dict[ModelHash, float]:
+    """Compute criterion weights.
+
+    Args:
+        models:
+            The models.
+        criterion:
+            The criterion.
+        as_dict:
+            Whether to return a dictionary, with model hashes for keys.
+
+    Returns:
+        The criterion weights.
+    """
+    relative_criterion_values = np.array(models.get_criterion(criterion=criterion, relative=True))
+    weights = np.exp(-0.5*relative_criterion_values)
+    weights /= weights.sum()
+    weights = weights.tolist()
+    if as_dict:
+        weights = dict(zip(models.hashes, weights))
+    return weights
