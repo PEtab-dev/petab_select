@@ -12,6 +12,7 @@ __all__ = [
     "group_by_predecessor_model",
     "group_by_iteration",
     "get_best_by_iteration",
+    "compute_weights",
 ]
 
 
@@ -155,7 +156,7 @@ def get_best_by_iteration(
 def compute_weights(
     models: Models,
     criterion: Criterion,
-    as_dict: bool = True,
+    as_dict: bool = False,
 ) -> list[float] | dict[ModelHash, float]:
     """Compute criterion weights.
 
@@ -169,14 +170,11 @@ def compute_weights(
 
     Returns:
         The criterion weights.
-    -------
-    dict:
-        Dictionary with model hashes as keys and weights as values.
     """
-    relative_criterion_values = models.get_criterion(criterion=criterion, relative=True, as_dict=True)
-    sum_of_weights = np.exp(-0.5*np.array(relative_criterion_values.values())).sum()
-    weights = {
-        model.get_hash(): np.exp(-0.5*relative_criterion_values[model.get_hash()]) / sum_of_weights
-        for model_hash, relative_criterion_value in relative_criterion_values.items()
-    }
+    relative_criterion_values = np.array(models.get_criterion(criterion=criterion, relative=True))
+    weights = np.exp(-0.5*relative_criterion_values)
+    weights /= weights.sum()
+    weights = weights.tolist()
+    if as_dict:
+        weights = dict(zip(models.hashes, weights))
     return weights
