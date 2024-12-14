@@ -111,7 +111,7 @@ class Model(PetabMixin):
             Criterion(criterion_id_value): float(criterion_value)
             for criterion_id_value, criterion_value in x.items()
         },
-        ITERATION: lambda x: int(x),
+        ITERATION: lambda x: int(x) if x is not None else x,
     }
     converters_save = {
         MODEL_ID: lambda x: str(x),
@@ -133,7 +133,7 @@ class Model(PetabMixin):
             criterion_id.value: float(criterion_value)
             for criterion_id, criterion_value in x.items()
         },
-        ITERATION: lambda x: int(x),
+        ITERATION: lambda x: int(x) if x is not None else None,
     }
 
     def __init__(
