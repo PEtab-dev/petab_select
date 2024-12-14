@@ -1,7 +1,8 @@
 criteria:
-  AIC: 11.117195852885663
-  NLLH: 5.558597926442832
+  AIC: 11.117195861535194
+  NLLH: 5.558597930767597
 estimated_parameters: {}
+iteration: 1
 model_hash: M1_0-000
 model_id: M1_0-000
 model_subspace_id: M1_0
@@ -14,4 +15,4 @@ parameters:
   k2: 0.1
   k3: 0
 petab_yaml: petab/petab_problem.yaml
-predecessor_model_hash: null
+predecessor_model_hash: virtual_initial_model
