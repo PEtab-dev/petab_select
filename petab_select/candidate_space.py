@@ -63,6 +63,8 @@ class CandidateSpace(abc.ABC):
             An example of a difference is in the bidirectional method, where ``governing_method``
             stores the bidirectional method, whereas `method` may also store the forward or
             backward methods.
+        iteration:
+            The iteration of model selection.
         limit:
             A handler to limit the number of accepted models.
         models:
@@ -104,6 +106,7 @@ class CandidateSpace(abc.ABC):
         summary_tsv: TYPE_PATH = None,
         previous_predecessor_model: Model | None = None,
         calibrated_models: Models | None = None,
+        iteration: int = 0,
     ):
         """See class attributes for arguments."""
         self.method = method
@@ -130,6 +133,7 @@ class CandidateSpace(abc.ABC):
         self.criterion = criterion
         self.calibrated_models = calibrated_models or Models()
         self.latest_iteration_calibrated_models = Models()
+        self.iteration = iteration
 
     def set_iteration_user_calibrated_models(
         self, user_calibrated_models: Models | None
@@ -187,9 +191,11 @@ class CandidateSpace(abc.ABC):
         self.models = iteration_uncalibrated_models
 
     def get_iteration_calibrated_models(
-        self, calibrated_models: dict[str, Model], reset: bool = False
-    ) -> dict[str, Model]:
-        """Get the full list of calibrated models for the current iteration.
+        self,
+        calibrated_models: Models,
+        reset: bool = False,
+    ) -> Models:
+        """Get all calibrated models for the current iteration.
 
         The full list of models identified for calibration in an iteration of
         model selection may include models for which calibration results are
@@ -206,9 +212,12 @@ class CandidateSpace(abc.ABC):
                 Whether to remove the previously calibrated models from the
                 candidate space, after they are used to produce the full list
                 of calibrated models.
+            iteration:
+                If provided, the iteration attribute of each model will be set
+                to this.
 
         Returns:
-            The full list of calibrated models.
+            All calibrated models for the current iteration.
         """
         combined_calibrated_models = (
             self.iteration_user_calibrated_models + calibrated_models
@@ -217,6 +226,9 @@ class CandidateSpace(abc.ABC):
             self.set_iteration_user_calibrated_models(
                 user_calibrated_models=Models()
             )
+        for model in combined_calibrated_models:
+            model.iteration = self.iteration
+
         return combined_calibrated_models
 
     def write_summary_tsv(self, row: list[Any]):

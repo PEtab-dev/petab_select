@@ -59,6 +59,7 @@ interfaces, and can be installed from PyPI, with:
 
    problem_definition
    examples
+   analysis
    Test Suite <test_suite>
    api
 

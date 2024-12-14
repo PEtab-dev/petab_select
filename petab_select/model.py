@@ -15,6 +15,7 @@ from petab.v1.C import ESTIMATE, NOMINAL_VALUE
 from .constants import (
     CRITERIA,
     ESTIMATED_PARAMETERS,
+    ITERATION,
     MODEL_HASH,
     MODEL_HASH_DELIMITER,
     MODEL_ID,
@@ -46,6 +47,7 @@ __all__ = [
     "Model",
     "default_compare",
     "ModelHash",
+    "VIRTUAL_INITIAL_MODEL_HASH",
 ]
 
 
@@ -63,6 +65,9 @@ class Model(PetabMixin):
             Functions to convert attributes from :class:`Model` to YAML.
         criteria:
             The criteria values of the calibrated model (e.g. AIC).
+        iteration:
+            The iteration of the model selection algorithm where this model was
+            identified.
         model_id:
             The model ID.
         petab_yaml:
@@ -90,6 +95,7 @@ class Model(PetabMixin):
         PARAMETERS,
         ESTIMATED_PARAMETERS,
         CRITERIA,
+        ITERATION,
     )
     converters_load = {
         MODEL_ID: lambda x: x,
@@ -105,6 +111,7 @@ class Model(PetabMixin):
             Criterion(criterion_id_value): float(criterion_value)
             for criterion_id_value, criterion_value in x.items()
         },
+        ITERATION: lambda x: int(x) if x is not None else x,
     }
     converters_save = {
         MODEL_ID: lambda x: str(x),
@@ -126,6 +133,7 @@ class Model(PetabMixin):
             criterion_id.value: float(criterion_value)
             for criterion_id, criterion_value in x.items()
         },
+        ITERATION: lambda x: int(x) if x is not None else None,
     }
 
     def __init__(
@@ -138,6 +146,7 @@ class Model(PetabMixin):
         parameters: dict[str, int | float] = None,
         estimated_parameters: dict[str, int | float] = None,
         criteria: dict[str, float] = None,
+        iteration: int = None,
         # Optionally provided to reduce repeated parsing of `petab_yaml`.
         petab_problem: petab.Problem | None = None,
         model_hash: Any | None = None,
@@ -149,6 +158,7 @@ class Model(PetabMixin):
         self.parameters = parameters
         self.estimated_parameters = estimated_parameters
         self.criteria = criteria
+        self.iteration = iteration
 
         self.predecessor_model_hash = predecessor_model_hash
         if self.predecessor_model_hash is not None:
@@ -535,6 +545,10 @@ class Model(PetabMixin):
         # header = f'{MODEL_ID}\t{PETAB_YAML}\t{parameter_ids}'
         # data = f'{self.model_id}\t{self.petab_yaml}\t{parameter_values}'
         return f"{header}\n{data}"
+
+    def __repr__(self) -> str:
+        """The model hash."""
+        return f'<petab_select.Model "{self.get_hash()}">'
 
     def get_mle(self) -> dict[str, float]:
         """Get the maximum likelihood estimate of the model."""
@@ -952,11 +966,7 @@ class ModelHash(str):
 
         return petab_select_problem.model_space.model_subspaces[
             self.model_subspace_id
-        ].indices_to_model(
-            self.unhash_model_subspace_indices(
-                self.model_subspace_indices_hash
-            )
-        )
+        ].indices_to_model(self.unhash_model_subspace_indices())
 
     def __hash__(self) -> str:
         """The PEtab hash.
@@ -981,3 +991,6 @@ class ModelHash(str):
         #     petab_hash = ModelHash.from_hash(other_hash).petab_hash
         # return self.petab_hash == petab_hash
         return str(self) == str(other_hash)
+
+
+VIRTUAL_INITIAL_MODEL_HASH = ModelHash.from_hash(VIRTUAL_INITIAL_MODEL)

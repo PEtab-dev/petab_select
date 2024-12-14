@@ -1,8 +1,9 @@
 criteria:
-  BIC: -6.383646149270872
-  NLLH: -4.087702809249463
+  BIC: -6.383646034818824
+  NLLH: -4.087702752023439
 estimated_parameters:
-  sigma_x2: 0.12245324237132274
+  sigma_x2: 0.12242920723808924
+iteration: 1
 model_hash: M1-110
 model_id: M1-110
 model_subspace_id: M1

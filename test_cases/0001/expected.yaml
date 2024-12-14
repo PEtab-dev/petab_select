@@ -1,8 +1,9 @@
 criteria:
-  AIC: -6.175405094206667
-  NLLH: -4.0877025471033335
+  AIC: -6.1754055040468785
+  NLLH: -4.087702752023439
 estimated_parameters:
-  sigma_x2: 0.1224643186838838
+  sigma_x2: 0.12242920616053495
+iteration: 1
 model_hash: M1_1-000
 model_id: M1_1-000
 model_subspace_id: M1_1
