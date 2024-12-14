@@ -530,6 +530,10 @@ class Models(ListDict):
             }
         )
 
+    @property
+    def hashes(self) -> list[ModelHash]:
+        return self._hashes
+
 
 def models_from_yaml_list(
     model_list_yaml: TYPE_PATH,
