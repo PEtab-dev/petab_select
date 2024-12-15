@@ -748,7 +748,7 @@ class ModelSubspace(PetabMixin):
             model_subspace_id=self.model_subspace_id,
             model_subspace_indices=indices,
             parameters=self.indices_to_parameters(indices),
-            petab_problem=self.petab_problem,
+            model_subspace_petab_problem=self.petab_problem,
         )
         if self.excluded(model):
             return None
