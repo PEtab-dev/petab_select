@@ -25,8 +25,10 @@ from .constants import (
     MODEL_SUBSPACE_INDICES_HASH_MAP,
     MODEL_SUBSPACE_PETAB_YAML,
     PARAMETERS,
+    PETAB_ESTIMATE_TRUE,
     PETAB_PROBLEM,
     PETAB_YAML,
+    TYPE_PARAMETER,
     Criterion,
 )
 from .criteria import CriterionComputer
@@ -54,10 +56,6 @@ __all__ = [
 ]
 
 from pydantic import Field, model_serializer, model_validator
-
-
-def default_compare():
-    pass
 
 
 class ModelHash(BaseModel):
@@ -135,7 +133,7 @@ class ModelHash(BaseModel):
             zip(
                 [MODEL_SUBSPACE_ID, MODEL_SUBSPACE_INDICES_HASH],
                 hash_str.split(MODEL_HASH_DELIMITER),
-                strict=False,
+                strict=True,
             )
         )
 
@@ -576,6 +574,144 @@ class Model(ModelBase):
         :meth:``ModelHash.get_model``).
         """
         return f'<petab_select.Model "{self.hash}">'
+
+    def get_estimated_parameter_ids(self, full: bool = True) -> list[str]:
+        """Get estimated parameter IDs.
+
+        Args:
+            full:
+                Whether to provide all IDs, including additional parameters
+                that are not part of the model selection problem but estimated.
+        """
+        estimated_parameter_ids = []
+
+        # Add all estimated parameters in the PEtab problem.
+        if full:
+            petab_problem = petab.Problem.from_yaml(str(self.petab_yaml))
+            for parameter_id in petab_problem.parameter_df.index:
+                if (
+                    petab_problem.parameter_df.loc[parameter_id, ESTIMATE]
+                    == PETAB_ESTIMATE_TRUE
+                ):
+                    estimated_parameter_ids.append(parameter_id)
+
+        # Add additional estimated parameters, and collect fixed parameters,
+        # in this model's parameterization.
+        fixed_parameter_ids = []
+        for parameter_id, value in self.parameters.items():
+            if (
+                value == ESTIMATE
+                and parameter_id not in estimated_parameter_ids
+            ):
+                estimated_parameter_ids.append(parameter_id)
+            elif value != ESTIMATE:
+                fixed_parameter_ids.append(parameter_id)
+
+        # Remove fixed parameters.
+        estimated_parameter_ids = [
+            parameter_id
+            for parameter_id in estimated_parameter_ids
+            if parameter_id not in fixed_parameter_ids
+        ]
+        return estimated_parameter_ids
+
+    def get_parameter_values(
+        self,
+        parameter_ids: list[str] | None = None,
+    ) -> list[TYPE_PARAMETER]:
+        """Get parameter values.
+
+        Includes ``ESTIMATE`` for parameters that should be estimated.
+
+        Args:
+            parameter_ids:
+                The IDs of parameters that values will be returned for. Order
+                is maintained. Defaults to the model subspace PEtab problem
+                parameters.
+
+        Returns:
+            The values of parameters.
+        """
+        nominal_values = dict(
+            zip(
+                self._model_subspace_petab_problem.x_ids,
+                self._model_subspace_petab_problem.x_nominal,
+                strict=True,
+            )
+        )
+        for parameter_id in self._model_subspace_petab_problem.x_free_ids:
+            nominal_values[parameter_id] = ESTIMATE
+        if parameter_ids is None:
+            parameter_ids = nominal_values
+        return [
+            self.parameters.get(parameter_id, nominal_values[parameter_id])
+            for parameter_id in parameter_ids
+        ]
+
+
+def default_compare(
+    model0: Model,
+    model1: Model,
+    criterion: Criterion,
+    criterion_threshold: float = 0,
+) -> bool:
+    """Compare two calibrated models by their criterion values.
+
+    It is assumed that the model ``model0`` provides a value for the criterion
+    ``criterion``, or is the ``VIRTUAL_INITIAL_MODEL``.
+
+    Args:
+        model0:
+            The original model.
+        model1:
+            The new model.
+        criterion:
+            The criterion.
+        criterion_threshold:
+            The non-negative value by which the new model must improve on the
+            original model.
+
+    Returns:
+        ``True` if ``model1`` has a better criterion value than ``model0``,
+        else ``False``.
+    """
+    if not model1.has_criterion(criterion):
+        warnings.warn(
+            f'Model "{model1.model_id}" does not provide a value for the '
+            f'criterion "{criterion}".',
+            stacklevel=2,
+        )
+        return False
+    if model0 == VIRTUAL_INITIAL_MODEL or model0 is None:
+        return True
+    if criterion_threshold < 0:
+        warnings.warn(
+            "The provided criterion threshold is negative. "
+            "The absolute value will be used instead.",
+            stacklevel=2,
+        )
+        criterion_threshold = abs(criterion_threshold)
+    if criterion in [
+        Criterion.AIC,
+        Criterion.AICC,
+        Criterion.BIC,
+        Criterion.NLLH,
+        Criterion.SSR,
+    ]:
+        return (
+            model1.get_criterion(criterion)
+            < model0.get_criterion(criterion) - criterion_threshold
+        )
+    elif criterion in [
+        Criterion.LH,
+        Criterion.LLH,
+    ]:
+        return (
+            model1.get_criterion(criterion)
+            > model0.get_criterion(criterion) + criterion_threshold
+        )
+    else:
+        raise NotImplementedError(f"Unknown criterion: {criterion}.")
 
 
 VIRTUAL_INITIAL_MODEL = Model.parse_obj(

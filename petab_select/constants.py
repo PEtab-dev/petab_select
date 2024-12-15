@@ -58,6 +58,9 @@ MODEL_SUBSPACE_INDICES_HASH_MAP = (
 )
 PREDECESSOR_MODEL_HASH = "predecessor_model_hash"
 
+# PEtab
+PETAB_ESTIMATE_TRUE = 1
+
 # Problem
 MODEL_SPACE_FILES = "model_space_files"
 PROBLEM = "problem"
@@ -144,7 +147,6 @@ HEADER_ROW = 0
 PARAMETER_VALUE_DELIMITER = ";"
 CODE_DELIMITER = "-"
 PETAB_ESTIMATE_FALSE = 0
-PETAB_ESTIMATE_TRUE = 1
 
 # TYPING_PATH = Union[str, Path]
 
