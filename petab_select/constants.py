@@ -98,6 +98,7 @@ class Method(str, Enum):
 TYPE_PATH = str | Path
 
 # UI
+MODELS = "models"
 UNCALIBRATED_MODELS = "uncalibrated_models"
 TERMINATE = "terminate"
 
@@ -116,7 +117,7 @@ INITIAL_MODEL_METHODS = [
 
 #: Virtual initial models can be used to initialize some initial model methods.
 # FIXME replace by real "dummy" model object
-VIRTUAL_INITIAL_MODEL = "virtual_initial_model"
+# VIRTUAL_INITIAL_MODEL = "virtual_initial_model"
 #: Methods that are compatible with a virtual initial model.
 VIRTUAL_INITIAL_MODEL_METHODS = [
     Method.BACKWARD,
@@ -134,7 +135,6 @@ __all__ = [
 
 # Unchecked
 MODEL = "model"
-MODELS = "models"
 
 # Zero-indexed column/row indices
 MODEL_ID_COLUMN = 0
