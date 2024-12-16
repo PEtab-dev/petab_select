@@ -177,7 +177,7 @@ def start_iteration(
                 excluded_model_hashes += f.read().split("\n")
 
     excluded_hashes = [
-        excluded_model.get_hash() for excluded_model in excluded_models
+        excluded_model.hash for excluded_model in excluded_models
     ]
     excluded_hashes += [
         ModelHash.from_hash(hash_str) for hash_str in excluded_model_hashes
