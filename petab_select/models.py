@@ -23,6 +23,7 @@ from .constants import (
 from .model import (
     Model,
     ModelHash,
+    VirtualModelBase,
 )
 
 if TYPE_CHECKING:
@@ -107,6 +108,8 @@ class ListDict(MutableSequence):
                 return item in self._models
             case ModelHash() | str():
                 return item in self._hashes
+            case VirtualModelBase():
+                return False
             case _:
                 raise TypeError(f"Unexpected type: `{type(item)}`.")
 
@@ -176,7 +179,7 @@ class ListDict(MutableSequence):
 
         if key < len(self):
             self._models[key] = item
-            self._hashes[key] = item.get_hash()
+            self._hashes[key] = item.hash
         else:
             # Key doesn't exist, e.g., instead of
             # models[1] = model1
@@ -199,17 +202,17 @@ class ListDict(MutableSequence):
                 A model or a model hash.
         """
         model = self._model_like_to_model(item)
-        if model.get_hash() in self:
+        if model.hash in self:
             warnings.warn(
                 (
-                    f"A model with hash `{model.get_hash()}` already exists "
+                    f"A model with hash `{model.hash}` already exists "
                     "in this collection of models. The previous model will be "
                     "overwritten."
                 ),
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self[model.get_hash()] = model
+            self[model.hash] = model
         else:
             self._models.insert(index, None)
             self._hashes.insert(index, None)
@@ -285,14 +288,14 @@ class ListDict(MutableSequence):
     # def remove(self, item: ModelLike):
     #     # Re-use __delitem__ logic
     #     if isinstance(item, Model):
-    #         item = item.get_hash()
+    #         item = item.hash
     #     del self[item]
 
     # skipped clear, copy, count
 
     def index(self, item: ModelLike, *args) -> int:
         if isinstance(item, Model):
-            item = item.get_hash()
+            item = item.hash
         return self._hashes.index(item, *args)
 
     # skipped reverse, sort
