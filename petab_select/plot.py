@@ -56,7 +56,7 @@ def upset(
     index = np.argsort(values)
     values = values[index]
     labels = [
-        model.get_estimated_parameter_ids_all()
+        model.get_estimated_parameter_ids()
         for model in np.array(models)[index]
     ]
 
@@ -122,7 +122,7 @@ def line_best_by_iteration(
         [best_by_iteration[iteration] for iteration in iterations]
     )
     iteration_labels = [
-        str(iteration) + f"\n({labels.get(model.get_hash(), model.model_id)})"
+        str(iteration) + f"\n({labels.get(model.hash, model.model_id)})"
         for iteration, model in zip(iterations, best_models, strict=True)
     ]
 
@@ -208,9 +208,9 @@ def graph_history(
 
     if labels is None:
         labels = {
-            model.get_hash(): model.model_id
+            model.hash: model.model_id
             + (
-                f"\n{criterion_values[model.get_hash()]:.2f}"
+                f"\n{criterion_values[model.hash]:.2f}"
                 if criterion is not None
                 else ""
             )
@@ -230,7 +230,7 @@ def graph_history(
             if predecessor_model_hash in models:
                 predecessor_model = models[predecessor_model_hash]
                 from_ = labels.get(
-                    predecessor_model.get_hash(),
+                    predecessor_model.hash,
                     predecessor_model.model_id,
                 )
         else:
@@ -239,7 +239,7 @@ def graph_history(
                 "not yet implemented."
             )
             from_ = "None"
-        to = labels.get(model.get_hash(), model.model_id)
+        to = labels.get(model.hash, model.model_id)
         edges.append((from_, to))
 
     G.add_edges_from(edges)
@@ -312,13 +312,13 @@ def bar_criterion_vs_models(
         bar_kwargs = {}
 
     if labels is None:
-        labels = {model.get_hash(): model.model_id for model in models}
+        labels = {model.hash: model.model_id for model in models}
 
     if ax is None:
         _, ax = plt.subplots()
 
     bar_model_labels = [
-        labels.get(model.get_hash(), model.model_id) for model in models
+        labels.get(model.hash, model.model_id) for model in models
     ]
     criterion_values = models.get_criterion(
         criterion=criterion, relative=relative
@@ -385,7 +385,7 @@ def scatter_criterion_vs_n_estimated(
         The plot axes.
     """
     labels = {
-        model.get_hash(): labels.get(model.model_id, model.model_id)
+        model.hash: labels.get(model.model_id, model.model_id)
         for model in models
     }
 
@@ -405,7 +405,7 @@ def scatter_criterion_vs_n_estimated(
 
     n_estimated = []
     for model in models:
-        n_estimated.append(len(model.get_estimated_parameter_ids_all()))
+        n_estimated.append(len(model.get_estimated_parameter_ids()))
 
     criterion_values = models.get_criterion(
         criterion=criterion, relative=relative
@@ -495,36 +495,34 @@ def graph_iteration_layers(
     if draw_networkx_kwargs is None:
         draw_networkx_kwargs = default_draw_networkx_kwargs
 
-    ancestry = {
-        model.get_hash(): model.predecessor_model_hash for model in models
-    }
+    ancestry = {model.hash: model.predecessor_model_hash for model in models}
     ancestry_as_set = {k: {v} for k, v in ancestry.items()}
 
     ordering = [
-        [model.get_hash() for model in iteration_models]
+        [model.hash for model in iteration_models]
         for iteration_models in group_by_iteration(models).values()
     ]
     if VIRTUAL_INITIAL_MODEL_HASH in ancestry.values():
         ordering.insert(0, [VIRTUAL_INITIAL_MODEL_HASH])
 
     model_estimated_parameters = {
-        model.get_hash(): set(model.estimated_parameters) for model in models
+        model.hash: set(model.estimated_parameters) for model in models
     }
     model_criterion_values = models.get_criterion(
         criterion=criterion, relative=relative, as_dict=True
     )
 
     model_parameter_diffs = {
-        model.get_hash(): (
+        model.hash: (
             (set(), set())
             if model.predecessor_model_hash not in model_estimated_parameters
             else (
-                model_estimated_parameters[model.get_hash()].difference(
+                model_estimated_parameters[model.hash].difference(
                     model_estimated_parameters[model.predecessor_model_hash]
                 ),
                 model_estimated_parameters[
                     model.predecessor_model_hash
-                ].difference(model_estimated_parameters[model.get_hash()]),
+                ].difference(model_estimated_parameters[model.hash]),
             )
         )
         for model in models
@@ -534,9 +532,9 @@ def graph_iteration_layers(
     labels = (
         labels
         | {
-            model.get_hash(): model.model_id
+            model.hash: model.model_id
             for model in models
-            if model.get_hash() not in labels
+            if model.hash not in labels
         }
         | {
             ModelHash.from_hash(
@@ -670,8 +668,8 @@ def graph_iteration_layers(
     # selected_hashes = set(ancestry.values())
     # selected_models = {}
     # for model in models:
-    #    if model.get_hash() in selected_hashes:
-    #        selected_models[model.get_hash()] = model
+    #    if model.hash in selected_hashes:
+    #        selected_models[model.hash] = model
 
     # selected_parameters = {
     #    model_hash: sorted(model.estimated_parameters)
