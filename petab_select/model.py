@@ -13,7 +13,6 @@ import petab.v1 as petab
 from petab.v1.C import NOMINAL_VALUE
 
 from .constants import (
-    CRITERIA,
     ESTIMATE,
     MODEL_HASH,
     MODEL_HASH_DELIMITER,
@@ -24,8 +23,6 @@ from .constants import (
     MODEL_SUBSPACE_INDICES_HASH_DELIMITER,
     MODEL_SUBSPACE_INDICES_HASH_MAP,
     MODEL_SUBSPACE_PETAB_YAML,
-    PARAMETERS,
-    PETAB_ESTIMATE_TRUE,
     PETAB_PROBLEM,
     PETAB_YAML,
     TYPE_PARAMETER,
@@ -35,6 +32,7 @@ from .criteria import CriterionComputer
 from .misc import (
     parameter_string_to_value,
 )
+from .petab import get_petab_parameters
 
 if TYPE_CHECKING:
     from .problem import Problem
@@ -42,7 +40,6 @@ if TYPE_CHECKING:
 
 from pydantic import (
     BaseModel,
-    FilePath,
     PrivateAttr,
     ValidationInfo,
     ValidatorFunctionWrapHandler,
@@ -55,7 +52,13 @@ __all__ = [
     "VIRTUAL_INITIAL_MODEL",
 ]
 
-from pydantic import Field, model_serializer, model_validator
+from pydantic import (
+    Field,
+    field_serializer,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 
 class ModelHash(BaseModel):
@@ -148,6 +151,8 @@ class ModelHash(BaseModel):
         Returns:
             The hash.
         """
+        if not model_subspace_indices:
+            return ""
         if max(model_subspace_indices) < len(MODEL_SUBSPACE_INDICES_HASH_MAP):
             return "".join(
                 MODEL_SUBSPACE_INDICES_HASH_MAP[index]
@@ -211,46 +216,17 @@ class ModelHash(BaseModel):
         return str(self)
 
 
-class ModelBase(BaseModel):
-    """Definition of the standardized model.
-
-    :class:`Model` is extended with additional helper methods -- use that
-    instead of ``ModelBase``.
-    """
+class VirtualModelBase(BaseModel):
+    """Sufficient information for the virtual initial model."""
 
     model_subspace_id: str
     """The ID of the subspace that this model belongs to."""
     model_subspace_indices: list[int]
     """The location of this model in its subspace."""
-    model_subspace_petab_yaml: FilePath | None
-    """The base PEtab problem for the model subspace.
-
-    N.B.: Not the PEtab problem for this model specifically!
-    Use :meth:`Model.to_petab` to get the model-specific PEtab
-    problem.
-    """
-    criteria: dict[Criterion, float] | None = Field(default=None)
+    criteria: dict[Criterion, float] = Field(default_factory=dict)
     """The criterion values of the calibrated model (e.g. AIC)."""
-    estimated_parameters: dict[str, float] | None = Field(default=None)
-    """The parameter estimates of the calibrated model (always unscaled)."""
-    iteration: int | None = Field(default=None)
-    """The iteration of model selection that calibrated this model."""
-    model_id: str = Field(default=None)
-    """The model ID."""
     model_hash: ModelHash = Field(default=None)
     """The model hash (treat as read-only after initialization)."""
-    parameters: dict[str, float | int | Literal[ESTIMATE]]
-    """PEtab problem parameters overrides for this model.
-
-    For example, fixes parameters to certain values, or sets them to be
-    estimated.
-    """
-    predecessor_model_hash: ModelHash | None = Field(default=None)
-    """The predecessor model hash."""
-
-    PATH_ATTRIBUTES: ClassVar[list[str]] = [
-        MODEL_SUBSPACE_PETAB_YAML,
-    ]
 
     @model_validator(mode="after")
     def _check_hash(self: ModelBase) -> ModelBase:
@@ -262,18 +238,31 @@ class ModelBase(BaseModel):
             kwargs[MODEL_HASH] = self.model_hash
         self.model_hash = ModelHash.model_validate(kwargs)
 
-        if self.predecessor_model_hash is not None:
-            self.predecessor_model_hash = ModelHash.model_validate(
-                self.predecessor_model_hash
-            )
-
         return self
 
-    @model_validator(mode="after")
-    def _check_id(self: ModelBase) -> ModelBase:
-        if self.model_id is None:
-            self.model_id = str(self.hash)
-        return self
+    @field_validator("criteria", mode="after")
+    @classmethod
+    def _check_criteria(
+        cls, criteria: dict[str | Criterion, float]
+    ) -> dict[Criterion, float]:
+        criteria = {
+            (
+                Criterion[criterion]
+                if isinstance(criterion, str)
+                else criterion
+            ): value
+            for criterion, value in criteria.items()
+        }
+        return criteria
+
+    @field_serializer("criteria")
+    def _serialize_criteria(
+        self, criteria: dict[Criterion, float]
+    ) -> dict[str, float]:
+        criteria = {
+            criterion.value: value for criterion, value in criteria.items()
+        }
+        return criteria
 
     @property
     def hash(self) -> ModelHash:
@@ -282,32 +271,75 @@ class ModelBase(BaseModel):
 
     def __hash__(self) -> None:
         """Use ``Model.hash`` instead."""
-        raise NotImplementedError("Use ``Model.hash`` instead.")
+        raise NotImplementedError("Use `Model.hash` instead.")
+
+    # def __eq__(self, other_model: Model | _VirtualInitialModel) -> bool:
+    #     """Check whether two model hashes are equivalent."""
+    #     return self.hash == other.hash
+
+
+class ModelBase(VirtualModelBase):
+    """Definition of the standardized model.
+
+    :class:`Model` is extended with additional helper methods -- use that
+    instead of ``ModelBase``.
+    """
+
+    # TODO would use `FilePath` here (and remove `None` as an option),
+    # but then need to handle the
+    # `VIRTUAL_INITIAL_MODEL` dummy path differently.
+    model_subspace_petab_yaml: Path | None
+    """The location of the base PEtab problem for the model subspace.
+
+    N.B.: Not the PEtab problem for this model specifically!
+    Use :meth:`Model.to_petab` to get the model-specific PEtab
+    problem.
+    """
+    estimated_parameters: dict[str, float] | None = Field(default=None)
+    """The parameter estimates of the calibrated model (always unscaled)."""
+    iteration: int | None = Field(default=None)
+    """The iteration of model selection that calibrated this model."""
+    model_id: str = Field(default=None)
+    """The model ID."""
+    parameters: dict[str, float | int | Literal[ESTIMATE]]
+    """PEtab problem parameters overrides for this model.
+
+    For example, fixes parameters to certain values, or sets them to be
+    estimated.
+    """
+    predecessor_model_hash: ModelHash = Field(default=None)
+    """The predecessor model hash."""
+
+    PATH_ATTRIBUTES: ClassVar[list[str]] = [
+        MODEL_SUBSPACE_PETAB_YAML,
+    ]
+
+    @model_validator(mode="after")
+    def _check_id(self: ModelBase) -> ModelBase:
+        if self.model_id is None:
+            self.model_id = str(self.hash)
+        return self
+
+    @model_validator(mode="after")
+    def _check_predecessor_model_hash(self: ModelBase) -> ModelBase:
+        if self.predecessor_model_hash is None:
+            self.predecessor_model_hash = VIRTUAL_INITIAL_MODEL.hash
+        self.predecessor_model_hash = ModelHash.model_validate(
+            self.predecessor_model_hash
+        )
+        return self
 
     @staticmethod
     def from_yaml(
         yaml_path: str | Path,
-        root_path: str | Path | bool = True,
     ) -> ModelBase:
         """Load a model from a YAML file.
 
         Args:
             yaml_path:
                 The model YAML file location.
-            root_path:
-                All paths will be resolved relative to this.
-                If ``True``, this will be set to the directory of the
-                ``yaml_path``.
-                If ``False``, this will be set to the current working
-                directory.
         """
-        if root_path is True:
-            root_path = Path(yaml_path).parent
-        if root_path is False:
-            root_path = Path()
-
         model = ModelStandard.load_data(filename=yaml_path)
-        model.resolve_paths(root_path=root_path)
         return model
 
     def to_yaml(
@@ -336,15 +368,6 @@ class ModelBase(BaseModel):
         model = copy.deepcopy(self)
         model.set_relative_paths(root_path=root_path)
         ModelStandard.save_data(data=model, filename=yaml_path)
-
-    def resolve_paths(self, root_path: str | Path) -> None:
-        """Resolve all relative paths with respect to ``root_path``."""
-        for path_attribute in self.PATH_ATTRIBUTES:
-            setattr(
-                self,
-                path_attribute,
-                (Path(root_path) / getattr(self, path_attribute)).resolve(),
-            )
 
     def set_relative_paths(self, root_path: str | Path) -> None:
         """Change all paths to be relative to ``root_path``."""
@@ -401,7 +424,7 @@ class Model(ModelBase):
                 f"Value: `{self.get_criterion(criterion)}`.",
                 stacklevel=2,
             )
-        self.criteria[criterion] = value
+        self.criteria[criterion] = float(value)
 
     def get_criterion(
         self,
@@ -505,9 +528,7 @@ class Model(ModelBase):
             The PEtab problem. Also returns the path of the PEtab problem YAML
             file, if ``output_path`` is specified.
         """
-        petab_problem = petab.Problem.from_yaml(
-            self._model_subspace_petab_yaml
-        )
+        petab_problem = petab.Problem.from_yaml(self.model_subspace_petab_yaml)
 
         if set_estimated_parameters is None and self.estimated_parameters:
             set_estimated_parameters = True
@@ -584,16 +605,10 @@ class Model(ModelBase):
                 that are not part of the model selection problem but estimated.
         """
         estimated_parameter_ids = []
-
-        # Add all estimated parameters in the PEtab problem.
         if full:
-            petab_problem = petab.Problem.from_yaml(str(self.petab_yaml))
-            for parameter_id in petab_problem.parameter_df.index:
-                if (
-                    petab_problem.parameter_df.loc[parameter_id, ESTIMATE]
-                    == PETAB_ESTIMATE_TRUE
-                ):
-                    estimated_parameter_ids.append(parameter_id)
+            estimated_parameter_ids = (
+                self._model_subspace_petab_problem.x_free_ids
+            )
 
         # Add additional estimated parameters, and collect fixed parameters,
         # in this model's parameterization.
@@ -627,22 +642,17 @@ class Model(ModelBase):
             parameter_ids:
                 The IDs of parameters that values will be returned for. Order
                 is maintained. Defaults to the model subspace PEtab problem
-                parameters.
+                parameters (including those not part of the model selection
+                problem).
 
         Returns:
             The values of parameters.
         """
-        nominal_values = dict(
-            zip(
-                self._model_subspace_petab_problem.x_ids,
-                self._model_subspace_petab_problem.x_nominal,
-                strict=True,
-            )
+        nominal_values = get_petab_parameters(
+            self._model_subspace_petab_problem
         )
-        for parameter_id in self._model_subspace_petab_problem.x_free_ids:
-            nominal_values[parameter_id] = ESTIMATE
         if parameter_ids is None:
-            parameter_ids = nominal_values
+            parameter_ids = list(nominal_values)
         return [
             self.parameters.get(parameter_id, nominal_values[parameter_id])
             for parameter_id in parameter_ids
@@ -682,7 +692,7 @@ def default_compare(
             stacklevel=2,
         )
         return False
-    if model0 == VIRTUAL_INITIAL_MODEL or model0 is None:
+    if model0.hash == VIRTUAL_INITIAL_MODEL_HASH or model0 is None:
         return True
     if criterion_threshold < 0:
         warnings.warn(
@@ -714,15 +724,14 @@ def default_compare(
         raise NotImplementedError(f"Unknown criterion: {criterion}.")
 
 
-VIRTUAL_INITIAL_MODEL = Model.parse_obj(
+VIRTUAL_INITIAL_MODEL = VirtualModelBase.model_validate(
     {
-        MODEL_SUBSPACE_ID: "virtual_initial_model",
-        MODEL_SUBSPACE_INDICES: [0],
-        MODEL_SUBSPACE_PETAB_YAML: None,
-        PARAMETERS: {},
-        CRITERIA: {Criterion.NLLH: float("inf")},
+        "model_subspace_id": "virtual_initial_model",
+        "model_subspace_indices": [],
     }
 )
+# TODO deprecate, use `VIRTUAL_INITIAL_MODEL.hash` instead
+VIRTUAL_INITIAL_MODEL_HASH = VIRTUAL_INITIAL_MODEL.hash
 
 
 ModelStandard = mkstd.YamlStandard(model=ModelBase)
