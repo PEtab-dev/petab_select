@@ -49,44 +49,43 @@ model_problem_options = {
 
 
 # Indentation to match `test_pypesto.py`, to make it easier to keep files similar.
-if True:
-    for test_case_path in test_cases_path.glob("*"):
-        if test_cases and test_case_path.stem not in test_cases:
-            continue
+for test_case_path in test_cases_path.glob("*"):
+    if test_cases and test_case_path.stem not in test_cases:
+        continue
 
-        if test_case_path.stem in skip_test_cases:
-            continue
+    if test_case_path.stem in skip_test_cases:
+        continue
 
-        expected_model_yaml = test_case_path / "expected.yaml"
+    expected_model_yaml = test_case_path / "expected.yaml"
 
-        if (
-            SKIP_TEST_CASES_WITH_PREEXISTING_EXPECTED_MODEL
-            and expected_model_yaml.is_file()
-        ):
-            # Skip test cases that already have an expected model.
-            continue
-        print(f"Running test case {test_case_path.stem}")
+    if (
+        SKIP_TEST_CASES_WITH_PREEXISTING_EXPECTED_MODEL
+        and expected_model_yaml.is_file()
+    ):
+        # Skip test cases that already have an expected model.
+        continue
+    print(f"Running test case {test_case_path.stem}")
 
-        # Setup the pyPESTO model selector instance.
-        petab_select_problem = petab_select.Problem.from_yaml(
-            test_case_path / "petab_select_problem.yaml",
-        )
-        pypesto_select_problem = pypesto.select.Problem(
-            petab_select_problem=petab_select_problem
-        )
+    # Setup the pyPESTO model selector instance.
+    petab_select_problem = petab_select.Problem.from_yaml(
+        test_case_path / "petab_select_problem.yaml",
+    )
+    pypesto_select_problem = pypesto.select.Problem(
+        petab_select_problem=petab_select_problem
+    )
 
-        # Run the selection process until "exhausted".
-        pypesto_select_problem.select_to_completion(**model_problem_options)
+    # Run the selection process until "exhausted".
+    pypesto_select_problem.select_to_completion(**model_problem_options)
 
-        # Get the best model
-        best_model = petab_select.analyze.get_best(
-            models=pypesto_select_problem.calibrated_models,
-            criterion=petab_select_problem.criterion,
-        )
+    # Get the best model
+    best_model = petab_select.analyze.get_best(
+        models=pypesto_select_problem.calibrated_models,
+        criterion=petab_select_problem.criterion,
+    )
 
-        # Generate the expected model.
-        best_model.to_yaml(expected_model_yaml)
+    # Generate the expected model.
+    best_model.to_yaml(expected_model_yaml)
 
-        # pypesto_select_problem.calibrated_models.to_yaml(
-        #     output_yaml="all_models.yaml",
-        # )
+    # pypesto_select_problem.calibrated_models.to_yaml(
+    #     output_yaml="all_models.yaml",
+    # )
