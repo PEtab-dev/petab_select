@@ -15,11 +15,12 @@ os.environ["AMICI_EXPERIMENTAL_SBML_NONCONST_CLS"] = "1"
 test_cases = [
     #'0001',
     # "0003",
+    "0009",
 ]
 
 # Do not use computationally-expensive test cases in CI
 skip_test_cases = [
-    "0009",
+    # "0009",
 ]
 
 test_cases_path = Path(__file__).resolve().parent.parent.parent / "test_cases"
@@ -84,10 +85,7 @@ if True:
         )
 
         # Generate the expected model.
-        best_model.to_yaml(
-            expected_model_yaml,
-            root_path=test_case_path,
-        )
+        best_model.to_yaml(expected_model_yaml)
 
         # pypesto_select_problem.calibrated_models.to_yaml(
         #     output_yaml="all_models.yaml",
