@@ -16,7 +16,9 @@ from .constants import (
     ITERATION,
     MODEL_HASH,
     MODEL_ID,
+    MODEL_SUBSPACE_PETAB_PROBLEM,
     PREDECESSOR_MODEL_HASH,
+    ROOT_PATH,
     TYPE_PATH,
     Criterion,
 )
@@ -372,7 +374,9 @@ class Models(ListDict):
             models_yaml:
                 The path to the PEtab Select list of model YAML file.
             petab_problem:
-                See :meth:`Model.from_dict`.
+                Provide a preloaded copy of the PEtab problem. Note:
+                all models should share the same PEtab problem if this is
+                provided.
             problem:
                 The PEtab Select problem.
 
@@ -384,25 +388,20 @@ class Models(ListDict):
         if not model_dict_list:
             # Empty file
             models = []
-        elif not isinstance(model_dict_list, list):
+        elif isinstance(model_dict_list, dict):
             # File contains a single model
-            models = [
-                Model.from_dict(
-                    model_dict_list,
-                    base_path=Path(models_yaml).parent,
-                    petab_problem=petab_problem,
-                )
-            ]
-        else:
-            # File contains a list of models
-            models = [
-                Model.from_dict(
-                    model_dict,
-                    base_path=Path(models_yaml).parent,
-                    petab_problem=petab_problem,
-                )
-                for model_dict in model_dict_list
-            ]
+            model_dict_list = [model_dict_list]
+
+        models = [
+            Model.model_validate(
+                {
+                    **model_dict,
+                    ROOT_PATH: Path(models_yaml).parent,
+                    MODEL_SUBSPACE_PETAB_PROBLEM: petab_problem,
+                }
+            )
+            for model_dict in model_dict_list
+        ]
 
         return Models(models=models, problem=problem)
 
@@ -544,25 +543,7 @@ def models_from_yaml_list(
     allow_single_model: bool = True,
     problem: Problem = None,
 ) -> Models:
-    """Generate a model from a PEtab Select list of model YAML file.
-
-    Deprecated. Use `petab_select.Models.from_yaml` instead.
-
-    Args:
-        model_list_yaml:
-            The path to the PEtab Select list of model YAML file.
-        petab_problem:
-            See :meth:`Model.from_dict`.
-        allow_single_model:
-            Given a YAML file that contains a single model directly (not in
-            a 1-element list), if ``True`` then the single model will be read in,
-            else a ``ValueError`` will be raised.
-        problem:
-            The PEtab Select problem.
-
-    Returns:
-        The models.
-    """
+    """Deprecated. Use `petab_select.Models.from_yaml` instead."""
     warnings.warn(
         (
             "Use `petab_select.Models.from_yaml` instead. "
@@ -583,19 +564,7 @@ def models_to_yaml_list(
     output_yaml: TYPE_PATH,
     relative_paths: bool = True,
 ) -> None:
-    """Generate a YAML listing of models.
-
-    Deprecated. Use `petab_select.Models.to_yaml` instead.
-
-    Args:
-        models:
-            The models.
-        output_yaml:
-            The location where the YAML will be saved.
-        relative_paths:
-            Whether to rewrite the paths in each model (e.g. the path to the
-            model's PEtab problem) relative to the `output_yaml` location.
-    """
+    """Deprecated. Use `petab_select.Models.to_yaml` instead."""
     warnings.warn(
         "Use `petab_select.Models.to_yaml` instead.",
         DeprecationWarning,

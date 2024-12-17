@@ -5,7 +5,6 @@ import pytest
 from petab_select import (
     VIRTUAL_INITIAL_MODEL,
     Criterion,
-    ModelHash,
     Models,
     analyze,
 )
@@ -13,7 +12,6 @@ from petab_select import (
 base_dir = Path(__file__).parent
 
 DUMMY_HASH = "dummy_p0-0"
-VIRTUAL_HASH = ModelHash.from_hash(VIRTUAL_INITIAL_MODEL)
 
 
 @pytest.fixture
@@ -26,15 +24,15 @@ def test_group_by_predecessor_model(models: Models) -> None:
     groups = analyze.group_by_predecessor_model(models)
     # Expected groups
     assert len(groups) == 2
-    assert VIRTUAL_HASH in groups
+    assert VIRTUAL_INITIAL_MODEL.hash in groups
     assert DUMMY_HASH in groups
     # Expected group members
     assert len(groups[DUMMY_HASH]) == 1
     assert "M-011" in groups[DUMMY_HASH]
-    assert len(groups[VIRTUAL_HASH]) == 3
-    assert "M-110" in groups[VIRTUAL_HASH]
-    assert "M2-011" in groups[VIRTUAL_HASH]
-    assert "M2-110" in groups[VIRTUAL_HASH]
+    assert len(groups[VIRTUAL_INITIAL_MODEL.hash]) == 3
+    assert "M-110" in groups[VIRTUAL_INITIAL_MODEL.hash]
+    assert "M2-011" in groups[VIRTUAL_INITIAL_MODEL.hash]
+    assert "M2-110" in groups[VIRTUAL_INITIAL_MODEL.hash]
 
 
 def test_group_by_iteration(models: Models) -> None:
@@ -64,9 +62,9 @@ def test_get_best_by_iteration(models: Models) -> None:
     assert 2 in groups
     assert 5 in groups
     # Expected best models
-    assert groups[1].get_hash() == "M2-011"
-    assert groups[2].get_hash() == "M2-110"
-    assert groups[5].get_hash() == "M-110"
+    assert groups[1].hash == "M2-011"
+    assert groups[2].hash == "M2-110"
+    assert groups[5].hash == "M-110"
 
 
 def test_relative_criterion_values(models: Models) -> None:

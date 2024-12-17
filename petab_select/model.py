@@ -25,6 +25,7 @@ from .constants import (
     MODEL_SUBSPACE_PETAB_YAML,
     PETAB_PROBLEM,
     PETAB_YAML,
+    ROOT_PATH,
     TYPE_PARAMETER,
     Criterion,
 )
@@ -328,8 +329,8 @@ class ModelBase(VirtualModelBase):
         model = handler(data)
 
         root_path = None
-        if "root_path" in data:
-            root_path = data.pop("root_path")
+        if ROOT_PATH in data:
+            root_path = data.pop(ROOT_PATH)
         if root_path is None:
             return model
 
