@@ -118,9 +118,12 @@ can be specified like
   selected model.
 
 Here, the format for a single model is shown. Multiple models can be specified
-as a YAML list of the same format. The only required key is the ``petab_yaml``,
-as a model requires a PEtab problem. Other keys are required in different
+as a YAML list of the same format. Some optional keys are required in different
 contexts (for example, model comparison will require ``criteria``).
+
+Brief format description
+^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 .. code-block:: yaml
 
@@ -145,6 +148,9 @@ contexts (for example, model comparison will require ``criteria``).
 - ``model_id``: The model ID.
 - ``parameters``: The parameter combination from the model space file that defines this model (either values or ``"estimate"``). Not the calibrated values, which are in ``estimated_parameters``!
 - ``predecessor_model_hash``: The hash of the model that preceded this model during the model selection process. Will be ``virtual_initial_model-`` if the model had no predecessor model.
+
+Schema
+^^^^^^
 
 .. literalinclude:: standard/model.yaml
    :language: yaml
