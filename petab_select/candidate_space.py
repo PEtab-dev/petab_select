@@ -708,7 +708,7 @@ class ForwardCandidateSpace(CandidateSpace):
         # A model is plausible if the number of estimated parameters strictly
         # increases (or decreases, if `self.direction == -1`), and no
         # previously estimated parameters become fixed.
-        if self.predecessor_model.hash == VIRTUAL_INITIAL_MODEL_HASH or (
+        if self.predecessor_model.hash == VIRTUAL_INITIAL_MODEL.hash or (
             n_steps > 0 and distances["l1"] == n_steps
         ):
             return True
@@ -868,7 +868,7 @@ class FamosCandidateSpace(CandidateSpace):
     def __init__(
         self,
         *args,
-        predecessor_model: Model | str | None | None = None,
+        predecessor_model: Model | None = None,
         critical_parameter_sets: list = [],
         swap_parameter_sets: list = [],
         method_scheme: dict[tuple, str] = None,
@@ -900,10 +900,10 @@ class FamosCandidateSpace(CandidateSpace):
             predecessor_model = VIRTUAL_INITIAL_MODEL
 
         if (
-            predecessor_model.hash == VIRTUAL_INITIAL_MODEL_HASH
+            predecessor_model.hash == VIRTUAL_INITIAL_MODEL.hash
             and critical_parameter_sets
         ) or (
-            predecessor_model.hash != VIRTUAL_INITIAL_MODEL_HASH
+            predecessor_model.hash != VIRTUAL_INITIAL_MODEL.hash
             and not self.check_critical(predecessor_model)
         ):
             raise ValueError(
@@ -911,7 +911,7 @@ class FamosCandidateSpace(CandidateSpace):
             )
 
         if (
-            predecessor_model.hash == VIRTUAL_INITIAL_MODEL_HASH
+            predecessor_model.hash == VIRTUAL_INITIAL_MODEL.hash
             and self.initial_method not in VIRTUAL_INITIAL_MODEL_METHODS
         ):
             raise ValueError(
@@ -962,11 +962,7 @@ class FamosCandidateSpace(CandidateSpace):
             ),
             Method.LATERAL: LateralCandidateSpace(
                 *args,
-                predecessor_model=(
-                    predecessor_model
-                    if predecessor_model.hash != VIRTUAL_INITIAL_MODEL_HASH
-                    else None
-                ),
+                predecessor_model=predecessor_model,
                 max_steps=1,
                 **kwargs,
             ),
@@ -1290,6 +1286,9 @@ class FamosCandidateSpace(CandidateSpace):
         # critical parameter from each critical parameter set
         if not self.check_critical(predecessor_model):
             for critical_set in self.critical_parameter_sets:
+                # FIXME is this a good idea? probably better to request
+                #       the model from the model subspace, rather than editing
+                #       the parameters...
                 predecessor_model.parameters[critical_set[0]] = ESTIMATE
 
         # self.update_method(self.initial_method)
@@ -1404,7 +1403,6 @@ class LateralCandidateSpace(CandidateSpace):
     def __init__(
         self,
         *args,
-        predecessor_model: Model | None,
         max_steps: int = None,
         **kwargs,
     ):
@@ -1416,7 +1414,6 @@ class LateralCandidateSpace(CandidateSpace):
         super().__init__(
             *args,
             method=Method.LATERAL,
-            predecessor_model=predecessor_model,
             **kwargs,
         )
         self.max_steps = max_steps
