@@ -249,9 +249,9 @@ class VirtualModelBase(BaseModel):
         """Fix criteria typing."""
         criteria = {
             (
-                Criterion[criterion]
-                if isinstance(criterion, str)
-                else criterion
+                criterion
+                if isinstance(criterion, Criterion)
+                else Criterion[criterion]
             ): value
             for criterion, value in criteria.items()
         }
