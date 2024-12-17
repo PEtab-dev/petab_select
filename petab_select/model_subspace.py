@@ -42,7 +42,7 @@ class ModelSubspace:
             The location of the PEtab problem YAML file.
         parameters:
             The key is the ID of the parameter. The value is a list of values
-            that the parameter can take (including `ESTIMATE`).
+            that the parameter can take (including ``ESTIMATE``).
         exclusions:
             Hashes of models that have been previously submitted to a candidate space
             for consideration (:meth:`CandidateSpace.consider`).
@@ -64,6 +64,15 @@ class ModelSubspace:
             self.exclusions = set(exclusions)
 
         self.petab_problem = petab.Problem.from_yaml(self.petab_yaml)
+
+        for parameter_id, parameter_value in self.parameters.items():
+            if not parameter_value:
+                raise ValueError(
+                    f"The parameter `{parameter_id}` is in the definition "
+                    "of this model subspace. However, its value is empty. "
+                    f"Please specify either its fixed value or `'{ESTIMATE}'` "
+                    "(e.g. in the model space table)."
+                )
 
     def check_compatibility_stepwise_method(
         self,
@@ -853,10 +862,15 @@ class ModelSubspace:
         return [
             parameter_id
             for parameter_id, parameter_values in self.parameters.items()
-            # If the possible parameter values are not only `ESTIMATE`, then
-            # it is assumed there is a fixed possible parameter value.
-            # TODO explicitly check for a lack of `ValueError` when cast to
-            #      float?
+            if parameter_values != [ESTIMATE]
+        ]
+
+    @property
+    def can_fix_all(self) -> list[str]:
+        """All arameters that can be fixed, according to the subspace."""
+        return [
+            parameter_id
+            for parameter_id, parameter_values in self.parameters_all.items()
             if parameter_values != [ESTIMATE]
         ]
 
