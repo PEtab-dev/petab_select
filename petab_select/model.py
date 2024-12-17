@@ -82,7 +82,7 @@ class ModelHash(BaseModel):
     model_subspace_indices_hash: str
 
     @model_validator(mode="wrap")
-    def check_kwargs(
+    def _check_kwargs(
         kwargs: dict[str, str | list[int]] | ModelHash,
         handler: ValidatorFunctionWrapHandler,
         info: ValidationInfo,
@@ -230,6 +230,7 @@ class VirtualModelBase(BaseModel):
 
     @model_validator(mode="after")
     def _check_hash(self: ModelBase) -> ModelBase:
+        """Validate the model hash."""
         kwargs = {
             MODEL_SUBSPACE_ID: self.model_subspace_id,
             MODEL_SUBSPACE_INDICES: self.model_subspace_indices,
@@ -242,9 +243,10 @@ class VirtualModelBase(BaseModel):
 
     @field_validator("criteria", mode="after")
     @classmethod
-    def _check_criteria(
+    def _fix_criteria_typing(
         cls, criteria: dict[str | Criterion, float]
     ) -> dict[Criterion, float]:
+        """Fix criteria typing."""
         criteria = {
             (
                 Criterion[criterion]
@@ -259,6 +261,7 @@ class VirtualModelBase(BaseModel):
     def _serialize_criteria(
         self, criteria: dict[Criterion, float]
     ) -> dict[str, float]:
+        """Serialize criteria."""
         criteria = {
             criterion.value: value for criterion, value in criteria.items()
         }
@@ -314,14 +317,38 @@ class ModelBase(VirtualModelBase):
         MODEL_SUBSPACE_PETAB_YAML,
     ]
 
+    @model_validator(mode="wrap")
+    def _fix_relative_paths(
+        data: dict[str, Any] | ModelBase,
+        handler: ValidatorFunctionWrapHandler,
+        info: ValidationInfo,
+    ) -> ModelBase:
+        if isinstance(data, ModelBase):
+            return data
+        model = handler(data)
+
+        root_path = None
+        if "root_path" in data:
+            root_path = data.pop("root_path")
+        if root_path is None:
+            return model
+
+        model.resolve_paths(root_path=root_path)
+        return model
+
     @model_validator(mode="after")
-    def _check_id(self: ModelBase) -> ModelBase:
+    def _fix_id(self: ModelBase) -> ModelBase:
+        """Fix a missing ID by setting it to the hash."""
         if self.model_id is None:
             self.model_id = str(self.hash)
         return self
 
     @model_validator(mode="after")
-    def _check_predecessor_model_hash(self: ModelBase) -> ModelBase:
+    def _fix_predecessor_model_hash(self: ModelBase) -> ModelBase:
+        """Fix missing predecessor model hashes.
+
+        Sets them to ``VIRTUAL_INITIAL_MODEL.hash``.
+        """
         if self.predecessor_model_hash is None:
             self.predecessor_model_hash = VIRTUAL_INITIAL_MODEL.hash
         self.predecessor_model_hash = ModelHash.model_validate(
@@ -329,41 +356,19 @@ class ModelBase(VirtualModelBase):
         )
         return self
 
-    @staticmethod
-    def from_yaml(
-        yaml_path: str | Path,
-    ) -> ModelBase:
-        """Load a model from a YAML file.
-
-        Args:
-            yaml_path:
-                The model YAML file location.
-        """
-        model = ModelStandard.load_data(filename=yaml_path)
-        return model
-
     def to_yaml(
         self,
         yaml_path: str | Path,
-        root_path: str | Path | bool = True,
     ) -> None:
         """Save a model to a YAML file.
+
+        All paths will be made relative to the ``yaml_path`` directory.
 
         Args:
             yaml_path:
                 The model YAML file location.
-            root_path:
-                All paths will be converted to paths that are
-                relative to this directory path.
-                If ``True``, this will be set to the directory of the
-                ``yaml_path``.
-                If ``False``, this will be set to the current working
-                directory.
         """
-        if root_path is True:
-            root_path = Path(yaml_path).parent
-        if root_path is False:
-            root_path = Path()
+        root_path = Path(yaml_path).parent
 
         model = copy.deepcopy(self)
         model.set_relative_paths(root_path=root_path)
@@ -371,14 +376,25 @@ class ModelBase(VirtualModelBase):
 
     def set_relative_paths(self, root_path: str | Path) -> None:
         """Change all paths to be relative to ``root_path``."""
+        root_path = Path(root_path).resolve()
         for path_attribute in self.PATH_ATTRIBUTES:
             setattr(
                 self,
                 path_attribute,
                 relpath(
-                    Path(self.model_subspace_petab_yaml).resolve(),
-                    start=Path(root_path).resolve(),
+                    getattr(self, path_attribute).resolve(),
+                    start=root_path,
                 ),
+            )
+
+    def resolve_paths(self, root_path: str | Path) -> None:
+        """Resolve all paths to be relative to ``root_path``."""
+        root_path = Path(root_path).resolve()
+        for path_attribute in self.PATH_ATTRIBUTES:
+            setattr(
+                self,
+                path_attribute,
+                (root_path / getattr(self, path_attribute)).resolve(),
             )
 
 
@@ -398,7 +414,8 @@ class Model(ModelBase):
     _model_subspace_petab_problem: petab.Problem = PrivateAttr(default=None)
 
     @model_validator(mode="after")
-    def _check_petab_problem(self: Model) -> Model:
+    def _fix_petab_problem(self: Model) -> Model:
+        """Fix a missing PEtab problem by loading it from disk."""
         if (
             self._model_subspace_petab_problem is None
             and self.model_subspace_petab_yaml is not None
@@ -658,6 +675,21 @@ class Model(ModelBase):
             for parameter_id in parameter_ids
         ]
 
+    @staticmethod
+    def from_yaml(
+        yaml_path: str | Path,
+    ) -> Model:
+        """Load a model from a YAML file.
+
+        Args:
+            yaml_path:
+                The model YAML file location.
+        """
+        model = ModelStandard.load_data(
+            filename=yaml_path, root_path=yaml_path.parent
+        )
+        return model
+
 
 def default_compare(
     model0: Model,
@@ -734,4 +766,4 @@ VIRTUAL_INITIAL_MODEL = VirtualModelBase.model_validate(
 VIRTUAL_INITIAL_MODEL_HASH = VIRTUAL_INITIAL_MODEL.hash
 
 
-ModelStandard = mkstd.YamlStandard(model=ModelBase)
+ModelStandard = mkstd.YamlStandard(model=Model)
