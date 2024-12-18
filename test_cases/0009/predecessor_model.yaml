@@ -70,5 +70,5 @@ parameters:
   a_k16_k05k16: 1
   a_k16_k08k16: 1
   a_k16_k12k16: estimate
-petab_yaml: petab/petab_problem.yaml
-predecessor_model_hash: null
+model_subspace_petab_yaml: petab/petab_problem.yaml
+predecessor_model_hash: virtual_initial_model-

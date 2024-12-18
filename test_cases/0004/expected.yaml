@@ -1,20 +1,20 @@
-criteria:
-  AICc: -0.7053259911583094
-  NLLH: -4.352662995579155
-estimated_parameters:
-  k1: 0.2016087783781175
-  sigma_x2: 0.11714035262205941
-iteration: 3
-model_hash: M1_3-000
-model_id: M1_3-000
 model_subspace_id: M1_3
 model_subspace_indices:
 - 0
 - 0
 - 0
+criteria:
+  NLLH: -4.352662995594862
+  AICc: -0.7053259911897243
+model_hash: M1_3-000
+model_subspace_petab_yaml: ../0001/petab/petab_problem.yaml
+estimated_parameters:
+  k1: 0.20160877986376358
+  sigma_x2: 0.11714041204425464
+iteration: 3
+model_id: M1_3-000
 parameters:
   k1: estimate
   k2: 0.1
   k3: 0
-petab_yaml: ../0001/petab/petab_problem.yaml
 predecessor_model_hash: M1_6-000

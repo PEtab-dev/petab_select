@@ -15,13 +15,11 @@ the model format.
      - Method
      - Model space files
      - Compressed format
-     - Constraints files
      - Predecessor (initial) models files
    * - 0001
      - (all)
      - (only one model)
      - 1
-     -
      -
      -
    * - 0002 [#f1]_
@@ -30,26 +28,22 @@ the model format.
      - 1
      -
      -
-     -
    * - 0003
      - BIC
-     - all
+     - brute force
      - 1
      - Yes
-     -
      -
    * - 0004
      - AICc
      - backward
      - 1
      -
-     - 1
      -
    * - 0005
      - AIC
      - forward
      - 1
-     -
      -
      - 1
    * - 0006
@@ -58,12 +52,10 @@ the model format.
      - 1
      -
      -
-     -
    * - 0007 [#f2]_
      - AIC
      - forward
      - 1
-     -
      -
      -
    * - 0008 [#f2]_
@@ -72,13 +64,11 @@ the model format.
      - 1
      -
      -
-     -
    * - 0009 [#f3]_
      - AICc
      - FAMoS
      - 1
      - Yes
-     -
      - Yes
 
 .. [#f1] Model ``M1_0`` differs from ``M1_1`` in three parameters, but only 1 additional estimated parameter. The effect of this on model selection criteria needs to be clarified. Test case 0006 is a duplicate of 0002 that doesn't have this issue.

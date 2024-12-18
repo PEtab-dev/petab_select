@@ -15,11 +15,10 @@ from .constants import (
     TERMINATE,
     TYPE_PATH,
     UNCALIBRATED_MODELS,
-    VIRTUAL_INITIAL_MODEL,
     Criterion,
     Method,
 )
-from .model import Model, ModelHash, default_compare
+from .model import VIRTUAL_INITIAL_MODEL, Model, ModelHash, default_compare
 from .models import Models
 from .problem import Problem
 
@@ -145,10 +144,7 @@ def start_iteration(
     predecessor_model = candidate_space.previous_predecessor_model
 
     # If the predecessor model has not yet been calibrated, then calibrate it.
-    if (
-        predecessor_model is not None
-        and predecessor_model != VIRTUAL_INITIAL_MODEL
-    ):
+    if predecessor_model.hash != VIRTUAL_INITIAL_MODEL.hash:
         if (
             predecessor_model.get_criterion(
                 criterion,
@@ -202,8 +198,7 @@ def start_iteration(
         ):
             return start_iteration_result(candidate_space=candidate_space)
 
-    if predecessor_model is not None:
-        candidate_space.reset(predecessor_model)
+    candidate_space.reset(predecessor_model)
 
     # FIXME store exclusions in candidate space only
     problem.model_space.exclude_model_hashes(model_hashes=excluded_hashes)
@@ -388,7 +383,7 @@ def write_summary_tsv(
     previous_predecessor_parameter_ids = set()
     if isinstance(previous_predecessor_model, Model):
         previous_predecessor_parameter_ids = set(
-            previous_predecessor_model.get_estimated_parameter_ids_all()
+            previous_predecessor_model.get_estimated_parameter_ids()
         )
 
     if predecessor_model is None:
@@ -397,7 +392,7 @@ def write_summary_tsv(
     predecessor_criterion = None
     if isinstance(predecessor_model, Model):
         predecessor_parameter_ids = set(
-            predecessor_model.get_estimated_parameter_ids_all()
+            predecessor_model.get_estimated_parameter_ids()
         )
         predecessor_criterion = predecessor_model.get_criterion(
             problem.criterion
@@ -412,7 +407,7 @@ def write_summary_tsv(
     diff_candidates_parameter_ids = []
     for candidate_model in candidate_space.models:
         candidate_parameter_ids = set(
-            candidate_model.get_estimated_parameter_ids_all()
+            candidate_model.get_estimated_parameter_ids()
         )
         diff_candidates_parameter_ids.append(
             list(
