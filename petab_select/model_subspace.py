@@ -264,7 +264,7 @@ class ModelSubspace:
                 raise NotImplementedError(
                     "The virtual initial model and method "
                     f"{candidate_space.method} is not implemented. "
-                    "Please report if this is desired."
+                    "Please report at https://github.com/PEtab-dev/petab_select/issues if this is desired."
                 )
         else:
             old_estimated_all = (
