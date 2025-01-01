@@ -551,16 +551,21 @@ class Model(ModelBase):
         if set_estimated_parameters is None and self.estimated_parameters:
             set_estimated_parameters = True
 
-        if set_estimated_parameters and (
-            missing_parameter_estimates := set(self.parameters).difference(
+        if set_estimated_parameters:
+            required_estimates = {
+                parameter_id
+                for parameter_id, value in self.parameters.items()
+                if value == ESTIMATE
+            }
+            missing_estimates = required_estimates.difference(
                 self.estimated_parameters
             )
-        ):
-            raise ValueError(
-                "Try again with `set_estimated_parameters=False`, because "
-                "some parameter estimates are missing. Missing estimates for: "
-                f"`{missing_parameter_estimates}`."
-            )
+            if missing_estimates:
+                raise ValueError(
+                    "Try again with `set_estimated_parameters=False`, because "
+                    "some parameter estimates are missing. Missing estimates for: "
+                    f"`{missing_estimates}`."
+                )
 
         for parameter_id, parameter_value in self.parameters.items():
             # If the parameter is to be estimated.
