@@ -152,5 +152,7 @@ Brief format description
 Schema
 ^^^^^^
 
+The format is provided as `YAML-formatted JSON schema <standard/model.yaml>`_, which enables easy validation with various third-party tools.
+
 .. literalinclude:: standard/model.yaml
    :language: yaml
