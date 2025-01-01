@@ -418,14 +418,13 @@ def write_summary_tsv(
         )
 
     # FIXME remove once MostDistantCandidateSpace exists...
+    #       which might be difficult to implement because the most
+    #       distant is a hypothetical model, which is then used to find a
+    #       real model in its neighborhood of the model space
     method = candidate_space.method
-    if (
-        isinstance(candidate_space, FamosCandidateSpace)
-        and isinstance(candidate_space.predecessor_model, Model)
-        and candidate_space.predecessor_model.predecessor_model_hash is None
-    ):
+    if isinstance(candidate_space, FamosCandidateSpace):
         with open(candidate_space.summary_tsv) as f:
-            if sum(1 for _ in f) > 1:
+            if f.readlines()[-1].startswith("Jumped"):
                 method = Method.MOST_DISTANT
 
     candidate_space.write_summary_tsv(
