@@ -38,7 +38,7 @@ test = [
     "amici >= 0.11.25",
     "fides >= 0.7.5",
     # "pypesto > 0.2.13",
-    "pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@select_class_models#egg=pypesto",
+    "pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@select_mkstd#egg=pypesto",
     "tox >= 3.12.4",
 ]
 doc = [
