@@ -1,0 +1,86 @@
+$defs:
+  Model:
+    description: "A model.\n\nSee :class:`ModelBase` for the standardized attributes.\
+      \ Additional\nattributes are available in ``Model`` to improve usability.\n\n\
+      Attributes:\n    _model_subspace_petab_problem:\n        The PEtab problem of\
+      \ the model subspace of this model.\n        If not provided, this is reconstructed\
+      \ from\n        :attr:`model_subspace_petab_yaml`."
+    properties:
+      model_subspace_id:
+        title: Model Subspace Id
+        type: string
+      model_subspace_indices:
+        items:
+          type: integer
+        title: Model Subspace Indices
+        type: array
+      criteria:
+        additionalProperties:
+          type: number
+        title: Criteria
+        type: object
+      model_hash:
+        $ref: '#/$defs/ModelHash'
+        default: null
+      model_subspace_petab_yaml:
+        anyOf:
+        - format: path
+          type: string
+        - type: 'null'
+        title: Model Subspace Petab Yaml
+      estimated_parameters:
+        anyOf:
+        - additionalProperties:
+            type: number
+          type: object
+        - type: 'null'
+        default: null
+        title: Estimated Parameters
+      iteration:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        title: Iteration
+      model_id:
+        default: null
+        title: Model Id
+        type: string
+      parameters:
+        additionalProperties:
+          anyOf:
+          - type: number
+          - type: integer
+          - const: estimate
+            type: string
+        title: Parameters
+        type: object
+      predecessor_model_hash:
+        $ref: '#/$defs/ModelHash'
+        default: null
+    required:
+    - model_subspace_id
+    - model_subspace_indices
+    - model_subspace_petab_yaml
+    - parameters
+    title: Model
+    type: object
+  ModelHash:
+    type: string
+description: 'A collection of models.
+
+
+  Provide a PEtab Select ``problem`` to the constructor or via
+
+  ``set_problem``, to use add models by hashes. This means that all models
+
+  must belong to the same PEtab Select problem.
+
+
+  This permits both ``list`` and ``dict`` operations -- see
+
+  :class:``ListDict`` for further details.'
+items:
+  $ref: '#/$defs/Model'
+title: Models
+type: array
