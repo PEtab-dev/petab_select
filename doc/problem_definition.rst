@@ -43,6 +43,14 @@ A YAML file with a description of the model selection problem.
    candidate_space_arguments:
      predecessor_model: predecessor_model.yaml
 
+Schema
+^^^^^^
+
+The schema is provided as `YAML-formatted JSON schema <_static/problem.yaml>`_, which enables easy validation with various third-party tools.
+
+.. literalinclude:: standard/model.yaml
+   :language: yaml
+
 2. Model space
 --------------
 
