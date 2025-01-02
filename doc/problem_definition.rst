@@ -152,7 +152,12 @@ Brief format description
 Schema
 ^^^^^^
 
-The schema is provided as `YAML-formatted JSON schema <_static/model.yaml>`_, which enables easy validation with various third-party tools. There is an additional schema for a `list of models in a single file <_static/models.yaml>`_.
+The schema are provided as YAML-formatted JSON schema, which enables easy validation with various third-party tools. Schema are provided for:
+
+- `a single model <_static/model.yaml>`_, and
+- `a list of models <_static/models.yaml>`_, which is simply a YAML list of the single model format.
+
+Below is the schema for a single model.
 
 .. literalinclude:: standard/model.yaml
    :language: yaml
