@@ -103,6 +103,12 @@ class Problem(BaseModel):
             ]
         )
 
+        if PREDECESSOR_MODEL in problem.candidate_space_arguments:
+            problem.candidate_space_arguments[PREDECESSOR_MODEL] = (
+                root_path
+                / problem.candidate_space_arguments[PREDECESSOR_MODEL]
+            )
+
         return problem
 
     @staticmethod
