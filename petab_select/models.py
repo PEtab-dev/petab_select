@@ -1,14 +1,23 @@
 from __future__ import annotations
 
+import copy
 import warnings
 from collections import Counter
 from collections.abc import Iterable, MutableSequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeAlias
 
+import mkstd
 import numpy as np
 import pandas as pd
-import yaml
+from pydantic import (
+    Field,
+    PrivateAttr,
+    RootModel,
+    ValidationInfo,
+    ValidatorFunctionWrapHandler,
+    model_validator,
+)
 
 from .constants import (
     CRITERIA,
@@ -42,14 +51,15 @@ if TYPE_CHECKING:
     ModelIndex: TypeAlias = int | ModelHash | slice | str | Iterable
 
 __all__ = [
-    "ListDict",
+    "_ListDict",
     "Models",
     "models_from_yaml_list",
     "models_to_yaml_list",
+    "ModelsStandard",
 ]
 
 
-class ListDict(MutableSequence):
+class _ListDict(RootModel, MutableSequence):
     """Acts like a ``list`` and a ``dict``.
 
     Not all methods are implemented -- feel free to request anything that you
@@ -73,18 +83,63 @@ class ListDict(MutableSequence):
         _hashes:
             The list of metadata (dictionary keys) (model hashes).
         _problem:
+            The PEtab Select problem.
     """
 
-    def __init__(
-        self, models: Iterable[ModelLike] = None, problem: Problem = None
-    ) -> Models:
-        self._models = []
-        self._hashes = []
-        self._problem = problem
+    root: list[Model] = Field(default_factory=list)
+    _hashes: list[ModelHash] = PrivateAttr(default_factory=list)
+    _problem: Problem | None = PrivateAttr(default=None)
 
-        if models is None:
-            models = []
-        self.extend(models)
+    @model_validator(mode="wrap")
+    def _check_kwargs(
+        kwargs: dict[str, list[ModelLike] | Problem] | list[ModelLike],
+        handler: ValidatorFunctionWrapHandler,
+        info: ValidationInfo,
+    ) -> Models:
+        """Handle `Models` creation from different sources."""
+        _models = []
+        _problem = None
+        if isinstance(kwargs, list):
+            _models = kwargs
+        elif isinstance(kwargs, dict):
+            # Identify the argument with the models
+            if "models" in kwargs and "root" in kwargs:
+                raise ValueError("Provide only one of `root` and `models`.")
+            _models = kwargs.get("models") or kwargs.get("root") or []
+
+            # Identify the argument with the PEtab Select problem
+            if "problem" in kwargs and "_problem" in kwargs:
+                raise ValueError(
+                    "Provide only one of `problem` and `_problem`."
+                )
+            _problem = kwargs.get("problem") or kwargs.get("_problem")
+
+            # Distribute model constructor kwargs to each model dict
+            if model_kwargs := kwargs.get("model_kwargs"):
+                for _model_index, _model in enumerate(_models):
+                    if not isinstance(_model, dict):
+                        raise ValueError(
+                            "`model_kwargs` are only intended to be used when "
+                            "constructing models from a YAML file."
+                        )
+                    _models[_model_index] = {**_model, **model_kwargs}
+
+        models = handler(_models)
+        models._problem = _problem
+        return models
+
+    @model_validator(mode="after")
+    def _check_typing(self: RootModel) -> RootModel:
+        """Fix model typing."""
+        models0 = self._models
+        self.root = []
+        # This also converts all model hashes into models.
+        self.extend(models0)
+        return self
+
+    @property
+    def _models(self) -> list[Model]:
+        return self.root
 
     def __repr__(self) -> str:
         """Get the model hashes that can regenerate these models.
@@ -97,7 +152,7 @@ class ListDict(MutableSequence):
     # skipped __lt__, __le__
 
     def __eq__(self, other) -> bool:
-        other_hashes = Models(other)._hashes
+        other_hashes = Models(models=other)._hashes
         same_length = len(self._hashes) == len(other_hashes)
         same_hashes = set(self._hashes) == set(other_hashes)
         return same_length and same_hashes
@@ -253,14 +308,16 @@ class ListDict(MutableSequence):
                 new_models = [self._problem.model_hash_to_model(other)]
             case Iterable():
                 # Assumes the models belong to the same PEtab Select problem.
-                new_models = Models(other, problem=self._problem)._models
+                new_models = Models(
+                    models=other, _problem=self._problem
+                )._models
             case _:
                 raise TypeError(f"Unexpected type: `{type(other)}`.")
 
         models = self._models + new_models
         if not left:
             models = new_models + self._models
-        return Models(models=models, problem=self._problem)
+        return Models(models=models, _problem=self._problem)
 
     def __radd__(self, other: ModelLike | ModelsLike) -> Models:
         return self.__add__(other=other, left=False)
@@ -271,7 +328,7 @@ class ListDict(MutableSequence):
     # skipped __mul__, __rmul__, __imul__
 
     def __copy__(self) -> Models:
-        return Models(models=self._models, problem=self._problem)
+        return Models(models=self._models, _problem=self._problem)
 
     def append(self, item: ModelLike) -> None:
         self._update(index=len(self), item=item)
@@ -307,7 +364,11 @@ class ListDict(MutableSequence):
         for model_like in other:
             self.append(model_like)
 
-    # __iter__/__next__? Not in UserList...
+    def __iter__(self):
+        return iter(self._models)
+
+    def __next__(self):
+        raise NotImplementedError
 
     # `dict` methods.
 
@@ -331,7 +392,7 @@ class ListDict(MutableSequence):
         return self
 
 
-class Models(ListDict):
+class Models(_ListDict):
     """A collection of models.
 
     Provide a PEtab Select ``problem`` to the constructor or via
@@ -364,70 +425,56 @@ class Models(ListDict):
 
     @staticmethod
     def from_yaml(
-        models_yaml: TYPE_PATH,
+        filename: TYPE_PATH,
         petab_problem: petab.Problem = None,
         problem: Problem = None,
     ) -> Models:
-        """Generate models from a PEtab Select list of model YAML file.
+        """Load models from a YAML file.
 
         Args:
-            models_yaml:
-                The path to the PEtab Select list of model YAML file.
+            filename:
+                Location of the YAML file.
             petab_problem:
-                Provide a preloaded copy of the PEtab problem. Note:
+                Provide a preloaded copy of the PEtab problem. N.B.:
                 all models should share the same PEtab problem if this is
                 provided.
             problem:
-                The PEtab Select problem.
+                The PEtab Select problem. N.B.: all models should belong to the
+                same PEtab Select problem if this is provided.
 
         Returns:
             The models.
         """
-        with open(str(models_yaml)) as f:
-            model_dict_list = yaml.safe_load(f)
-        if not model_dict_list:
-            # Empty file
-            models = []
-        elif isinstance(model_dict_list, dict):
-            # File contains a single model
-            model_dict_list = [model_dict_list]
-
-        models = [
-            Model.model_validate(
-                {
-                    **model_dict,
-                    ROOT_PATH: Path(models_yaml).parent,
-                    MODEL_SUBSPACE_PETAB_PROBLEM: petab_problem,
-                }
-            )
-            for model_dict in model_dict_list
-        ]
-
-        return Models(models=models, problem=problem)
+        return ModelsStandard.load_data(
+            filename=filename,
+            _problem=problem,
+            model_kwargs={
+                ROOT_PATH: Path(filename).parent,
+                MODEL_SUBSPACE_PETAB_PROBLEM: petab_problem,
+            },
+        )
 
     def to_yaml(
         self,
-        output_yaml: TYPE_PATH,
+        filename: TYPE_PATH,
         relative_paths: bool = True,
     ) -> None:
-        """Generate a YAML listing of models.
+        """Save models to a YAML file.
 
         Args:
-            output_yaml:
-                The location where the YAML will be saved.
+            filename:
+                Location of the YAML file.
             relative_paths:
                 Whether to rewrite the paths in each model (e.g. the path to the
                 model's PEtab problem) relative to the `output_yaml` location.
         """
-        paths_relative_to = None
+        models = self._models
         if relative_paths:
-            paths_relative_to = Path(output_yaml).parent
-        model_dicts = [
-            model.to_dict(paths_relative_to=paths_relative_to)
-            for model in self
-        ]
-        with open(output_yaml, "w") as f:
-            yaml.safe_dump(model_dicts, f)
+            root_path = Path(filename).parent
+            models = copy.deepcopy(models)
+            for model in models:
+                model.set_relative_paths(root_path=root_path)
+        ModelsStandard.save_data(data=models, filename=filename)
 
     def get_criterion(
         self,
@@ -573,3 +620,6 @@ def models_to_yaml_list(
     Models(models=models).to_yaml(
         output_yaml=output_yaml, relative_paths=relative_paths
     )
+
+
+ModelsStandard = mkstd.YamlStandard(model=Models)
