@@ -48,7 +48,7 @@ Schema
 
 The schema is provided as `YAML-formatted JSON schema <_static/problem.yaml>`_, which enables easy validation with various third-party tools.
 
-.. literalinclude:: standard/model.yaml
+.. literalinclude:: standard/problem.yaml
    :language: yaml
 
 2. Model space
