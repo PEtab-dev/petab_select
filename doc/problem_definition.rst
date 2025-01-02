@@ -63,7 +63,7 @@ all parameters.
    :header-rows: 1
 
    * - ``model_subspace_id``
-     - ``petab_yaml``
+     - ``model_subspace_petab_yaml``
      - ``parameter_id_1``
      - ...
      - ``parameter_id_n``
@@ -74,7 +74,7 @@ all parameters.
      - ...
 
 - ``model_subspace_id``: An ID for the model subspace.
-- ``petab_yaml``: The PEtab YAML filename that serves as the basis of all
+- ``model_subspace_petab_yaml``: The YAML filename of the PEtab problem that serves as the basis of all
   models in this subspace.
 - ``parameter_id_1`` ... ``parameter_id_n``: Specify the values that a
   parameter can take in the model subspace. For example, this could be:
