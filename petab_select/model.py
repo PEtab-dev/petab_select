@@ -359,21 +359,21 @@ class ModelBase(VirtualModelBase):
 
     def to_yaml(
         self,
-        yaml_path: str | Path,
+        filename: str | Path,
     ) -> None:
         """Save a model to a YAML file.
 
-        All paths will be made relative to the ``yaml_path`` directory.
+        All paths will be made relative to the ``filename`` directory.
 
         Args:
-            yaml_path:
-                The model YAML file location.
+            filename:
+                Location of the YAML file.
         """
-        root_path = Path(yaml_path).parent
+        root_path = Path(filename).parent
 
         model = copy.deepcopy(self)
         model.set_relative_paths(root_path=root_path)
-        ModelStandard.save_data(data=model, filename=yaml_path)
+        ModelStandard.save_data(data=model, filename=filename)
 
     def set_relative_paths(self, root_path: str | Path) -> None:
         """Change all paths to be relative to ``root_path``."""
@@ -683,16 +683,16 @@ class Model(ModelBase):
 
     @staticmethod
     def from_yaml(
-        yaml_path: str | Path,
+        filename: str | Path,
     ) -> Model:
         """Load a model from a YAML file.
 
         Args:
-            yaml_path:
-                The model YAML file location.
+            filename:
+                Location of the YAML file.
         """
         model = ModelStandard.load_data(
-            filename=yaml_path, root_path=yaml_path.parent
+            filename=filename, root_path=Path(filename).parent
         )
         return model
 
