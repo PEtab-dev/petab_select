@@ -466,7 +466,7 @@ class Models(_ListDict):
                 Location of the YAML file.
             relative_paths:
                 Whether to rewrite the paths in each model (e.g. the path to the
-                model's PEtab problem) relative to the `output_yaml` location.
+                model's PEtab problem) relative to the ``filename`` location.
         """
         models = self._models
         if relative_paths:

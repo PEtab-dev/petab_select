@@ -1,24 +1,17 @@
 """The `ModelSpace` class and related methods."""
 
-import itertools
 import logging
 import warnings
 from collections.abc import Iterable
 from pathlib import Path
-from tempfile import NamedTemporaryFile
-from typing import Any, TextIO, get_args
+from typing import Any, get_args
 
 import numpy as np
 import pandas as pd
 
 from .candidate_space import CandidateSpace
 from .constants import (
-    HEADER_ROW,
-    MODEL_ID_COLUMN,
     MODEL_SUBSPACE_ID,
-    PARAMETER_DEFINITIONS_START,
-    PARAMETER_VALUE_DELIMITER,
-    PETAB_YAML_COLUMN,
     TYPE_PATH,
 )
 from .model import Model
@@ -27,104 +20,7 @@ from .model_subspace import ModelSubspace
 __all__ = [
     "ModelSpace",
     "get_model_space_df",
-    "read_model_space_file",
-    "write_model_space_df",
 ]
-
-
-def read_model_space_file(filename: str) -> TextIO:
-    """Read a model space file.
-
-    The model space specification is currently expanded and written to a
-    temporary file.
-
-    Args:
-        filename:
-            The name of the file to be unpacked.
-
-    Returns:
-        A temporary file object, which is the unpacked file.
-    """
-    """
-    FIXME(dilpath)
-    Todo:
-        * Consider alternatives to `_{n}` suffix for model `modelId`
-        * How should the selected model be reported to the user? Remove the
-          `_{n}` suffix and report the original `modelId` alongside the
-          selected parameters? Generate a set of PEtab files with the
-          chosen SBML file and the parameters specified in a parameter or
-          condition file?
-        * Don't "unpack" file if it is already in the unpacked format
-        * Sort file after unpacking
-        * Remove duplicates?
-    """
-    # FIXME rewrite to just generate models from the original file, instead of
-    #       expanding all and writing to a file.
-    expanded_models_file = NamedTemporaryFile(mode="r+", delete=False)
-    with open(filename) as fh:
-        with open(expanded_models_file.name, "w") as ms_f:
-            # could replace `else` condition with ms_f.readline() here, and
-            # remove `if` statement completely
-            for line_index, line in enumerate(fh):
-                # Skip empty/whitespace-only lines
-                if not line.strip():
-                    continue
-                if line_index != HEADER_ROW:
-                    columns = line2row(line, unpacked=False)
-                    parameter_definitions = [
-                        definition.split(PARAMETER_VALUE_DELIMITER)
-                        for definition in columns[PARAMETER_DEFINITIONS_START:]
-                    ]
-                    for index, selection in enumerate(
-                        itertools.product(*parameter_definitions)
-                    ):
-                        # TODO change MODEL_ID_COLUMN and YAML_ID_COLUMN
-                        # to just MODEL_ID and YAML_FILENAME?
-                        ms_f.write(
-                            "\t".join(
-                                [
-                                    columns[MODEL_ID_COLUMN] + f"_{index}",
-                                    columns[PETAB_YAML_COLUMN],
-                                    *selection,
-                                ]
-                            )
-                            + "\n"
-                        )
-                else:
-                    ms_f.write(line)
-    # FIXME replace with some 'ModelSpaceManager' object
-    return expanded_models_file
-
-
-def line2row(
-    line: str,
-    delimiter: str = "\t",
-    unpacked: bool = True,
-    convert_parameters_to_float: bool = True,
-) -> list:
-    """Parse a line from a model space file.
-
-    Args:
-        line:
-            A line from a file with delimiter-separated columns.
-        delimiter:
-            The string that separates columns in the file.
-        unpacked:
-            Whether the line format is in the unpacked format. If ``False``,
-            parameter values are not converted to ``float``.
-        convert_parameters_to_float:
-            Whether parameters should be converted to ``float``.
-
-    Returns:
-        A list of column values. Parameter values are converted to ``float``.
-    """
-    columns = line.strip().split(delimiter)
-    metadata = columns[:PARAMETER_DEFINITIONS_START]
-    if unpacked and convert_parameters_to_float:
-        parameters = [float(p) for p in columns[PARAMETER_DEFINITIONS_START:]]
-    else:
-        parameters = columns[PARAMETER_DEFINITIONS_START:]
-    return metadata + parameters
 
 
 class ModelSpace:
@@ -296,24 +192,16 @@ class ModelSpace:
 
 
 def get_model_space_df(df: TYPE_PATH | pd.DataFrame) -> pd.DataFrame:
-    # model_space_df = pd.read_csv(filename, sep='\t', index_col=MODEL_SUBSPACE_ID)  # FIXME
+    """Get a model space dataframe.
+
+    Args:
+        The model space.
+
+    Returns:
+        The model space, appropriately formatted.
+    """
     if isinstance(df, get_args(TYPE_PATH)):
         df = pd.read_csv(df, sep="\t")
     if df.index.name != MODEL_SUBSPACE_ID:
         df.set_index([MODEL_SUBSPACE_ID], inplace=True)
     return df
-
-
-def write_model_space_df(df: pd.DataFrame, filename: TYPE_PATH) -> None:
-    df.to_csv(filename, sep="\t", index=True)
-
-
-# def get_model_space(
-#    filename: TYPE_PATH,
-# ) -> List[ModelSubspace]:
-#    model_space_df = get_model_space_df(filename)
-#    model_subspaces = []
-#    for definition in model_space_df.iterrows():
-#        model_subspaces.append(ModelSubspace.from_definition(definition))
-#    model_space = ModelSpace(model_subspaces=model_subspaces)
-#    return model_space
