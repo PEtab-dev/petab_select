@@ -34,8 +34,9 @@ A YAML file with a description of the model selection problem.
 - ``candidate_space_arguments``: Additional arguments used to generate
   candidate models during model selection. For example, an initial candidate
   model can be specified with the following code, where
-  ``predecessor_model.yaml`` is a valid model file. Additional arguments are
-  provided in the documentation of the ``CandidateSpace`` class.
+  ``predecessor_model.yaml`` is a valid :ref:`model file <section-model-yaml>`. Additional arguments are
+  provided in the documentation of the ``CandidateSpace`` class, and an example is provided in
+  `test case 0009 <https://github.com/PEtab-dev/petab_select/blob/main/test_cases/0009/petab_select_problem.yaml>`_.
 
 .. code-block:: yaml
 
@@ -81,6 +82,9 @@ all parameters.
     - ``0.0;1.1;estimate`` (the parameter can take the values ``0.0`` or
       ``1.1``, or be estimated)
 
+Example of concise specification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 Using the ``;``-delimited list format, a model subspace that has two parameters
 (``p1, p2``) and six models:
 
@@ -104,6 +108,8 @@ can be specified like
      - petab_problem.yaml
      - 0;estimate
      - 10;20;estimate
+
+.. _section-model-yaml:
 
 3. Model(s) (Predecessor models / model interchange / report)
 -------------------------------------------------------------
