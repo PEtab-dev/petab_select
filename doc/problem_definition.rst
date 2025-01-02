@@ -7,8 +7,8 @@ Model selection problems for PEtab Select are defined by the following files:
 #. a specification of the model space, and
 #. (optionally) a specification of the initial candidate model.
 
-The different file formats are described below. Each file format is a YAML file
-and comes with a YAML-formatted JSON schema, such that these files can be
+The different file formats are described below. The YAML file formats
+come with a YAML-formatted JSON schema, such that these files can be
 easily worked with independently of the PEtab Select library.
 
 1. Selection problem
