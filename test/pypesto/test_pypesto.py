@@ -47,6 +47,12 @@ def objective_customizer(obj):
     obj.amici_solver.setRelativeTolerance(1e-12)
 
 
+model_problem_options = {
+    "minimize_options": minimize_options,
+    "objective_customizer": objective_customizer,
+}
+
+
 @pytest.mark.parametrize(
     "test_case_path_stem",
     sorted(
@@ -72,8 +78,7 @@ def test_pypesto(test_case_path_stem):
 
     # Run the selection process until "exhausted".
     pypesto_select_problem.select_to_completion(
-        minimize_options=minimize_options,
-        objective_customizer=objective_customizer,
+        model_problem_options=model_problem_options,
     )
 
     # Get the best model
