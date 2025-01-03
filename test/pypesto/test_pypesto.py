@@ -88,8 +88,10 @@ def test_pypesto(test_case_path_stem):
     )
 
     # Get the best model
-    best_model = petab_select_problem.get_best(
+    best_model = petab_select.analyze.get_best(
         models=pypesto_select_problem.calibrated_models,
+        criterion=petab_select_problem.criterion,
+        compare=petab_select_problem.compare,
     )
 
     # Load the expected model.
@@ -113,7 +115,7 @@ def test_pypesto(test_case_path_stem):
 
 
 @pytest.mark.skipif(
-    os.getenv("GITHUB_ACTIONS"),
+    os.getenv("GITHUB_ACTIONS") == "true",
     reason="Too CPU heavy for CI.",
 )
 def test_famos_cli():
