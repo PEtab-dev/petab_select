@@ -113,7 +113,7 @@ def test_pypesto(test_case_path_stem):
 
 
 @pytest.mark.skipif(
-    os.getenv("CI"),
+    os.getenv("GITHUB_ACTIONS"),
     reason="Too CPU heavy for CI.",
 )
 def test_famos_cli():
