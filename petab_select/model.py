@@ -5,11 +5,11 @@ from __future__ import annotations
 import copy
 import warnings
 from os.path import relpath
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 import mkstd
 import petab.v1 as petab
+from mkstd import Path
 from petab.v1.C import NOMINAL_VALUE
 from pydantic import (
     BaseModel,
