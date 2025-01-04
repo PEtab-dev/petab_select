@@ -277,6 +277,7 @@ def end_iteration(
 
     # Finalize iteration results
     iteration_results = ui.end_iteration(
+        problem=problem,
         candidate_space=candidate_space,
         calibrated_models=calibrated_models,
     )
