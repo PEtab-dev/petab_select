@@ -1301,7 +1301,7 @@ class FamosCandidateSpace(CandidateSpace):
         # self.predecessor_model = None
         self.set_predecessor_model(None)
         self.best_model_of_current_run = None
-        self.models = [predecessor_model]
+        self.models = Models([predecessor_model])
 
         self.write_summary_tsv("Jumped to the most distant model.")
         self.update_method(self.method_scheme[(Method.MOST_DISTANT,)])
