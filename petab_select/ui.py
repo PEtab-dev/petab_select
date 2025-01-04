@@ -47,6 +47,7 @@ def start_iteration_result(candidate_space: CandidateSpace) -> dict[str, Any]:
     # will see. All models (user-supplied and newly-calibrated) will
     # have their iteration set (again) in `end_iteration`, via
     # `CandidateSpace.get_iteration_calibrated_models`
+    # TODO use problem.state.iteration instead
     for model in candidate_space.models:
         model.iteration = candidate_space.iteration
     return {
@@ -138,7 +139,8 @@ def start_iteration(
     candidate_space.criterion = criterion
 
     # Start a new iteration
-    candidate_space.iteration += 1
+    problem.state.increment_iteration()
+    candidate_space.iteration = problem.state.iteration
 
     # Set the predecessor model to the previous predecessor model.
     predecessor_model = candidate_space.previous_predecessor_model

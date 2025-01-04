@@ -42,8 +42,32 @@ __all__ = [
 
 
 class State(BaseModel):
+    """Carry the state of applying model selection methods to the problem."""
+
     models: Models = Field(default_factory=Models)
     """All calibrated models."""
+    iteration: int = Field(default=0)
+    """The latest iteration of model selection."""
+
+    def increment_iteration(self) -> None:
+        """Start the next iteration."""
+        self.iteration += 1
+
+    def reset(self) -> None:
+        """Reset the state.
+
+        N.B.: does not reset all state information, which currently also exists
+        in other classes. Open a GitHub issue if you see unusual behavior. A
+        quick fix is to simply recreate the PEtab Select problem, and any other
+        objects that you use, e.g. the candidate space, whenever you need a
+        full reset.
+        https://github.com/PEtab-dev/petab_select/issues
+        """
+        # FIXME state information is currently distributed across multiple
+        # classes, e.g. exclusions in model subspaces and candidate spaces.
+        # move all state information here.
+        self.models = Models()
+        self.iteration = 0
 
 
 class Problem(BaseModel):
