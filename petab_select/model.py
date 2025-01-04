@@ -88,18 +88,20 @@ class ModelHash(BaseModel):
 
         See documentation of Pydantic wrap validators.
         """
+        # Deprecate? Or introduce some `UNKNOWN_MODEL`?
+        if kwargs is None:
+            kwargs = VIRTUAL_INITIAL_MODEL.hash
+
         if isinstance(kwargs, ModelHash):
             return kwargs
-
-        if isinstance(kwargs, dict):
+        elif isinstance(kwargs, dict):
             kwargs[MODEL_SUBSPACE_INDICES_HASH] = (
                 ModelHash.hash_model_subspace_indices(
                     kwargs[MODEL_SUBSPACE_INDICES]
                 )
             )
             del kwargs[MODEL_SUBSPACE_INDICES]
-
-        if isinstance(kwargs, str):
+        elif isinstance(kwargs, str):
             kwargs = ModelHash.kwargs_from_str(hash_str=kwargs)
 
         expected_model_hash = None
@@ -676,13 +678,34 @@ class Model(ModelBase):
         ]
 
     @staticmethod
-    def from_yaml(filename: str | Path) -> Model:
-        """Load a model from a YAML file."""
+    def from_yaml(
+        filename: str | Path,
+        model_subspace_petab_problem: petab.Problem | None = None,
+    ) -> Model:
+        """Load a model from a YAML file.
+
+        Args:
+            filename:
+                The filename.
+            model_subspace_petab_problem:
+                A preloaded copy of the PEtab problem of the model subspace
+                that this model belongs to.
+        """
         model = ModelStandard.load_data(
             filename=filename,
             root_path=Path(filename).parent,
+            _model_subspace_petab_problem=model_subspace_petab_problem,
         )
         return model
+
+    def get_hash(self) -> ModelHash:
+        """Deprecated. Use `Model.hash` instead."""
+        warnings.warn(
+            "Use `Model.hash` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.hash
 
 
 def default_compare(
