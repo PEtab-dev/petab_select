@@ -18,7 +18,7 @@ from .analyze import (
     group_by_iteration,
 )
 from .constants import Criterion
-from .model import VIRTUAL_INITIAL_MODEL_HASH, Model, ModelHash
+from .model import VIRTUAL_INITIAL_MODEL_HASH, Model
 from .models import Models
 
 RELATIVE_LABEL_FONTSIZE = -2
@@ -537,11 +537,9 @@ def graph_iteration_layers(
             if model.hash not in labels
         }
         | {
-            ModelHash.from_hash(
-                model.predecessor_model_hash
-            ): model.predecessor_model_hash
+            model.predecessor_model_hash: model.predecessor_model_hash
             for model in models
-            if ModelHash.from_hash(model.predecessor_model_hash) not in labels
+            if model.predecessor_model_hash not in labels
         }
     )
     if augment_labels:
