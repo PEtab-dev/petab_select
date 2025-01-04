@@ -12,7 +12,7 @@ predecessor_model_hashes = set()
 for model in models:
     calibrate(model=model)
     predecessor_model_hashes |= {model.predecessor_model_hash}
-models.to_yaml(output_yaml=calibrated_models_yaml)
+models.to_yaml(filename=calibrated_models_yaml)
 
 if len(predecessor_model_hashes) == 0:
     pass
