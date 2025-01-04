@@ -41,42 +41,35 @@ __all__ = [
 ]
 
 
-class Problem(BaseModel):
-    """Handle everything related to the model selection problem.
+class State(BaseModel):
+    models: Models = Field(default_factory=Models)
+    """All calibrated models."""
 
-    Attributes:
-        model_space:
-            The model space.
-        calibrated_models:
-            Calibrated models. Will be used to augment the model selection
-            problem (e.g. by excluding them from the model space).
-        candidate_space_arguments:
-            Arguments are forwarded to the candidate space constructor.
-        compare:
-            A method that compares models by selection criterion. See
-            :func:`petab_select.model.default_compare` for an example.
-        criterion:
-            The criterion used to compare models.
-        method:
-            The method used to search the model space.
-        version:
-            The version of the PEtab Select format.
-        yaml_path:
-            The location of the selection problem YAML file. Used for relative
-            paths that exist in e.g. the model space files.
-    """
+
+class Problem(BaseModel):
+    """The model selection problem."""
 
     format_version: str = Field(default="1.0.0")
+    """The file format version."""
     criterion: Annotated[
         Criterion, PlainSerializer(lambda x: x.value, return_type=str)
     ]
+    """The criterion used to compare models."""
     method: Annotated[
         Method, PlainSerializer(lambda x: x.value, return_type=str)
     ]
+    """The method used to search the model space."""
     model_space_files: list[Path]
+    """The files that define the model space."""
     candidate_space_arguments: dict[str, Any] = Field(default_factory=dict)
+    """Method-specific arguments.
+
+    These are forwarded to the candidate space constructor.
+    """
 
     _compare: Callable[[Model, Model], bool] = PrivateAttr(default=None)
+    """The method by which models are compared."""
+    _state: State = PrivateAttr(default_factory=State)
 
     @model_validator(mode="wrap")
     def _check_input(
@@ -88,6 +81,8 @@ class Problem(BaseModel):
             return data
 
         compare = data.pop("compare", None) or data.pop("_compare", None)
+        if "state" in data:
+            data["_state"] = data["state"]
         root_path = Path(data.pop(ROOT_PATH, ""))
 
         problem = handler(data)
@@ -110,6 +105,10 @@ class Problem(BaseModel):
             )
 
         return problem
+
+    @property
+    def state(self) -> State:
+        return self._state
 
     @staticmethod
     def from_yaml(filename: TYPE_PATH) -> Problem:
