@@ -18,7 +18,7 @@ from .analyze import (
     group_by_iteration,
 )
 from .constants import Criterion
-from .model import VIRTUAL_INITIAL_MODEL_HASH, Model
+from .model import VIRTUAL_INITIAL_MODEL, Model
 from .models import Models
 
 RELATIVE_LABEL_FONTSIZE = -2
@@ -144,6 +144,7 @@ def line_best_by_iteration(
 
     ax.get_xticks()
     ax.set_xticks(list(range(len(criterion_values))))
+    ax.set_xlabel("Iteration and model", fontsize=fz)
     ax.set_ylabel((r"$\Delta$" if relative else "") + criterion, fontsize=fz)
     # could change to compared_model_ids, if all models are plotted
     ax.set_xticklabels(
@@ -217,7 +218,7 @@ def graph_history(
             for model in models
         }
     labels = labels.copy()
-    labels[VIRTUAL_INITIAL_MODEL_HASH] = "Virtual\nInitial\nModel"
+    labels[VIRTUAL_INITIAL_MODEL.hash] = "Virtual\nInitial\nModel"
 
     G = nx.DiGraph()
     edges = []
@@ -502,8 +503,8 @@ def graph_iteration_layers(
         [model.hash for model in iteration_models]
         for iteration_models in group_by_iteration(models).values()
     ]
-    if VIRTUAL_INITIAL_MODEL_HASH in ancestry.values():
-        ordering.insert(0, [VIRTUAL_INITIAL_MODEL_HASH])
+    if VIRTUAL_INITIAL_MODEL.hash in ancestry.values():
+        ordering.insert(0, [VIRTUAL_INITIAL_MODEL.hash])
 
     model_estimated_parameters = {
         model.hash: set(model.estimated_parameters) for model in models
@@ -529,6 +530,9 @@ def graph_iteration_layers(
     }
 
     labels = labels or {}
+    labels[VIRTUAL_INITIAL_MODEL.hash] = labels.get(
+        VIRTUAL_INITIAL_MODEL.hash, "Virtual\nInitial\nModel"
+    )
     labels = (
         labels
         | {
@@ -580,7 +584,7 @@ def graph_iteration_layers(
         labels = {
             model_hash: (
                 label0
-                if model_hash == VIRTUAL_INITIAL_MODEL_HASH
+                if model_hash == VIRTUAL_INITIAL_MODEL.hash
                 else "\n".join(
                     [
                         label0,
