@@ -241,6 +241,7 @@ def start_iteration(
 
 
 def end_iteration(
+    problem: Problem,
     candidate_space: CandidateSpace,
     calibrated_models: Models,
 ) -> dict[str, Models | bool | CandidateSpace]:
@@ -253,6 +254,8 @@ def end_iteration(
     ends.
 
     Args:
+        problem:
+            The PEtab Select problem.
         candidate_space:
             The candidate space.
         calibrated_models:
@@ -297,6 +300,8 @@ def end_iteration(
     iteration_results[TERMINATE] = terminate
 
     iteration_results[CANDIDATE_SPACE] = candidate_space
+
+    problem.state.models.extend(iteration_results[MODELS])
 
     return iteration_results
 
