@@ -102,12 +102,12 @@ class _ListDict(RootModel, MutableSequence):
         if isinstance(kwargs, list):
             _models = kwargs
         elif isinstance(kwargs, dict):
-            # Identify the argument with the models
+            # Identify the models
             if "models" in kwargs and "root" in kwargs:
                 raise ValueError("Provide only one of `root` and `models`.")
             _models = kwargs.get("models") or kwargs.get("root") or []
 
-            # Identify the argument with the PEtab Select problem
+            # Identify the PEtab Select problem
             if "problem" in kwargs and "_problem" in kwargs:
                 raise ValueError(
                     "Provide only one of `problem` and `_problem`."
@@ -426,7 +426,7 @@ class Models(_ListDict):
     @staticmethod
     def from_yaml(
         filename: TYPE_PATH,
-        petab_problem: petab.Problem = None,
+        model_subspace_petab_problem: petab.Problem = None,
         problem: Problem = None,
     ) -> Models:
         """Load models from a YAML file.
@@ -434,10 +434,12 @@ class Models(_ListDict):
         Args:
             filename:
                 Location of the YAML file.
-            petab_problem:
-                Provide a preloaded copy of the PEtab problem. N.B.:
+            model_subspace_petab_problem:
+                A preloaded copy of the PEtab problem. N.B.:
                 all models should share the same PEtab problem if this is
-                provided.
+                provided (e.g. all models belong to the same model subspace,
+                or all model subspaces have the same
+                ``model_subspace_petab_yaml`` in the model space file(s)).
             problem:
                 The PEtab Select problem. N.B.: all models should belong to the
                 same PEtab Select problem if this is provided.
@@ -445,12 +447,21 @@ class Models(_ListDict):
         Returns:
             The models.
         """
+        # Handle single-model files, for backwards compatibility.
+        try:
+            model = Model.from_yaml(
+                filename=filename,
+                model_subspace_petab_problem=model_subspace_petab_problem,
+            )
+            return Models([model])
+        except:  # noqa: S110
+            pass
         return ModelsStandard.load_data(
             filename=filename,
             _problem=problem,
             model_kwargs={
                 ROOT_PATH: Path(filename).parent,
-                MODEL_SUBSPACE_PETAB_PROBLEM: petab_problem,
+                MODEL_SUBSPACE_PETAB_PROBLEM: model_subspace_petab_problem,
             },
         )
 
