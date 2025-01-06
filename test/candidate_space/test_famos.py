@@ -5,7 +5,7 @@ import pytest
 from more_itertools import one
 
 import petab_select
-from petab_select import Method
+from petab_select import Method, Models
 from petab_select.constants import (
     CANDIDATE_SPACE,
     MODEL_HASH,
@@ -126,8 +126,7 @@ def test_famos(
         return progress_list
 
     progress_list = []
-    all_calibrated_models = {}
-    calibrated_models = {}
+    all_calibrated_models = Models()
 
     candidate_space = petab_select_problem.new_candidate_space()
     candidate_space.summary_tsv.unlink(missing_ok=True)
@@ -145,7 +144,7 @@ def test_famos(
             )
 
             # Calibrate candidate models
-            calibrated_models = {}
+            calibrated_models = Models()
             for candidate_model in iteration[UNCALIBRATED_MODELS]:
                 calibrate(candidate_model)
                 calibrated_models[candidate_model.get_hash()] = candidate_model
@@ -155,7 +154,7 @@ def test_famos(
                 candidate_space=iteration[CANDIDATE_SPACE],
                 calibrated_models=calibrated_models,
             )
-            all_calibrated_models.update(iteration_results[MODELS])
+            all_calibrated_models += iteration_results[MODELS]
             candidate_space = iteration_results[CANDIDATE_SPACE]
 
             # Stop iteration if there are no candidate models

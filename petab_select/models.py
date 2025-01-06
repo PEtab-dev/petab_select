@@ -4,11 +4,22 @@ import warnings
 from collections import Counter
 from collections.abc import Iterable, MutableSequence
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 
+import numpy as np
+import pandas as pd
 import yaml
 
-from .constants import TYPE_PATH
+from .constants import (
+    CRITERIA,
+    ESTIMATED_PARAMETERS,
+    ITERATION,
+    MODEL_HASH,
+    MODEL_ID,
+    PREDECESSOR_MODEL_HASH,
+    TYPE_PATH,
+    Criterion,
+)
 from .model import (
     Model,
     ModelHash,
@@ -112,7 +123,6 @@ class ListDict(MutableSequence):
                 case ModelHash() | str():
                     return self._models[self._hashes.index(key)]
                 case slice():
-                    print(key)
                     return self.__class__(self._models[key])
                 case Iterable():
                     # TODO sensible to yield here?
@@ -306,6 +316,15 @@ class ListDict(MutableSequence):
         except KeyError:
             return default
 
+    def values(self) -> Models:
+        """Get the models. DEPRECATED."""
+        warnings.warn(
+            "`models.values()` is deprecated. Use `models` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self
+
 
 class Models(ListDict):
     """A collection of models.
@@ -407,6 +426,113 @@ class Models(ListDict):
         ]
         with open(output_yaml, "w") as f:
             yaml.safe_dump(model_dicts, f)
+
+    def get_criterion(
+        self,
+        criterion: Criterion,
+        as_dict: bool = False,
+        relative: bool = False,
+    ) -> list[float] | dict[ModelHash, float]:
+        """Get the criterion value for all models.
+
+        Args:
+            criterion:
+                The criterion.
+            as_dict:
+                Whether to return a dictionary, with model hashes for keys.
+            relative:
+                Whether to compute criterion values relative to the
+                smallest criterion value.
+
+        Returns:
+            The criterion values.
+        """
+        result = [model.get_criterion(criterion=criterion) for model in self]
+        if relative:
+            result = list(np.array(result) - min(result))
+        if as_dict:
+            result = dict(zip(self._hashes, result, strict=False))
+        return result
+
+    def _getattr(
+        self,
+        attr: str,
+        key: Any = None,
+        use_default: bool = False,
+        default: Any = None,
+    ) -> list[Any]:
+        """Get an attribute of each model.
+
+        Args:
+            attr:
+                The name of the attribute (e.g. ``MODEL_ID``).
+            key:
+                The key of the attribute, if you want to further subset.
+                For example, if ``attr=ESTIMATED_PARAMETERS``, this could
+                be a specific parameter ID.
+            use_default:
+                Whether to use a default value for models that are missing
+                ``attr`` or ``key``.
+            default:
+                Value to use for models that do not have ``attr`` or ``key``,
+                if ``use_default==True``.
+
+        Returns:
+            The list of attribute values.
+        """
+        # FIXME remove when model is `dataclass`
+        values = []
+        for model in self:
+            try:
+                value = getattr(model, attr)
+            except:
+                if not use_default:
+                    raise
+                value = default
+
+            if key is not None:
+                try:
+                    value = value[key]
+                except:
+                    if not use_default:
+                        raise
+                    value = default
+
+            values.append(value)
+        return values
+
+    @property
+    def df(self) -> pd.DataFrame:
+        """Get a dataframe of model attributes."""
+        return pd.DataFrame(
+            {
+                MODEL_ID: self._getattr(MODEL_ID),
+                MODEL_HASH: self._getattr(MODEL_HASH),
+                Criterion.NLLH: self._getattr(
+                    CRITERIA, Criterion.NLLH, use_default=True
+                ),
+                Criterion.AIC: self._getattr(
+                    CRITERIA, Criterion.AIC, use_default=True
+                ),
+                Criterion.AICC: self._getattr(
+                    CRITERIA, Criterion.AICC, use_default=True
+                ),
+                Criterion.BIC: self._getattr(
+                    CRITERIA, Criterion.BIC, use_default=True
+                ),
+                ITERATION: self._getattr(ITERATION, use_default=True),
+                PREDECESSOR_MODEL_HASH: self._getattr(
+                    PREDECESSOR_MODEL_HASH, use_default=True
+                ),
+                ESTIMATED_PARAMETERS: self._getattr(
+                    ESTIMATED_PARAMETERS, use_default=True
+                ),
+            }
+        )
+
+    @property
+    def hashes(self) -> list[ModelHash]:
+        return self._hashes
 
 
 def models_from_yaml_list(

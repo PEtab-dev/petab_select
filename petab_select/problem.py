@@ -8,6 +8,7 @@ from typing import Any
 
 import yaml
 
+from .analyze import get_best
 from .candidate_space import CandidateSpace, method_to_candidate_space_class
 from .constants import (
     CANDIDATE_SPACE_ARGUMENTS,
@@ -242,25 +243,20 @@ class Problem:
         Returns:
             The best model.
         """
+        warnings.warn(
+            "Use ``petab_select.analyze.get_best`` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if criterion is None:
             criterion = self.criterion
 
-        best_model = None
-        for model in models:
-            if compute_criterion and not model.has_criterion(criterion):
-                model.get_criterion(criterion)
-            if best_model is None:
-                if model.has_criterion(criterion):
-                    best_model = model
-                # TODO warn if criterion is not available?
-                continue
-            if self.compare(best_model, model, criterion=criterion):
-                best_model = model
-        if best_model is None:
-            raise KeyError(
-                f"None of the supplied models have a value set for the criterion {criterion}."
-            )
-        return best_model
+        return get_best(
+            models=models,
+            criterion=criterion,
+            compare=self.compare,
+            compute_criterion=compute_criterion,
+        )
 
     def model_hash_to_model(self, model_hash: str | ModelHash) -> Model:
         """Get the model that matches a model hash.

@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 import petab.v1 as petab
 
+from . import analyze
 from .candidate_space import CandidateSpace, FamosCandidateSpace
 from .constants import (
     CANDIDATE_SPACE,
@@ -32,7 +33,23 @@ __all__ = [
 ]
 
 
-def get_iteration(candidate_space: CandidateSpace) -> dict[str, Any]:
+def start_iteration_result(candidate_space: CandidateSpace) -> dict[str, Any]:
+    """Get the state after starting the iteration.
+
+    Args:
+        candidate_space:
+            The candidate space.
+
+    Returns:
+        The candidate space, the uncalibrated models, and the predecessor
+        model.
+    """
+    # Set model iteration for the models that the calibration tool
+    # will see. All models (user-supplied and newly-calibrated) will
+    # have their iteration set (again) in `end_iteration`, via
+    # `CandidateSpace.get_iteration_calibrated_models`
+    for model in candidate_space.models:
+        model.iteration = candidate_space.iteration
     return {
         CANDIDATE_SPACE: candidate_space,
         UNCALIBRATED_MODELS: candidate_space.models,
@@ -121,6 +138,9 @@ def start_iteration(
         raise ValueError("Please provide a criterion.")
     candidate_space.criterion = criterion
 
+    # Start a new iteration
+    candidate_space.iteration += 1
+
     # Set the predecessor model to the previous predecessor model.
     predecessor_model = candidate_space.previous_predecessor_model
 
@@ -143,7 +163,7 @@ def start_iteration(
             candidate_space.set_iteration_user_calibrated_models(
                 user_calibrated_models=user_calibrated_models
             )
-            return get_iteration(candidate_space=candidate_space)
+            return start_iteration_result(candidate_space=candidate_space)
 
         # Exclude the calibrated predecessor model.
         if not candidate_space.excluded(predecessor_model):
@@ -156,9 +176,10 @@ def start_iteration(
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
     if candidate_space.latest_iteration_calibrated_models:
-        predecessor_model = problem.get_best(
-            candidate_space.latest_iteration_calibrated_models,
+        predecessor_model = analyze.get_best(
+            models=candidate_space.latest_iteration_calibrated_models,
             criterion=criterion,
+            compare=problem.compare,
         )
         # If the new predecessor model isn't better than the previous one,
         # keep the previous one.
@@ -179,7 +200,7 @@ def start_iteration(
             isinstance(candidate_space, FamosCandidateSpace)
             and candidate_space.jumped_to_most_distant
         ):
-            return get_iteration(candidate_space=candidate_space)
+            return start_iteration_result(candidate_space=candidate_space)
 
     if predecessor_model is not None:
         candidate_space.reset(predecessor_model)
@@ -221,7 +242,7 @@ def start_iteration(
     candidate_space.set_iteration_user_calibrated_models(
         user_calibrated_models=user_calibrated_models
     )
-    return get_iteration(candidate_space=candidate_space)
+    return start_iteration_result(candidate_space=candidate_space)
 
 
 def end_iteration(
@@ -332,7 +353,7 @@ def models_to_petab(
 def get_best(
     problem: Problem,
     models: list[Model],
-    criterion: str | None | None = None,
+    criterion: str | Criterion | None = None,
 ) -> Model:
     """Get the best model from a list of models.
 
@@ -349,7 +370,10 @@ def get_best(
         The best model.
     """
     # TODO return list, when multiple models are equally "best"
-    return problem.get_best(models=models, criterion=criterion)
+    criterion = criterion or problem.criterion
+    return analyze.get_best(
+        models=models, criterion=criterion, compare=problem.compare
+    )
 
 
 def write_summary_tsv(

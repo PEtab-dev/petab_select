@@ -12,10 +12,14 @@ import networkx as nx
 import numpy as np
 import upsetplot
 from more_itertools import one
-from toposort import toposort
 
-from .constants import VIRTUAL_INITIAL_MODEL, Criterion
-from .model import Model, ModelHash
+from .analyze import (
+    get_best_by_iteration,
+    group_by_iteration,
+)
+from .constants import Criterion
+from .model import VIRTUAL_INITIAL_MODEL_HASH, Model, ModelHash
+from .models import Models
 
 RELATIVE_LABEL_FONTSIZE = -2
 NORMAL_NODE_COLOR = "darkgrey"
@@ -25,80 +29,14 @@ __all__ = [
     "bar_criterion_vs_models",
     "graph_history",
     "graph_iteration_layers",
-    "line_selected",
+    "line_best_by_iteration",
     "scatter_criterion_vs_n_estimated",
     "upset",
 ]
 
 
-def get_model_hashes(models: list[Model]) -> dict[str, Model]:
-    """Get the model hash to model mapping.
-
-    Args:
-        models:
-            The models.
-
-    Returns:
-        The mapping.
-    """
-    model_hashes = {model.get_hash(): model for model in models}
-    return model_hashes
-
-
-def get_selected_models(
-    models: list[Model],
-    criterion: Criterion,
-) -> list[Model]:
-    """Get the models that strictly improved on their predecessors.
-
-    Args:
-        models:
-            The models.
-        criterion:
-            The criterion
-
-    Returns:
-        The strictly improving models.
-    """
-    criterion_value0 = np.inf
-    model0 = None
-    model_hashes = get_model_hashes(models)
-    for model in models:
-        criterion_value = model.get_criterion(criterion)
-        if criterion_value < criterion_value0:
-            criterion_value0 = criterion_value
-            model0 = model
-
-    selected_models = [model0]
-    while True:
-        model0 = selected_models[-1]
-        model1 = model_hashes.get(model0.predecessor_model_hash, None)
-        if model1 is None:
-            break
-        selected_models.append(model1)
-
-    return selected_models[::-1]
-
-
-def get_relative_criterion_values(
-    criterion_values: dict[str, float] | list[float],
-) -> dict[str, float] | list[float]:
-    values = criterion_values
-    if isinstance(criterion_values, dict):
-        values = criterion_values.values()
-
-    value0 = np.inf
-    for value in values:
-        if value < value0:
-            value0 = value
-
-    if isinstance(criterion_values, dict):
-        return {k: v - value0 for k, v in criterion_values.items()}
-    return [v - value0 for v in criterion_values]
-
-
 def upset(
-    models: list[Model], criterion: Criterion
+    models: Models, criterion: Criterion
 ) -> dict[str, matplotlib.axes.Axes | None]:
     """Plot an UpSet plot of estimated parameters and criterion.
 
@@ -112,16 +50,15 @@ def upset(
         The plot axes (see documentation from the `upsetplot <https://upsetplot.readthedocs.io/>`__ package).
     """
     # Get delta criterion values
-    values = np.array(
-        get_relative_criterion_values(
-            [model.get_criterion(criterion) for model in models]
-        )
-    )
+    values = np.array(models.get_criterion(criterion=criterion, relative=True))
 
     # Sort by criterion value
     index = np.argsort(values)
     values = values[index]
-    labels = [models[i].get_estimated_parameter_ids_all() for i in index]
+    labels = [
+        model.get_estimated_parameter_ids_all()
+        for model in np.array(models)[index]
+    ]
 
     with warnings.catch_warnings():
         # TODO remove warnings context manager when fixed in upsetplot package
@@ -137,8 +74,8 @@ def upset(
     return axes
 
 
-def line_selected(
-    models: list[Model],
+def line_best_by_iteration(
+    models: Models,
     criterion: Criterion,
     relative: bool = True,
     fz: int = 14,
@@ -168,7 +105,9 @@ def line_selected(
     Returns:
         The plot axes.
     """
-    models = get_selected_models(models=models, criterion=criterion)
+    best_by_iteration = get_best_by_iteration(
+        models=models, criterion=criterion
+    )
 
     if labels is None:
         labels = {}
@@ -178,20 +117,22 @@ def line_selected(
         _, ax = plt.subplots(figsize=(5, 4))
     linewidth = 3
 
-    models = [model for model in models if model != VIRTUAL_INITIAL_MODEL]
+    iterations = sorted(best_by_iteration)
+    best_models = Models(
+        [best_by_iteration[iteration] for iteration in iterations]
+    )
+    iteration_labels = [
+        str(iteration) + f"\n({labels.get(model.get_hash(), model.model_id)})"
+        for iteration, model in zip(iterations, best_models, strict=True)
+    ]
 
-    criterion_values = {
-        labels.get(model.get_hash(), model.model_id): model.get_criterion(
-            criterion
-        )
-        for model in models
-    }
-    if relative:
-        criterion_values = get_relative_criterion_values(criterion_values)
+    criterion_values = best_models.get_criterion(
+        criterion=criterion, relative=relative
+    )
 
     ax.plot(
-        criterion_values.keys(),
-        criterion_values.values(),
+        iteration_labels,
+        criterion_values,
         linewidth=linewidth,
         color=NORMAL_NODE_COLOR,
         marker="x",
@@ -206,11 +147,12 @@ def line_selected(
     ax.set_ylabel((r"$\Delta$" if relative else "") + criterion, fontsize=fz)
     # could change to compared_model_ids, if all models are plotted
     ax.set_xticklabels(
-        criterion_values.keys(),
+        ax.get_xticklabels(),
         fontsize=fz + RELATIVE_LABEL_FONTSIZE,
     )
-    for tick in ax.yaxis.get_major_ticks():
-        tick.label1.set_fontsize(fz + RELATIVE_LABEL_FONTSIZE)
+    ax.yaxis.set_tick_params(
+        which="major", labelsize=fz + RELATIVE_LABEL_FONTSIZE
+    )
     ytl = ax.get_yticks()
     ax.set_ylim([min(ytl), max(ytl)])
     # removing top and right borders
@@ -220,7 +162,7 @@ def line_selected(
 
 
 def graph_history(
-    models: list[Model],
+    models: Models,
     criterion: Criterion = None,
     labels: dict[str, str] = None,
     colors: dict[str, str] = None,
@@ -259,27 +201,23 @@ def graph_history(
     default_spring_layout_kwargs = {"k": 1, "iterations": 20}
     if spring_layout_kwargs is None:
         spring_layout_kwargs = default_spring_layout_kwargs
-    model_hashes = get_model_hashes(models)
 
-    criterion_values = {
-        model_hash: model.get_criterion(criterion)
-        for model_hash, model in model_hashes.items()
-    }
-    if relative:
-        criterion_values = get_relative_criterion_values(criterion_values)
+    criterion_values = models.get_criterion(
+        criterion=criterion, relative=relative, as_dict=True
+    )
 
     if labels is None:
         labels = {
-            model_hash: model.model_id
+            model.get_hash(): model.model_id
             + (
-                f"\n{criterion_values[model_hash]:.2f}"
+                f"\n{criterion_values[model.get_hash()]:.2f}"
                 if criterion is not None
                 else ""
             )
-            for model_hash, model in model_hashes.items()
+            for model in models
         }
     labels = labels.copy()
-    labels[VIRTUAL_INITIAL_MODEL] = "Virtual\nInitial\nModel"
+    labels[VIRTUAL_INITIAL_MODEL_HASH] = "Virtual\nInitial\nModel"
 
     G = nx.DiGraph()
     edges = []
@@ -289,8 +227,8 @@ def graph_history(
             from_ = labels.get(predecessor_model_hash, predecessor_model_hash)
             # may only not be the case for
             # COMPARED_MODEL_ID == INITIAL_VIRTUAL_MODEL
-            if predecessor_model_hash in model_hashes:
-                predecessor_model = model_hashes[predecessor_model_hash]
+            if predecessor_model_hash in models:
+                predecessor_model = models[predecessor_model_hash]
                 from_ = labels.get(
                     predecessor_model.get_hash(),
                     predecessor_model.model_id,
@@ -370,29 +308,24 @@ def bar_criterion_vs_models(
     Returns:
         The plot axes.
     """
-    model_hashes = get_model_hashes(models)
-
     if bar_kwargs is None:
         bar_kwargs = {}
 
     if labels is None:
-        labels = {
-            model_hash: model.model_id
-            for model_hash, model in model_hashes.items()
-        }
+        labels = {model.get_hash(): model.model_id for model in models}
 
     if ax is None:
         _, ax = plt.subplots()
 
-    criterion_values = {
-        labels.get(model.get_hash(), model.model_id): model.get_criterion(
-            criterion
-        )
-        for model in models
-    }
+    bar_model_labels = [
+        labels.get(model.get_hash(), model.model_id) for model in models
+    ]
+    criterion_values = models.get_criterion(
+        criterion=criterion, relative=relative
+    )
 
     if colors is not None:
-        if label_diff := set(colors).difference(criterion_values):
+        if label_diff := set(colors).difference(bar_model_labels):
             raise ValueError(
                 "Colors were provided for the following model labels, but "
                 f"these are not in the graph: {label_diff}"
@@ -403,10 +336,8 @@ def bar_criterion_vs_models(
             for model_label in criterion_values
         ]
 
-    if relative:
-        criterion_values = get_relative_criterion_values(criterion_values)
-    ax.bar(criterion_values.keys(), criterion_values.values(), **bar_kwargs)
-    ax.set_xlabel("Model labels")
+    ax.bar(bar_model_labels, criterion_values, **bar_kwargs)
+    ax.set_xlabel("Model")
     ax.set_ylabel(
         (r"$\Delta$" if relative else "") + criterion,
     )
@@ -453,11 +384,9 @@ def scatter_criterion_vs_n_estimated(
     Returns:
         The plot axes.
     """
-    model_hashes = get_model_hashes(models)
-
     labels = {
-        model_hash: labels.get(model.model_id, model.model_id)
-        for model_hash, model in model_hashes.items()
+        model.get_hash(): labels.get(model.model_id, model.model_id)
+        for model in models
     }
 
     if scatter_kwargs is None:
@@ -475,12 +404,12 @@ def scatter_criterion_vs_n_estimated(
         ]
 
     n_estimated = []
-    criterion_values = []
     for model in models:
         n_estimated.append(len(model.get_estimated_parameter_ids_all()))
-        criterion_values.append(model.get_criterion(criterion))
-    if relative:
-        criterion_values = get_relative_criterion_values(criterion_values)
+
+    criterion_values = models.get_criterion(
+        criterion=criterion, relative=relative
+    )
 
     if max_jitter:
         n_estimated = np.array(n_estimated, dtype=float)
@@ -553,11 +482,8 @@ def graph_iteration_layers(
     Returns:
         The plot axes.
     """
-
     if ax is None:
         _, ax = plt.subplots(figsize=(20, 10))
-
-    model_hashes = {model.get_hash(): model for model in models}
 
     default_draw_networkx_kwargs = {
         #'node_color': NORMAL_NODE_COLOR,
@@ -573,20 +499,20 @@ def graph_iteration_layers(
         model.get_hash(): model.predecessor_model_hash for model in models
     }
     ancestry_as_set = {k: {v} for k, v in ancestry.items()}
-    ordering = [list(hashes) for hashes in toposort(ancestry_as_set)]
+
+    ordering = [
+        [model.get_hash() for model in iteration_models]
+        for iteration_models in group_by_iteration(models).values()
+    ]
+    if VIRTUAL_INITIAL_MODEL_HASH in ancestry.values():
+        ordering.insert(0, [VIRTUAL_INITIAL_MODEL_HASH])
 
     model_estimated_parameters = {
         model.get_hash(): set(model.estimated_parameters) for model in models
     }
-    model_criterion_values = None
-    model_criterion_values = {
-        model.get_hash(): model.get_criterion(criterion) for model in models
-    }
-
-    min_criterion_value = min(model_criterion_values.values())
-    model_criterion_values = {
-        k: v - min_criterion_value for k, v in model_criterion_values.items()
-    }
+    model_criterion_values = models.get_criterion(
+        criterion=criterion, relative=relative, as_dict=True
+    )
 
     model_parameter_diffs = {
         model.get_hash(): (
@@ -658,7 +584,7 @@ def graph_iteration_layers(
         labels = {
             model_hash: (
                 label0
-                if model_hash == ModelHash.from_hash(VIRTUAL_INITIAL_MODEL)
+                if model_hash == VIRTUAL_INITIAL_MODEL_HASH
                 else "\n".join(
                     [
                         label0,
@@ -731,7 +657,7 @@ def graph_iteration_layers(
 
     # Add `n=...` labels
     N = [len(y) for y in Y]
-    for x, n in zip(X, N, strict=False):
+    for x, n in zip(X, N, strict=True):
         ax.annotate(
             f"n={n}",
             xy=(x, 1.1),
