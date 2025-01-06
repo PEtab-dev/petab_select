@@ -19,7 +19,7 @@ test_cases = [
 
 # Do not use computationally-expensive test cases in CI
 skip_test_cases = [
-    "0009",
+    # "0009",
 ]
 
 test_cases_path = Path(__file__).resolve().parent.parent.parent / "test_cases"
@@ -41,50 +41,45 @@ def objective_customizer(obj):
     obj.amici_solver.setRelativeTolerance(1e-12)
 
 
-# Indentation to match `test_pypesto.py`, to make it easier to keep files similar.
-if True:
-    for test_case_path in test_cases_path.glob("*"):
-        if test_cases and test_case_path.stem not in test_cases:
-            continue
+for test_case_path in test_cases_path.glob("*"):
+    if test_cases and test_case_path.stem not in test_cases:
+        continue
 
-        if test_case_path.stem in skip_test_cases:
-            continue
+    if test_case_path.stem in skip_test_cases:
+        continue
 
-        expected_model_yaml = test_case_path / "expected.yaml"
+    expected_model_yaml = test_case_path / "expected.yaml"
 
-        if (
-            SKIP_TEST_CASES_WITH_PREEXISTING_EXPECTED_MODEL
-            and expected_model_yaml.is_file()
-        ):
-            # Skip test cases that already have an expected model.
-            continue
-        print(f"Running test case {test_case_path.stem}")
+    if (
+        SKIP_TEST_CASES_WITH_PREEXISTING_EXPECTED_MODEL
+        and expected_model_yaml.is_file()
+    ):
+        # Skip test cases that already have an expected model.
+        continue
+    print(f"Running test case {test_case_path.stem}")
 
-        # Setup the pyPESTO model selector instance.
-        petab_select_problem = petab_select.Problem.from_yaml(
-            test_case_path / "petab_select_problem.yaml",
-        )
-        pypesto_select_problem = pypesto.select.Problem(
-            petab_select_problem=petab_select_problem
-        )
+    # Setup the pyPESTO model selector instance.
+    petab_select_problem = petab_select.Problem.from_yaml(
+        test_case_path / "petab_select_problem.yaml",
+    )
+    pypesto_select_problem = pypesto.select.Problem(
+        petab_select_problem=petab_select_problem
+    )
 
-        # Run the selection process until "exhausted".
-        pypesto_select_problem.select_to_completion(
-            minimize_options=minimize_options,
-            objective_customizer=objective_customizer,
-        )
+    # Run the selection process until "exhausted".
+    pypesto_select_problem.select_to_completion(
+        minimize_options=minimize_options,
+        objective_customizer=objective_customizer,
+    )
 
-        # Get the best model
-        best_model = petab_select_problem.get_best(
-            models=pypesto_select_problem.calibrated_models.values(),
-        )
+    # Get the best model
+    best_model = petab_select_problem.get_best(
+        models=pypesto_select_problem.calibrated_models,
+    )
 
-        # Generate the expected model.
-        best_model.to_yaml(
-            expected_model_yaml, paths_relative_to=test_case_path
-        )
+    # Generate the expected model.
+    best_model.to_yaml(expected_model_yaml, paths_relative_to=test_case_path)
 
-        petab_select.model.models_to_yaml_list(
-            models=pypesto_select_problem.calibrated_models.values(),
-            output_yaml="all_models.yaml",
-        )
+    pypesto_select_problem.calibrated_models.to_yaml(
+        f"all_models_{test_case_path.stem}.yaml"
+    )
