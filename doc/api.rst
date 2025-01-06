@@ -7,6 +7,7 @@ petab-select Python API
    :toctree: generated
 
    petab_select
+   petab_select.analyze
    petab_select.candidate_space
    petab_select.constants
    petab_select.criteria
