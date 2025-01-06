@@ -59,6 +59,13 @@ MODEL_SUBSPACE_INDICES_HASH_MAP = (
     string.digits + string.ascii_uppercase + string.ascii_lowercase
 )
 PREDECESSOR_MODEL_HASH = "predecessor_model_hash"
+ITERATION = "iteration"
+PETAB_PROBLEM = "petab_problem"
+PETAB_YAML = "petab_yaml"
+HASH = "hash"
+
+# MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
+MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_SUBSPACE_ID, PETAB_YAML]
 
 # PEtab
 PETAB_ESTIMATE_TRUE = 1
