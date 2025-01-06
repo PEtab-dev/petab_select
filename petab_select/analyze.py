@@ -14,7 +14,7 @@ __all__ = [
     "group_by_predecessor_model",
     "group_by_iteration",
     "get_best_by_iteration",
-    "get_weights",
+    "compute_weights",
 ]
 
 
@@ -164,50 +164,33 @@ def get_best_by_iteration(
     return best_by_iteration
 
 
-def get_relative_criterion_values(
-    criterion_values: list[float],
-) -> list[float]:
-    """Offset criterion values by their minimum value.
-
-    Args:
-        criterion_values:
-            The criterion values.
-
-    Returns:
-        The relative criterion values.
-    """
-    minimum = min(criterion_values)
-    return [criterion_value - minimum for criterion_value in criterion_values]
-
-
-def get_weights(
-    models: list[Model],
+def compute_weights(
+    models: Models,
     criterion: Criterion,
-) -> dict[ModelHash, float]:
-    """Calculate weights for a model based on different criteria.
+    as_dict: bool = False,
+) -> list[float] | dict[ModelHash, float]:
+    """Compute criterion weights.
+
+    N.B.: regardless of the criterion, the formula used is the Akaike weights
+    formula, but with ``criterion`` values instead of the AIC.
 
     Args:
-        model:
-            The calibrated petab-select model.
+        models:
+            The models.
         criterion:
-            Criterion to calculate weights of.
+            The criterion.
+        as_dict:
+            Whether to return a dictionary, with model hashes for keys.
 
     Returns:
-        Keys are model hashes, values are weights.
+        The criterion weights.
     """
-    weights = {}
-    criterion_values = [model.get_criterion(criterion) for model in models]
-    delta_criterion_values = np.array(
-        [
-            criterion_values[i] - np.min(criterion_values)
-            for i in range(len(criterion_values))
-        ]
+    relative_criterion_values = np.array(
+        models.get_criterion(criterion=criterion, relative=True)
     )
-
-    for i, model in enumerate(models):
-        weight = np.exp(
-            -0.5 * (criterion_values[i] - np.min(criterion_values))
-        ) / np.sum(np.exp(-0.5 * delta_criterion_values))
-        weights[model.hash] = weight
-
+    weights = np.exp(-0.5 * relative_criterion_values)
+    weights /= weights.sum()
+    weights = weights.tolist()
+    if as_dict:
+        weights = dict(zip(models.hashes, weights, strict=False))
     return weights
