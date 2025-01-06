@@ -7,5 +7,5 @@ The PEtab Select Python library provides some methods to help with this. Please 
 See the Python API docs for the :class:`petab_select.Models` class, which provides some methods. In particular, :attr:`petab_select.Models.df` can be used
 to get a quick overview over all models, as a pandas dataframe.
 
-Additionally, see the Python API docs for the ``petab_select.analysis`` module, which contains some methods to subset and group models,
+Additionally, see the Python API docs for the :mod:`petab_select.analyze` module, which contains some methods to subset and group models,
 or compute "weights" (e.g. Akaike weights).
