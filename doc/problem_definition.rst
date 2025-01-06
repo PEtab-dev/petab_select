@@ -7,8 +7,8 @@ Model selection problems for PEtab Select are defined by the following files:
 #. a specification of the model space, and
 #. (optionally) a specification of the initial candidate model.
 
-The different file formats are described below. Each file format is a YAML file
-and comes with a YAML-formatted JSON schema, such that these files can be
+The different file formats are described below. The YAML file formats
+come with a YAML-formatted JSON schema, such that these files can be
 easily worked with independently of the PEtab Select library.
 
 1. Selection problem
@@ -34,13 +34,22 @@ A YAML file with a description of the model selection problem.
 - ``candidate_space_arguments``: Additional arguments used to generate
   candidate models during model selection. For example, an initial candidate
   model can be specified with the following code, where
-  ``predecessor_model.yaml`` is a valid model file. Additional arguments are
-  provided in the documentation of the ``CandidateSpace`` class.
+  ``predecessor_model.yaml`` is a valid :ref:`model file <section-model-yaml>`. Additional arguments are
+  provided in the documentation of the ``CandidateSpace`` class, and an example is provided in
+  `test case 0009 <https://github.com/PEtab-dev/petab_select/blob/main/test_cases/0009/petab_select_problem.yaml>`_.
 
 .. code-block:: yaml
 
    candidate_space_arguments:
      predecessor_model: predecessor_model.yaml
+
+Schema
+^^^^^^
+
+The schema is provided as `YAML-formatted JSON schema <_static/problem.yaml>`_, which enables easy validation with various third-party tools.
+
+.. literalinclude:: standard/problem.yaml
+   :language: yaml
 
 2. Model space
 --------------
@@ -54,7 +63,7 @@ all parameters.
    :header-rows: 1
 
    * - ``model_subspace_id``
-     - ``petab_yaml``
+     - ``model_subspace_petab_yaml``
      - ``parameter_id_1``
      - ...
      - ``parameter_id_n``
@@ -65,7 +74,7 @@ all parameters.
      - ...
 
 - ``model_subspace_id``: An ID for the model subspace.
-- ``petab_yaml``: The PEtab YAML filename that serves as the basis of all
+- ``model_subspace_petab_yaml``: The YAML filename of the PEtab problem that serves as the basis of all
   models in this subspace.
 - ``parameter_id_1`` ... ``parameter_id_n``: Specify the values that a
   parameter can take in the model subspace. For example, this could be:
@@ -80,6 +89,9 @@ all parameters.
 
     - ``0.0;1.1;estimate`` (the parameter can take the values ``0.0`` or
       ``1.1``, or be estimated)
+
+Example of concise specification
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Using the ``;``-delimited list format, a model subspace that has two parameters
 (``p1, p2``) and six models:
@@ -104,6 +116,8 @@ can be specified like
      - petab_problem.yaml
      - 0;estimate
      - 10;20;estimate
+
+.. _section-model-yaml:
 
 3. Model(s) (Predecessor models / model interchange / report)
 -------------------------------------------------------------

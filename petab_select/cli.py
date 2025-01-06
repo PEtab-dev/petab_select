@@ -12,7 +12,14 @@ from more_itertools import one
 
 from . import ui
 from .candidate_space import CandidateSpace
-from .constants import CANDIDATE_SPACE, MODELS, PETAB_YAML, PROBLEM, TERMINATE
+from .constants import (
+    CANDIDATE_SPACE,
+    MODELS,
+    PETAB_YAML,
+    PROBLEM,
+    TERMINATE,
+    UNCALIBRATED_MODELS,
+)
 from .model import ModelHash
 from .models import Models, models_to_yaml_list
 from .problem import Problem
@@ -183,7 +190,7 @@ def start_iteration(
         ModelHash.from_hash(hash_str) for hash_str in excluded_model_hashes
     ]
 
-    ui.start_iteration(
+    result = ui.start_iteration(
         problem=problem,
         candidate_space=candidate_space,
         limit=limit,
@@ -201,9 +208,8 @@ def start_iteration(
     )
 
     # Save candidate models
-    models_to_yaml_list(
-        models=candidate_space.models,
-        output_yaml=uncalibrated_models_yaml,
+    result[UNCALIBRATED_MODELS].to_yaml(
+        filename=uncalibrated_models_yaml,
         relative_paths=relative_paths,
     )
 
@@ -495,7 +501,7 @@ def get_best(
         models=models,
         criterion=criterion,
     )
-    best_model.to_yaml(output, paths_relative_to=paths_relative_to)
+    best_model.to_yaml(output)
 
 
 cli.add_command(start_iteration)

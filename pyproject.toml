@@ -23,7 +23,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "click>=8.1.7",
     "dill>=0.3.9",
-    "mkstd>=0.0.7",
+    "mkstd>=0.0.8",
 ]
 [project.optional-dependencies]
 plot = [

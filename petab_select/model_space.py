@@ -1,24 +1,19 @@
 """The `ModelSpace` class and related methods."""
 
-import itertools
+from __future__ import annotations
+
 import logging
 import warnings
 from collections.abc import Iterable
 from pathlib import Path
-from tempfile import NamedTemporaryFile
-from typing import Any, TextIO, get_args
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from .candidate_space import CandidateSpace
 from .constants import (
-    HEADER_ROW,
-    MODEL_ID_COLUMN,
     MODEL_SUBSPACE_ID,
-    PARAMETER_DEFINITIONS_START,
-    PARAMETER_VALUE_DELIMITER,
-    PETAB_YAML_COLUMN,
     TYPE_PATH,
 )
 from .model import Model
@@ -26,105 +21,7 @@ from .model_subspace import ModelSubspace
 
 __all__ = [
     "ModelSpace",
-    "get_model_space_df",
-    "read_model_space_file",
-    "write_model_space_df",
 ]
-
-
-def read_model_space_file(filename: str) -> TextIO:
-    """Read a model space file.
-
-    The model space specification is currently expanded and written to a
-    temporary file.
-
-    Args:
-        filename:
-            The name of the file to be unpacked.
-
-    Returns:
-        A temporary file object, which is the unpacked file.
-    """
-    """
-    FIXME(dilpath)
-    Todo:
-        * Consider alternatives to `_{n}` suffix for model `modelId`
-        * How should the selected model be reported to the user? Remove the
-          `_{n}` suffix and report the original `modelId` alongside the
-          selected parameters? Generate a set of PEtab files with the
-          chosen SBML file and the parameters specified in a parameter or
-          condition file?
-        * Don't "unpack" file if it is already in the unpacked format
-        * Sort file after unpacking
-        * Remove duplicates?
-    """
-    # FIXME rewrite to just generate models from the original file, instead of
-    #       expanding all and writing to a file.
-    expanded_models_file = NamedTemporaryFile(mode="r+", delete=False)
-    with open(filename) as fh:
-        with open(expanded_models_file.name, "w") as ms_f:
-            # could replace `else` condition with ms_f.readline() here, and
-            # remove `if` statement completely
-            for line_index, line in enumerate(fh):
-                # Skip empty/whitespace-only lines
-                if not line.strip():
-                    continue
-                if line_index != HEADER_ROW:
-                    columns = line2row(line, unpacked=False)
-                    parameter_definitions = [
-                        definition.split(PARAMETER_VALUE_DELIMITER)
-                        for definition in columns[PARAMETER_DEFINITIONS_START:]
-                    ]
-                    for index, selection in enumerate(
-                        itertools.product(*parameter_definitions)
-                    ):
-                        # TODO change MODEL_ID_COLUMN and YAML_ID_COLUMN
-                        # to just MODEL_ID and YAML_FILENAME?
-                        ms_f.write(
-                            "\t".join(
-                                [
-                                    columns[MODEL_ID_COLUMN] + f"_{index}",
-                                    columns[PETAB_YAML_COLUMN],
-                                    *selection,
-                                ]
-                            )
-                            + "\n"
-                        )
-                else:
-                    ms_f.write(line)
-    # FIXME replace with some 'ModelSpaceManager' object
-    return expanded_models_file
-
-
-def line2row(
-    line: str,
-    delimiter: str = "\t",
-    unpacked: bool = True,
-    convert_parameters_to_float: bool = True,
-) -> list:
-    """Parse a line from a model space file.
-
-    Args:
-        line:
-            A line from a file with delimiter-separated columns.
-        delimiter:
-            The string that separates columns in the file.
-        unpacked:
-            Whether the line format is in the unpacked format. If ``False``,
-            parameter values are not converted to ``float``.
-        convert_parameters_to_float:
-            Whether parameters should be converted to ``float``.
-
-    Returns:
-        A list of column values. Parameter values are converted to ``float``.
-    """
-    columns = line.strip().split(delimiter)
-    metadata = columns[:PARAMETER_DEFINITIONS_START]
-    if unpacked and convert_parameters_to_float:
-        parameters = [float(p) for p in columns[PARAMETER_DEFINITIONS_START:]]
-    else:
-        parameters = columns[PARAMETER_DEFINITIONS_START:]
-    return metadata + parameters
 
 
 class ModelSpace:
@@ -147,55 +44,71 @@ class ModelSpace:
         }
 
     @staticmethod
-    def from_files(
-        filenames: list[TYPE_PATH],
-    ):
-        """Create a model space from model space files.
+    def load(
+        data: TYPE_PATH | pd.DataFrame | list[TYPE_PATH | pd.DataFrame],
+        root_path: TYPE_PATH = None,
+    ) -> ModelSpace:
+        """Load a model space from dataframe(s) or file(s).
 
         Args:
-            filenames:
-                The locations of the model space files.
+            data:
+                The data. TSV file(s) or pandas dataframe(s).
+            root_path:
+                Any paths in dataframe will be resolved relative to this path.
+                Paths in TSV files will be resolved relative to the directory
+                of the TSV file.
 
         Returns:
-            The corresponding model space.
+            The model space.
         """
-        # TODO validate input?
-        model_space_dfs = [
-            get_model_space_df(filename) for filename in filenames
+        if not isinstance(data, list):
+            data = [data]
+        dfs = [
+            (
+                root_path,
+                df.reset_index() if df.index.name == MODEL_SUBSPACE_ID else df,
+            )
+            if isinstance(df, pd.DataFrame)
+            else (Path(df).parent, pd.read_csv(df, sep="\t"))
+            for df in data
         ]
+
         model_subspaces = []
-        for model_space_df, model_space_filename in zip(
-            model_space_dfs, filenames, strict=False
-        ):
-            for model_subspace_id, definition in model_space_df.iterrows():
+        for root_path, df in dfs:
+            for _, definition in df.iterrows():
                 model_subspaces.append(
                     ModelSubspace.from_definition(
-                        model_subspace_id=model_subspace_id,
                         definition=definition,
-                        parent_path=Path(model_space_filename).parent,
+                        root_path=root_path,
                     )
                 )
         model_space = ModelSpace(model_subspaces=model_subspaces)
         return model_space
 
-    @staticmethod
-    def from_df(
-        df: pd.DataFrame,
-        parent_path: TYPE_PATH = None,
-    ):
-        model_subspaces = []
-        for model_subspace_id, definition in df.iterrows():
-            model_subspaces.append(
-                ModelSubspace.from_definition(
-                    model_subspace_id=model_subspace_id,
-                    definition=definition,
-                    parent_path=parent_path,
-                )
-            )
-        model_space = ModelSpace(model_subspaces=model_subspaces)
-        return model_space
+    def save(self, filename: TYPE_PATH | None = None) -> pd.DataFrame:
+        """Export the model space to a dataframe (and TSV).
 
-    # TODO: `to_df` / `to_file`
+        Args:
+            filename:
+                If provided, the dataframe will be saved here as a TSV.
+                Paths will be made relative to the parent directory of this
+                filename.
+
+        Returns:
+            The dataframe.
+        """
+        root_path = Path(filename).parent if filename else None
+
+        data = []
+        for model_subspace in self.model_subspaces.values():
+            data.append(model_subspace.to_definition(root_path=root_path))
+        df = pd.DataFrame(data)
+        df = df.set_index(MODEL_SUBSPACE_ID)
+
+        if filename:
+            df.to_csv(filename, sep="\t")
+
+        return df
 
     def search(
         self,
@@ -203,7 +116,7 @@ class ModelSpace:
         limit: int = np.inf,
         exclude: bool = True,
     ):
-        """...TODO
+        """Search all model subspaces according to a candidate space method.
 
         Args:
             candidate_space:
@@ -249,13 +162,6 @@ class ModelSpace:
 
         search_subspaces()
 
-        ## FIXME implement source_path.. somewhere
-        # if self.source_path is not None:
-        #    for model in candidate_space.models:
-        #        # TODO do this change elsewhere instead?
-        #        # e.g. model subspace
-        #        model.petab_yaml = self.source_path / model.petab_yaml
-
         if exclude:
             self.exclude_models(candidate_space.models)
 
@@ -293,27 +199,3 @@ class ModelSpace:
         """Reset the exclusions in the model subspaces."""
         for model_subspace in self.model_subspaces.values():
             model_subspace.reset_exclusions(exclusions)
-
-
-def get_model_space_df(df: TYPE_PATH | pd.DataFrame) -> pd.DataFrame:
-    # model_space_df = pd.read_csv(filename, sep='\t', index_col=MODEL_SUBSPACE_ID)  # FIXME
-    if isinstance(df, get_args(TYPE_PATH)):
-        df = pd.read_csv(df, sep="\t")
-    if df.index.name != MODEL_SUBSPACE_ID:
-        df.set_index([MODEL_SUBSPACE_ID], inplace=True)
-    return df
-
-
-def write_model_space_df(df: pd.DataFrame, filename: TYPE_PATH) -> None:
-    df.to_csv(filename, sep="\t", index=True)
-
-
-# def get_model_space(
-#    filename: TYPE_PATH,
-# ) -> List[ModelSubspace]:
-#    model_space_df = get_model_space_df(filename)
-#    model_subspaces = []
-#    for definition in model_space_df.iterrows():
-#        model_subspaces.append(ModelSubspace.from_definition(definition))
-#    model_space = ModelSpace(model_subspaces=model_subspaces)
-#    return model_space

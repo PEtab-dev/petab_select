@@ -466,15 +466,15 @@ class Models(_ListDict):
                 Location of the YAML file.
             relative_paths:
                 Whether to rewrite the paths in each model (e.g. the path to the
-                model's PEtab problem) relative to the `output_yaml` location.
+                model's PEtab problem) relative to the ``filename`` location.
         """
-        models = self._models
+        _models = self._models
         if relative_paths:
             root_path = Path(filename).parent
-            models = copy.deepcopy(models)
-            for model in models:
-                model.set_relative_paths(root_path=root_path)
-        ModelsStandard.save_data(data=models, filename=filename)
+            _models = copy.deepcopy(_models)
+            for _model in _models:
+                _model.set_relative_paths(root_path=root_path)
+        ModelsStandard.save_data(data=Models(_models), filename=filename)
 
     def get_criterion(
         self,
@@ -600,7 +600,7 @@ def models_from_yaml_list(
         stacklevel=2,
     )
     return Models.from_yaml(
-        models_yaml=model_list_yaml,
+        filename=model_list_yaml,
         petab_problem=petab_problem,
         problem=problem,
     )
@@ -618,7 +618,7 @@ def models_to_yaml_list(
         stacklevel=2,
     )
     Models(models=models).to_yaml(
-        output_yaml=output_yaml, relative_paths=relative_paths
+        filename=output_yaml, relative_paths=relative_paths
     )
 
 

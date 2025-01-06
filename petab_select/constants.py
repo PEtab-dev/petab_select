@@ -73,7 +73,6 @@ PETAB_ESTIMATE_TRUE = 1
 # Problem
 MODEL_SPACE_FILES = "model_space_files"
 PROBLEM = "problem"
-PROBLEM_ID = "problem_id"
 VERSION = "version"
 
 # Candidate space
@@ -174,10 +173,6 @@ PETAB_HASH_DIGEST_SIZE = None
 # PEtab Select model report format.
 HASH = "hash"
 
-# MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_ID, PETAB_YAML]
-MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS = [MODEL_SUBSPACE_ID, PETAB_YAML]
-
-# COMPARED_MODEL_ID = 'compared_'+MODEL_ID
 YAML_FILENAME = "yaml"
 
 # DISTANCES = {

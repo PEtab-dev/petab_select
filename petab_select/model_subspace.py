@@ -2,6 +2,7 @@ import math
 import warnings
 from collections.abc import Iterable, Iterator
 from itertools import product
+from os.path import relpath
 from pathlib import Path
 from typing import Any
 
@@ -13,9 +14,9 @@ from more_itertools import powerset
 from .candidate_space import CandidateSpace
 from .constants import (
     ESTIMATE,
-    MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS,
+    MODEL_SUBSPACE_ID,
+    MODEL_SUBSPACE_PETAB_YAML,
     PARAMETER_VALUE_DELIMITER,
-    PETAB_YAML,
     STEPWISE_METHODS,
     TYPE_PARAMETER_DICT,
     TYPE_PARAMETER_OPTIONS,
@@ -715,36 +716,61 @@ class ModelSubspace:
 
     @staticmethod
     def from_definition(
-        model_subspace_id: str,
         definition: dict[str, str] | pd.Series,
-        parent_path: TYPE_PATH = None,
+        root_path: TYPE_PATH = None,
     ) -> "ModelSubspace":
         """Create a :class:`ModelSubspace` from a definition.
 
         Args:
-            model_subspace_id:
-                The model subspace ID.
             definition:
                 A description of the model subspace. Keys are properties of the
-                model subspace, including parameters that can take different values.
-            parent_path:
-                Any paths in the definition will be set relative to this path.
+                model subspace, including parameters that can take different
+                values.
+            root_path:
+                Any paths will be resolved relative to this path.
 
         Returns:
             The model subspace.
         """
+        model_subspace_id = definition.pop(MODEL_SUBSPACE_ID)
+        petab_yaml = definition.pop(MODEL_SUBSPACE_PETAB_YAML)
         parameters = {
             column_id: decompress_parameter_values(value)
             for column_id, value in definition.items()
-            if column_id not in MODEL_SPACE_FILE_NON_PARAMETER_COLUMNS
         }
-        petab_yaml = definition[PETAB_YAML]
-        if parent_path is not None:
-            petab_yaml = Path(parent_path) / petab_yaml
+        if root_path is not None:
+            petab_yaml = Path(root_path) / petab_yaml
         return ModelSubspace(
             model_subspace_id=model_subspace_id,
             petab_yaml=petab_yaml,
             parameters=parameters,
+        )
+
+    def to_definition(self, root_path: TYPE_PATH | None = None) -> pd.Series:
+        """Get the definition of the model subspace.
+
+        Args:
+            root_path:
+                If provided, the ``model_subspace_petab_yaml`` will be made
+                relative to this path.
+
+        Returns:
+            The definition.
+        """
+        petab_yaml = self.petab_yaml
+        if root_path:
+            petab_yaml = relpath(petab_yaml, start=root_path)
+        return pd.Series(
+            {
+                MODEL_SUBSPACE_ID: self.model_subspace_id,
+                MODEL_SUBSPACE_PETAB_YAML: petab_yaml,
+                **{
+                    parameter_id: PARAMETER_VALUE_DELIMITER.join(
+                        str(v) for v in values
+                    )
+                    for parameter_id, values in self.parameters.items()
+                },
+            }
         )
 
     def indices_to_model(self, indices: list[int]) -> Model | None:

@@ -13,8 +13,9 @@ from petab_select.candidate_space import (
 )
 from petab_select.constants import (
     ESTIMATE,
+    MODEL_SUBSPACE_ID,
+    MODEL_SUBSPACE_PETAB_YAML,
     PARAMETER_VALUE_DELIMITER,
-    PETAB_YAML,
     Criterion,
 )
 from petab_select.model import Model
@@ -22,10 +23,10 @@ from petab_select.model_subspace import ModelSubspace
 
 
 @pytest.fixture
-def model_subspace_id_and_definition() -> pd.Series:
-    model_subspace_id = "model_subspace_1"
+def model_subspace_definition() -> pd.Series:
     data = {
-        PETAB_YAML: Path(__file__).parent.parent.parent
+        MODEL_SUBSPACE_ID: "model_subspace_1",
+        MODEL_SUBSPACE_PETAB_YAML: Path(__file__).parent.parent.parent
         / "doc"
         / "examples"
         / "model_selection"
@@ -35,15 +36,13 @@ def model_subspace_id_and_definition() -> pd.Series:
         "k3": ESTIMATE,
         "k4": PARAMETER_VALUE_DELIMITER.join(["0", "0.1", ESTIMATE]),
     }
-    return model_subspace_id, pd.Series(data=data, dtype=str)
+    return pd.Series(data=data, dtype=str)
 
 
 @pytest.fixture
-def model_subspace(model_subspace_id_and_definition) -> ModelSubspace:
-    model_subspace_id, definition = model_subspace_id_and_definition
+def model_subspace(model_subspace_definition) -> ModelSubspace:
     return petab_select.model_subspace.ModelSubspace.from_definition(
-        model_subspace_id=model_subspace_id,
-        definition=definition,
+        definition=model_subspace_definition,
     )
 
 

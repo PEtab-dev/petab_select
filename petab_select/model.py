@@ -5,12 +5,23 @@ from __future__ import annotations
 import copy
 import warnings
 from os.path import relpath
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 import mkstd
 import petab.v1 as petab
+from mkstd import Path
 from petab.v1.C import NOMINAL_VALUE
+from pydantic import (
+    BaseModel,
+    Field,
+    PrivateAttr,
+    ValidationInfo,
+    ValidatorFunctionWrapHandler,
+    field_serializer,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from .constants import (
     ESTIMATE,
@@ -41,28 +52,13 @@ from .petab import get_petab_parameters
 if TYPE_CHECKING:
     from .problem import Problem
 
-
-from pydantic import (
-    BaseModel,
-    PrivateAttr,
-    ValidationInfo,
-    ValidatorFunctionWrapHandler,
-)
-
 __all__ = [
     "Model",
     "default_compare",
     "ModelHash",
     "VIRTUAL_INITIAL_MODEL",
+    "ModelStandard",
 ]
-
-from pydantic import (
-    Field,
-    field_serializer,
-    field_validator,
-    model_serializer,
-    model_validator,
-)
 
 
 class ModelHash(BaseModel):
@@ -331,9 +327,7 @@ class ModelBase(VirtualModelBase):
             return data
         model = handler(data)
 
-        root_path = None
-        if ROOT_PATH in data:
-            root_path = data.pop(ROOT_PATH)
+        root_path = data.pop(ROOT_PATH, None)
         if root_path is None:
             return model
 
@@ -685,17 +679,11 @@ class Model(ModelBase):
         ]
 
     @staticmethod
-    def from_yaml(
-        filename: str | Path,
-    ) -> Model:
-        """Load a model from a YAML file.
-
-        Args:
-            filename:
-                Location of the YAML file.
-        """
+    def from_yaml(filename: str | Path) -> Model:
+        """Load a model from a YAML file."""
         model = ModelStandard.load_data(
-            filename=filename, root_path=Path(filename).parent
+            filename=filename,
+            root_path=Path(filename).parent,
         )
         return model
 
