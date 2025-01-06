@@ -1,5 +1,6 @@
 """Methods to analyze results of model selection."""
 
+import warnings
 from collections.abc import Callable
 
 from .constants import Criterion
@@ -107,10 +108,18 @@ def get_best(
     for model in models:
         if compute_criterion and not model.has_criterion(criterion):
             model.get_criterion(criterion)
+        if not model.has_criterion(criterion):
+            warnings.warn(
+                f"The model `{model.hash}` has no value set for criterion "
+                f"`{criterion}`. Consider using `compute_criterion=True` "
+                "if there is sufficient information already stored in the "
+                "model (e.g. the likelihood).",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            continue
         if best_model is None:
-            if model.has_criterion(criterion):
-                best_model = model
-            # TODO warn if criterion is not available?
+            best_model = model
             continue
         if compare(best_model, model, criterion=criterion):
             best_model = model
