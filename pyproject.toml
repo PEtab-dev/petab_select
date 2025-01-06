@@ -53,6 +53,7 @@ doc = [
     "nbsphinx>=0.9.5",
     "pandoc>=2.4",
     "nbconvert>=7.16.4",
+    "ipykernel>= 6.23.1",
     "ipython>=7.21.0",
     "readthedocs-sphinx-ext>=2.2.5",
     "sphinx-autodoc-typehints",
