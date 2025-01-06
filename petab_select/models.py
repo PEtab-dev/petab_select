@@ -75,20 +75,17 @@ class _ListDict(RootModel, MutableSequence):
 
     The typing is currently based on PEtab Select objects. Hence, objects are
     in ``_models``, and metadata (model hashes) are in ``_hashes``.
-
-    Attributes:
-        _models:
-            The list of objects (list items/dictionary values)
-            (PEtab Select models).
-        _hashes:
-            The list of metadata (dictionary keys) (model hashes).
-        _problem:
-            The PEtab Select problem.
     """
 
     root: list[Model] = Field(default_factory=list)
+    """The list of models."""
     _hashes: list[ModelHash] = PrivateAttr(default_factory=list)
+    """The list of model hashes."""
     _problem: Problem | None = PrivateAttr(default=None)
+    """The PEtab Select problem that all models belong to.
+
+    If this is provided, then you can add models by hashes.
+    """
 
     @model_validator(mode="wrap")
     def _check_kwargs(
@@ -393,15 +390,7 @@ class _ListDict(RootModel, MutableSequence):
 
 
 class Models(_ListDict):
-    """A collection of models.
-
-    Provide a PEtab Select ``problem`` to the constructor or via
-    ``set_problem``, to use add models by hashes. This means that all models
-    must belong to the same PEtab Select problem.
-
-    This permits both ``list`` and ``dict`` operations -- see
-    :class:``ListDict`` for further details.
-    """
+    """A collection of models."""
 
     def set_problem(self, problem: Problem) -> None:
         """Set the PEtab Select problem for this set of models."""

@@ -65,18 +65,18 @@ class ModelHash(BaseModel):
     back into the corresponding model. Currently, if two models from two
     different model subspaces are actually the same PEtab problem, they will
     still have different model hashes.
-
-    Attributes:
-        model_subspace_id:
-            The ID of the model subspace of the model. Unique up to a single
-            PEtab Select problem model space.
-        model_subspace_indices_hash:
-            A hash of the location of the model in its model
-            subspace. Unique up to a single model subspace.
     """
 
     model_subspace_id: str
+    """The ID of the model subspace of the model.
+
+    Unique up to a single model space.
+    """
     model_subspace_indices_hash: str
+    """A hash of the location of the model in its model subspace.
+
+    Unique up to a single model subspace.
+    """
 
     @model_validator(mode="wrap")
     def _check_kwargs(
@@ -396,19 +396,17 @@ class ModelBase(VirtualModelBase):
 
 
 class Model(ModelBase):
-    """A model.
+    """A model."""
 
-    See :class:`ModelBase` for the standardized attributes. Additional
-    attributes are available in ``Model`` to improve usability.
-
-    Attributes:
-        _model_subspace_petab_problem:
-            The PEtab problem of the model subspace of this model.
-            If not provided, this is reconstructed from
-            :attr:`model_subspace_petab_yaml`.
-    """
+    # See :class:`ModelBase` for the standardized attributes. Additional
+    # attributes are available in ``Model`` to improve usability.
 
     _model_subspace_petab_problem: petab.Problem = PrivateAttr(default=None)
+    """The PEtab problem of the model subspace of this model.
+
+    If not provided, this is reconstructed from
+    :attr:`model_subspace_petab_yaml`.
+    """
 
     @model_validator(mode="after")
     def _fix_petab_problem(self: Model) -> Model:

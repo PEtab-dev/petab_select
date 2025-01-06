@@ -1,10 +1,6 @@
 $defs:
   Model:
-    description: "A model.\n\nSee :class:`ModelBase` for the standardized attributes.\
-      \ Additional\nattributes are available in ``Model`` to improve usability.\n\n\
-      Attributes:\n    _model_subspace_petab_problem:\n        The PEtab problem of\
-      \ the model subspace of this model.\n        If not provided, this is reconstructed\
-      \ from\n        :attr:`model_subspace_petab_yaml`."
+    description: A model.
     properties:
       model_subspace_id:
         title: Model Subspace Id
@@ -67,19 +63,7 @@ $defs:
     type: object
   ModelHash:
     type: string
-description: 'A collection of models.
-
-
-  Provide a PEtab Select ``problem`` to the constructor or via
-
-  ``set_problem``, to use add models by hashes. This means that all models
-
-  must belong to the same PEtab Select problem.
-
-
-  This permits both ``list`` and ``dict`` operations -- see
-
-  :class:``ListDict`` for further details.'
+description: A collection of models.
 items:
   $ref: '#/$defs/Model'
 title: Models

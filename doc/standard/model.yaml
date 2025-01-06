@@ -1,10 +1,7 @@
 $defs:
   ModelHash:
     type: string
-description: "A model.\n\nSee :class:`ModelBase` for the standardized attributes.\
-  \ Additional\nattributes are available in ``Model`` to improve usability.\n\nAttributes:\n\
-  \    _model_subspace_petab_problem:\n        The PEtab problem of the model subspace\
-  \ of this model.\n        If not provided, this is reconstructed from\n        :attr:`model_subspace_petab_yaml`."
+description: A model.
 properties:
   model_subspace_id:
     title: Model Subspace Id
