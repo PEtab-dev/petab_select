@@ -11,12 +11,8 @@ import matplotlib.ticker
 import networkx as nx
 import numpy as np
 import upsetplot
-from more_itertools import one
 
-from .analyze import (
-    get_best_by_iteration,
-    group_by_iteration,
-)
+from . import analyze
 from .constants import Criterion
 from .model import VIRTUAL_INITIAL_MODEL, Model
 from .models import Models
@@ -105,7 +101,7 @@ def line_best_by_iteration(
     Returns:
         The plot axes.
     """
-    best_by_iteration = get_best_by_iteration(
+    best_by_iteration = analyze.get_best_by_iteration(
         models=models, criterion=criterion
     )
 
@@ -220,30 +216,6 @@ def graph_history(
     labels = labels.copy()
     labels[VIRTUAL_INITIAL_MODEL.hash] = "Virtual\nInitial\nModel"
 
-    G = nx.DiGraph()
-    edges = []
-    for model in models:
-        predecessor_model_hash = model.predecessor_model_hash
-        if predecessor_model_hash is not None:
-            from_ = labels.get(predecessor_model_hash, predecessor_model_hash)
-            # may only not be the case for
-            # COMPARED_MODEL_ID == INITIAL_VIRTUAL_MODEL
-            if predecessor_model_hash in models:
-                predecessor_model = models[predecessor_model_hash]
-                from_ = labels.get(
-                    predecessor_model.hash,
-                    predecessor_model.model_id,
-                )
-        else:
-            raise NotImplementedError(
-                "Plots for models with `None` as their predecessor model are "
-                "not yet implemented."
-            )
-            from_ = "None"
-        to = labels.get(model.hash, model.model_id)
-        edges.append((from_, to))
-
-    G.add_edges_from(edges)
     default_draw_networkx_kwargs = {
         "node_color": NORMAL_NODE_COLOR,
         "arrowstyle": "-|>",
@@ -253,6 +225,7 @@ def graph_history(
     }
     if draw_networkx_kwargs is None:
         draw_networkx_kwargs = default_draw_networkx_kwargs
+    G = analyze.get_graph(models=models, labels=labels)
     if colors is not None:
         if label_diff := set(colors).difference(list(G)):
             raise ValueError(
@@ -496,39 +469,26 @@ def graph_iteration_layers(
     if draw_networkx_kwargs is None:
         draw_networkx_kwargs = default_draw_networkx_kwargs
 
-    ancestry = {model.hash: model.predecessor_model_hash for model in models}
-    ancestry_as_set = {k: {v} for k, v in ancestry.items()}
-
-    ordering = [
-        [model.hash for model in iteration_models]
-        for iteration_models in group_by_iteration(models).values()
-    ]
-    if VIRTUAL_INITIAL_MODEL.hash in ancestry.values():
-        ordering.insert(0, [VIRTUAL_INITIAL_MODEL.hash])
-
-    model_estimated_parameters = {
-        model.hash: set(model.estimated_parameters) for model in models
-    }
     model_criterion_values = models.get_criterion(
         criterion=criterion, relative=relative, as_dict=True
     )
 
-    model_parameter_diffs = {
-        model.hash: (
-            (set(), set())
-            if model.predecessor_model_hash not in model_estimated_parameters
-            else (
-                model_estimated_parameters[model.hash].difference(
-                    model_estimated_parameters[model.predecessor_model_hash]
-                ),
-                model_estimated_parameters[
-                    model.predecessor_model_hash
-                ].difference(model_estimated_parameters[model.hash]),
-            )
-        )
-        for model in models
-    }
+    parameter_changes = analyze.get_parameter_changes(
+        models=models,
+        as_dict=True,
+    )
 
+    G = analyze.get_graph(models=models)
+
+    # The ordering of models into iterations
+    ordering = [
+        [model.hash for model in iteration_models]
+        for iteration_models in analyze.group_by_iteration(models).values()
+    ]
+    if VIRTUAL_INITIAL_MODEL.hash in G.nodes:
+        ordering.insert(0, [VIRTUAL_INITIAL_MODEL.hash])
+
+    # Label customization
     labels = labels or {}
     labels[VIRTUAL_INITIAL_MODEL.hash] = labels.get(
         VIRTUAL_INITIAL_MODEL.hash, "Virtual\nInitial\nModel"
@@ -563,22 +523,22 @@ def graph_iteration_layers(
                 [
                     parameter_labels[parameter_id]
                     for parameter_id in sorted(
-                        model_parameter_diffs[model_hash][0]
+                        parameter_changes[model_hash][0]
                     )
                 ]
             )
-            for model_hash in model_estimated_parameters
+            for model_hash in models.hashes
         }
         model_removed_parameters = {
             model_hash: ",".join(
                 [
                     parameter_labels[parameter_id]
                     for parameter_id in sorted(
-                        model_parameter_diffs[model_hash][1]
+                        parameter_changes[model_hash][1]
                     )
                 ]
             )
-            for model_hash in model_estimated_parameters
+            for model_hash in models.hashes
         }
 
         labels = {
@@ -612,12 +572,7 @@ def graph_iteration_layers(
     cbar = ax.get_figure().colorbar(colorbar_mappable, ax=ax)
     cbar.ax.set_title(r"$\Delta$" + criterion)
 
-    G = nx.DiGraph(
-        [
-            (predecessor, successor)
-            for successor, predecessor in ancestry.items()
-        ]
-    )
+    # Model node positions
     # FIXME change positions so that top edge of topmost node, and bottom edge
     # of bottommost nodes, are at 1 and 0, respectively
     X = [
@@ -637,19 +592,18 @@ def graph_iteration_layers(
         for i, layer in enumerate(ordering)
         for j, model_hash in enumerate(layer)
     }
-    nx.relabel_nodes(G, mapping=labels, copy=False)
 
-    G_hashes = [
-        one([k for k, v in labels.items() if v == label]) for label in G.nodes
-    ]
     node_colors = [
         (
             colorbar_mappable.to_rgba(model_criterion_values[model_hash])
             if model_hash in model_criterion_values
             else NORMAL_NODE_COLOR
         )
-        for model_hash in G_hashes
+        for model_hash in G.nodes
     ]
+
+    # Apply custom labels
+    nx.relabel_nodes(G, mapping=labels, copy=False)
 
     nx.draw_networkx(
         G, pos, ax=ax, node_color=node_colors, **draw_networkx_kwargs
@@ -664,76 +618,6 @@ def graph_iteration_layers(
             fontsize=draw_networkx_kwargs.get("font_size", 20),
             ha="center",
         )
-
-    ## Get selected parameter IDs
-    ## TODO move this logic elsewhere
-    # selected_hashes = set(ancestry.values())
-    # selected_models = {}
-    # for model in models:
-    #    if model.hash in selected_hashes:
-    #        selected_models[model.hash] = model
-
-    # selected_parameters = {
-    #    model_hash: sorted(model.estimated_parameters)
-    #    for model_hash, model in selected_models.items()
-    # }
-
-    # selected_order = [
-    #    [model_hash for model_hash in layer if model_hash in selected_models]
-    #    for layer in ordering
-    # ]
-    # selected_order = [
-    #    None if not model_hash else one(model_hash)
-    #    for model_hash in selected_order
-    # ]
-
-    # selected_parameter_ids = []
-    # estimated0 = None
-    # model_hash = None
-    # for model_hash in selected_order:
-    #    if model_hash is None:
-    #        selected_parameter_ids.append('')
-    #        continue
-    #    if estimated0 is not None:
-    #        new_parameter_ids = list(
-    #            set(selected_parameters[model_hash]).symmetric_difference(
-    #                estimated0
-    #            )
-    #        )
-    #        new_parameter_names = []
-    #        for new_parameter_id in new_parameter_ids:
-    #            # Default to parameter ID, use parameter name if available
-    #            new_parameter_name = new_parameter_id
-    #            if (
-    #                PARAMETER_NAME
-    #                in selected_models[
-    #                    model_hash
-    #                ].petab_problem.parameter_df.columns
-    #            ):
-    #                petab_parameter_name = selected_models[
-    #                    model_hash
-    #                ].petab_problem.parameter_df.loc[
-    #                    new_parameter_id, PARAMETER_NAME
-    #                ]
-    #                if not pd.isna(petab_parameter_name):
-    #                    new_parameter_name = petab_parameter_name
-    #            new_parameter_names.append(new_parameter_name)
-    #        new_parameter_names = [
-    #            new_parameter_name.replace('\\\\rightarrow ', '->')
-    #            for new_parameter_name in new_parameter_names
-    #        ]
-    #        selected_parameter_ids.append(sorted(new_parameter_names))
-    #    else:
-    #        selected_parameter_ids.append([''])
-    #    estimated0 = selected_parameters[model_hash]
-
-    ## Add labels for selected parameters
-    # for x, label in zip(X, selected_parameter_ids):
-    #    ax.annotate(
-    #        "\n".join(label),
-    #        xy=(x, 1.15),
-    #        fontsize=draw_networkx_kwargs.get('font_size', 20),
-    #    )
 
     # Set margins for the axes so that nodes aren't clipped
     ax.margins(0.15)
