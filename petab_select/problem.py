@@ -265,7 +265,7 @@ class Problem(BaseModel):
             The best model.
         """
         warnings.warn(
-            "Use ``petab_select.analyze.get_best`` instead.",
+            "Use ``petab_select.ui.get_best`` instead.",
             DeprecationWarning,
             stacklevel=2,
         )
