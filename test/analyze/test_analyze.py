@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from petab_select import (
@@ -77,3 +78,17 @@ def test_relative_criterion_values(models: Models) -> None:
         for criterion_value in criterion_values
     ]
     assert test_value == expected_value
+
+
+def test_compute_weights(models: Models) -> None:
+    """Test ``analyze.compute_weights``."""
+    criterion_values = np.array(
+        models.get_criterion(criterion=Criterion.AIC, relative=True)
+    )
+    expected_weights = (
+        np.exp(-0.5 * criterion_values) / np.exp(-0.5 * criterion_values).sum()
+    )
+    test_weights = analyze.compute_weights(
+        models=models, criterion=Criterion.AIC
+    )
+    np.testing.assert_allclose(test_weights, expected_weights)
