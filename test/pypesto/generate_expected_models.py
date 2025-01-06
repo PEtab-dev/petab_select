@@ -13,8 +13,9 @@ os.environ["AMICI_EXPERIMENTAL_SBML_NONCONST_CLS"] = "1"
 
 # Set to `[]` to test all
 test_cases = [
-    #'0004',
-    #'0008',
+    #'0001',
+    # "0003",
+    "0009",
 ]
 
 # Do not use computationally-expensive test cases in CI
@@ -39,6 +40,12 @@ minimize_options = {
 def objective_customizer(obj):
     # obj.amici_solver.setAbsoluteTolerance(1e-17)
     obj.amici_solver.setRelativeTolerance(1e-12)
+
+
+model_problem_options = {
+    "minimize_options": minimize_options,
+    "objective_customizer": objective_customizer,
+}
 
 
 for test_case_path in test_cases_path.glob("*"):
@@ -67,19 +74,17 @@ for test_case_path in test_cases_path.glob("*"):
     )
 
     # Run the selection process until "exhausted".
-    pypesto_select_problem.select_to_completion(
-        minimize_options=minimize_options,
-        objective_customizer=objective_customizer,
-    )
+    pypesto_select_problem.select_to_completion(**model_problem_options)
 
     # Get the best model
-    best_model = petab_select_problem.get_best(
+    best_model = petab_select.analyze.get_best(
         models=pypesto_select_problem.calibrated_models,
+        criterion=petab_select_problem.criterion,
     )
 
     # Generate the expected model.
-    best_model.to_yaml(expected_model_yaml, paths_relative_to=test_case_path)
+    best_model.to_yaml(expected_model_yaml)
 
-    pypesto_select_problem.calibrated_models.to_yaml(
-        f"all_models_{test_case_path.stem}.yaml"
-    )
+    # pypesto_select_problem.calibrated_models.to_yaml(
+    #     output_yaml="all_models.yaml",
+    # )

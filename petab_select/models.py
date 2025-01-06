@@ -16,13 +16,16 @@ from .constants import (
     ITERATION,
     MODEL_HASH,
     MODEL_ID,
+    MODEL_SUBSPACE_PETAB_PROBLEM,
     PREDECESSOR_MODEL_HASH,
+    ROOT_PATH,
     TYPE_PATH,
     Criterion,
 )
 from .model import (
     Model,
     ModelHash,
+    VirtualModelBase,
 )
 
 if TYPE_CHECKING:
@@ -107,6 +110,8 @@ class ListDict(MutableSequence):
                 return item in self._models
             case ModelHash() | str():
                 return item in self._hashes
+            case VirtualModelBase():
+                return False
             case _:
                 raise TypeError(f"Unexpected type: `{type(item)}`.")
 
@@ -176,7 +181,7 @@ class ListDict(MutableSequence):
 
         if key < len(self):
             self._models[key] = item
-            self._hashes[key] = item.get_hash()
+            self._hashes[key] = item.hash
         else:
             # Key doesn't exist, e.g., instead of
             # models[1] = model1
@@ -199,17 +204,17 @@ class ListDict(MutableSequence):
                 A model or a model hash.
         """
         model = self._model_like_to_model(item)
-        if model.get_hash() in self:
+        if model.hash in self:
             warnings.warn(
                 (
-                    f"A model with hash `{model.get_hash()}` already exists "
+                    f"A model with hash `{model.hash}` already exists "
                     "in this collection of models. The previous model will be "
                     "overwritten."
                 ),
                 RuntimeWarning,
                 stacklevel=2,
             )
-            self[model.get_hash()] = model
+            self[model.hash] = model
         else:
             self._models.insert(index, None)
             self._hashes.insert(index, None)
@@ -285,14 +290,14 @@ class ListDict(MutableSequence):
     # def remove(self, item: ModelLike):
     #     # Re-use __delitem__ logic
     #     if isinstance(item, Model):
-    #         item = item.get_hash()
+    #         item = item.hash
     #     del self[item]
 
     # skipped clear, copy, count
 
     def index(self, item: ModelLike, *args) -> int:
         if isinstance(item, Model):
-            item = item.get_hash()
+            item = item.hash
         return self._hashes.index(item, *args)
 
     # skipped reverse, sort
@@ -369,7 +374,9 @@ class Models(ListDict):
             models_yaml:
                 The path to the PEtab Select list of model YAML file.
             petab_problem:
-                See :meth:`Model.from_dict`.
+                Provide a preloaded copy of the PEtab problem. Note:
+                all models should share the same PEtab problem if this is
+                provided.
             problem:
                 The PEtab Select problem.
 
@@ -381,25 +388,20 @@ class Models(ListDict):
         if not model_dict_list:
             # Empty file
             models = []
-        elif not isinstance(model_dict_list, list):
+        elif isinstance(model_dict_list, dict):
             # File contains a single model
-            models = [
-                Model.from_dict(
-                    model_dict_list,
-                    base_path=Path(models_yaml).parent,
-                    petab_problem=petab_problem,
-                )
-            ]
-        else:
-            # File contains a list of models
-            models = [
-                Model.from_dict(
-                    model_dict,
-                    base_path=Path(models_yaml).parent,
-                    petab_problem=petab_problem,
-                )
-                for model_dict in model_dict_list
-            ]
+            model_dict_list = [model_dict_list]
+
+        models = [
+            Model.model_validate(
+                {
+                    **model_dict,
+                    ROOT_PATH: Path(models_yaml).parent,
+                    MODEL_SUBSPACE_PETAB_PROBLEM: petab_problem,
+                }
+            )
+            for model_dict in model_dict_list
+        ]
 
         return Models(models=models, problem=problem)
 
@@ -541,25 +543,7 @@ def models_from_yaml_list(
     allow_single_model: bool = True,
     problem: Problem = None,
 ) -> Models:
-    """Generate a model from a PEtab Select list of model YAML file.
-
-    Deprecated. Use `petab_select.Models.from_yaml` instead.
-
-    Args:
-        model_list_yaml:
-            The path to the PEtab Select list of model YAML file.
-        petab_problem:
-            See :meth:`Model.from_dict`.
-        allow_single_model:
-            Given a YAML file that contains a single model directly (not in
-            a 1-element list), if ``True`` then the single model will be read in,
-            else a ``ValueError`` will be raised.
-        problem:
-            The PEtab Select problem.
-
-    Returns:
-        The models.
-    """
+    """Deprecated. Use `petab_select.Models.from_yaml` instead."""
     warnings.warn(
         (
             "Use `petab_select.Models.from_yaml` instead. "
@@ -580,19 +564,7 @@ def models_to_yaml_list(
     output_yaml: TYPE_PATH,
     relative_paths: bool = True,
 ) -> None:
-    """Generate a YAML listing of models.
-
-    Deprecated. Use `petab_select.Models.to_yaml` instead.
-
-    Args:
-        models:
-            The models.
-        output_yaml:
-            The location where the YAML will be saved.
-        relative_paths:
-            Whether to rewrite the paths in each model (e.g. the path to the
-            model's PEtab problem) relative to the `output_yaml` location.
-    """
+    """Deprecated. Use `petab_select.Models.to_yaml` instead."""
     warnings.warn(
         "Use `petab_select.Models.to_yaml` instead.",
         DeprecationWarning,

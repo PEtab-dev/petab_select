@@ -23,6 +23,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "click>=8.1.7",
     "dill>=0.3.9",
+    "mkstd>=0.0.5",
 ]
 [project.optional-dependencies]
 plot = [
@@ -37,7 +38,7 @@ test = [
     "amici >= 0.11.25",
     "fides >= 0.7.5",
     # "pypesto > 0.2.13",
-    "pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@select_class_models#egg=pypesto",
+    "pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@select_mkstd#egg=pypesto",
     "tox >= 3.12.4",
 ]
 doc = [
