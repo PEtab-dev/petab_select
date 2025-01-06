@@ -15,8 +15,8 @@
     k1: 0
     k2: 0
     k3: 0
-  petab_yaml: petab_problem.yaml
-  predecessor_model_hash: virtual_initial_model
+  model_subspace_petab_yaml: petab_problem.yaml
+  predecessor_model_hash: virtual_initial_model-
 - criteria:
     AICc: -0.17540608110890332
     NLLH: -4.087703040554452
@@ -35,7 +35,7 @@
     k1: 0.2
     k2: 0.1
     k3: estimate
-  petab_yaml: petab_problem.yaml
+  model_subspace_petab_yaml: petab_problem.yaml
   predecessor_model_hash: M_0-000
 - criteria:
     AICc: -0.27451438069575573
@@ -55,7 +55,7 @@
     k1: 0.2
     k2: estimate
     k3: 0
-  petab_yaml: petab_problem.yaml
+  model_subspace_petab_yaml: petab_problem.yaml
   predecessor_model_hash: M_0-000
 - criteria:
     AICc: -0.7053270766271886
@@ -75,7 +75,7 @@
     k1: estimate
     k2: 0.1
     k3: 0
-  petab_yaml: petab_problem.yaml
+  model_subspace_petab_yaml: petab_problem.yaml
   predecessor_model_hash: M_0-000
 - criteria:
     AICc: 9.294672923372811
@@ -96,7 +96,7 @@
     k1: estimate
     k2: 0.1
     k3: estimate
-  petab_yaml: petab_problem.yaml
+  model_subspace_petab_yaml: petab_problem.yaml
   predecessor_model_hash: M_3-000
 - criteria:
     AICc: 7.8521704398854
@@ -117,7 +117,7 @@
     k1: estimate
     k2: estimate
     k3: 0
-  petab_yaml: petab_problem.yaml
+  model_subspace_petab_yaml: petab_problem.yaml
   predecessor_model_hash: M_3-000
 - criteria:
     AICc: 35.94352968170024
@@ -139,5 +139,5 @@
     k1: estimate
     k2: estimate
     k3: estimate
-  petab_yaml: petab_problem.yaml
+  model_subspace_petab_yaml: petab_problem.yaml
   predecessor_model_hash: M_3-000

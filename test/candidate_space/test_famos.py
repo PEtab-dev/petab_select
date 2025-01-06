@@ -5,11 +5,10 @@ import pytest
 from more_itertools import one
 
 import petab_select
-from petab_select import Method, ModelHash, Models
+from petab_select import Method, ModelHash
 from petab_select.constants import (
     CANDIDATE_SPACE,
     MODEL_HASH,
-    MODELS,
     TERMINATE,
     UNCALIBRATED_MODELS,
     Criterion,
@@ -126,7 +125,6 @@ def test_famos(
         return progress_list
 
     progress_list = []
-    all_calibrated_models = Models()
 
     candidate_space = petab_select_problem.new_candidate_space()
     expected_repeated_model_hash0 = candidate_space.predecessor_model.hash
@@ -145,17 +143,15 @@ def test_famos(
             )
 
             # Calibrate candidate models
-            calibrated_models = Models()
             for candidate_model in iteration[UNCALIBRATED_MODELS]:
                 calibrate(candidate_model)
-                calibrated_models[candidate_model.hash] = candidate_model
 
             # Finalize iteration
             iteration_results = petab_select.ui.end_iteration(
+                problem=petab_select_problem,
                 candidate_space=iteration[CANDIDATE_SPACE],
-                calibrated_models=calibrated_models,
+                calibrated_models=iteration[UNCALIBRATED_MODELS],
             )
-            all_calibrated_models += iteration_results[MODELS]
             candidate_space = iteration_results[CANDIDATE_SPACE]
 
             # Stop iteration if there are no candidate models

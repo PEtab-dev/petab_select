@@ -75,20 +75,17 @@ class _ListDict(RootModel, MutableSequence):
 
     The typing is currently based on PEtab Select objects. Hence, objects are
     in ``_models``, and metadata (model hashes) are in ``_hashes``.
-
-    Attributes:
-        _models:
-            The list of objects (list items/dictionary values)
-            (PEtab Select models).
-        _hashes:
-            The list of metadata (dictionary keys) (model hashes).
-        _problem:
-            The PEtab Select problem.
     """
 
     root: list[Model] = Field(default_factory=list)
+    """The list of models."""
     _hashes: list[ModelHash] = PrivateAttr(default_factory=list)
+    """The list of model hashes."""
     _problem: Problem | None = PrivateAttr(default=None)
+    """The PEtab Select problem that all models belong to.
+
+    If this is provided, then you can add models by hashes.
+    """
 
     @model_validator(mode="wrap")
     def _check_kwargs(
@@ -102,12 +99,12 @@ class _ListDict(RootModel, MutableSequence):
         if isinstance(kwargs, list):
             _models = kwargs
         elif isinstance(kwargs, dict):
-            # Identify the argument with the models
+            # Identify the models
             if "models" in kwargs and "root" in kwargs:
                 raise ValueError("Provide only one of `root` and `models`.")
             _models = kwargs.get("models") or kwargs.get("root") or []
 
-            # Identify the argument with the PEtab Select problem
+            # Identify the PEtab Select problem
             if "problem" in kwargs and "_problem" in kwargs:
                 raise ValueError(
                     "Provide only one of `problem` and `_problem`."
@@ -393,15 +390,7 @@ class _ListDict(RootModel, MutableSequence):
 
 
 class Models(_ListDict):
-    """A collection of models.
-
-    Provide a PEtab Select ``problem`` to the constructor or via
-    ``set_problem``, to use add models by hashes. This means that all models
-    must belong to the same PEtab Select problem.
-
-    This permits both ``list`` and ``dict`` operations -- see
-    :class:``ListDict`` for further details.
-    """
+    """A collection of models."""
 
     def set_problem(self, problem: Problem) -> None:
         """Set the PEtab Select problem for this set of models."""
@@ -426,7 +415,7 @@ class Models(_ListDict):
     @staticmethod
     def from_yaml(
         filename: TYPE_PATH,
-        petab_problem: petab.Problem = None,
+        model_subspace_petab_problem: petab.Problem = None,
         problem: Problem = None,
     ) -> Models:
         """Load models from a YAML file.
@@ -434,10 +423,12 @@ class Models(_ListDict):
         Args:
             filename:
                 Location of the YAML file.
-            petab_problem:
-                Provide a preloaded copy of the PEtab problem. N.B.:
+            model_subspace_petab_problem:
+                A preloaded copy of the PEtab problem. N.B.:
                 all models should share the same PEtab problem if this is
-                provided.
+                provided (e.g. all models belong to the same model subspace,
+                or all model subspaces have the same
+                ``model_subspace_petab_yaml`` in the model space file(s)).
             problem:
                 The PEtab Select problem. N.B.: all models should belong to the
                 same PEtab Select problem if this is provided.
@@ -445,12 +436,21 @@ class Models(_ListDict):
         Returns:
             The models.
         """
+        # Handle single-model files, for backwards compatibility.
+        try:
+            model = Model.from_yaml(
+                filename=filename,
+                model_subspace_petab_problem=model_subspace_petab_problem,
+            )
+            return Models([model])
+        except:  # noqa: S110
+            pass
         return ModelsStandard.load_data(
             filename=filename,
             _problem=problem,
             model_kwargs={
                 ROOT_PATH: Path(filename).parent,
-                MODEL_SUBSPACE_PETAB_PROBLEM: petab_problem,
+                MODEL_SUBSPACE_PETAB_PROBLEM: model_subspace_petab_problem,
             },
         )
 

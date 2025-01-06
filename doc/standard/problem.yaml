@@ -1,14 +1,4 @@
-description: "Handle everything related to the model selection problem.\n\nAttributes:\n\
-  \    model_space:\n        The model space.\n    calibrated_models:\n        Calibrated\
-  \ models. Will be used to augment the model selection\n        problem (e.g. by\
-  \ excluding them from the model space).\n    candidate_space_arguments:\n      \
-  \  Arguments are forwarded to the candidate space constructor.\n    compare:\n \
-  \       A method that compares models by selection criterion. See\n        :func:`petab_select.model.default_compare`\
-  \ for an example.\n    criterion:\n        The criterion used to compare models.\n\
-  \    method:\n        The method used to search the model space.\n    version:\n\
-  \        The version of the PEtab Select format.\n    yaml_path:\n        The location\
-  \ of the selection problem YAML file. Used for relative\n        paths that exist\
-  \ in e.g. the model space files."
+description: The model selection problem.
 properties:
   format_version:
     default: 1.0.0

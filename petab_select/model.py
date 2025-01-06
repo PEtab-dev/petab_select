@@ -25,9 +25,6 @@ from pydantic import (
 
 from .constants import (
     ESTIMATE,
-    CRITERIA,
-    ESTIMATED_PARAMETERS,
-    ITERATION,
     MODEL_HASH,
     MODEL_HASH_DELIMITER,
     MODEL_ID,
@@ -68,18 +65,18 @@ class ModelHash(BaseModel):
     back into the corresponding model. Currently, if two models from two
     different model subspaces are actually the same PEtab problem, they will
     still have different model hashes.
-
-    Attributes:
-        model_subspace_id:
-            The ID of the model subspace of the model. Unique up to a single
-            PEtab Select problem model space.
-        model_subspace_indices_hash:
-            A hash of the location of the model in its model
-            subspace. Unique up to a single model subspace.
     """
 
     model_subspace_id: str
+    """The ID of the model subspace of the model.
+
+    Unique up to a single model space.
+    """
     model_subspace_indices_hash: str
+    """A hash of the location of the model in its model subspace.
+
+    Unique up to a single model subspace.
+    """
 
     @model_validator(mode="wrap")
     def _check_kwargs(
@@ -91,18 +88,20 @@ class ModelHash(BaseModel):
 
         See documentation of Pydantic wrap validators.
         """
+        # Deprecate? Or introduce some `UNKNOWN_MODEL`?
+        if kwargs is None:
+            kwargs = VIRTUAL_INITIAL_MODEL.hash
+
         if isinstance(kwargs, ModelHash):
             return kwargs
-
-        if isinstance(kwargs, dict):
+        elif isinstance(kwargs, dict):
             kwargs[MODEL_SUBSPACE_INDICES_HASH] = (
                 ModelHash.hash_model_subspace_indices(
                     kwargs[MODEL_SUBSPACE_INDICES]
                 )
             )
             del kwargs[MODEL_SUBSPACE_INDICES]
-
-        if isinstance(kwargs, str):
+        elif isinstance(kwargs, str):
             kwargs = ModelHash.kwargs_from_str(hash_str=kwargs)
 
         expected_model_hash = None
@@ -397,19 +396,17 @@ class ModelBase(VirtualModelBase):
 
 
 class Model(ModelBase):
-    """A model.
+    """A model."""
 
-    See :class:`ModelBase` for the standardized attributes. Additional
-    attributes are available in ``Model`` to improve usability.
-
-    Attributes:
-        _model_subspace_petab_problem:
-            The PEtab problem of the model subspace of this model.
-            If not provided, this is reconstructed from
-            :attr:`model_subspace_petab_yaml`.
-    """
+    # See :class:`ModelBase` for the standardized attributes. Additional
+    # attributes are available in ``Model`` to improve usability.
 
     _model_subspace_petab_problem: petab.Problem = PrivateAttr(default=None)
+    """The PEtab problem of the model subspace of this model.
+
+    If not provided, this is reconstructed from
+    :attr:`model_subspace_petab_yaml`.
+    """
 
     @model_validator(mode="after")
     def _fix_petab_problem(self: Model) -> Model:
@@ -679,13 +676,34 @@ class Model(ModelBase):
         ]
 
     @staticmethod
-    def from_yaml(filename: str | Path) -> Model:
-        """Load a model from a YAML file."""
+    def from_yaml(
+        filename: str | Path,
+        model_subspace_petab_problem: petab.Problem | None = None,
+    ) -> Model:
+        """Load a model from a YAML file.
+
+        Args:
+            filename:
+                The filename.
+            model_subspace_petab_problem:
+                A preloaded copy of the PEtab problem of the model subspace
+                that this model belongs to.
+        """
         model = ModelStandard.load_data(
             filename=filename,
             root_path=Path(filename).parent,
+            _model_subspace_petab_problem=model_subspace_petab_problem,
         )
         return model
+
+    def get_hash(self) -> ModelHash:
+        """Deprecated. Use `Model.hash` instead."""
+        warnings.warn(
+            "Use `Model.hash` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.hash
 
 
 def default_compare(
