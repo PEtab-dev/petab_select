@@ -42,6 +42,12 @@ $defs:
         default: null
         title: Model Id
         type: string
+      model_label:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Model Label
       parameters:
         additionalProperties:
           anyOf:
