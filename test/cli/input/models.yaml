@@ -10,6 +10,11 @@
     k2: 0.15
     k3: 0.0
   model_id: model_1
+  model_subspace_id: M
+  model_subspace_indices:
+  - 0
+  - 1
+  - 1
   parameters:
     k1: 0.2
     k2: estimate
@@ -23,6 +28,11 @@
   model_hash: M-110
   model_subspace_petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml
   model_id: model_2
+  model_subspace_id: M
+  model_subspace_indices:
+  - 1
+  - 1
+  - 0
   parameters:
     k1: estimate
     k2: estimate
