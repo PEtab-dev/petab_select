@@ -22,8 +22,12 @@ from .constants import Criterion
 from .model import VIRTUAL_INITIAL_MODEL, ModelHash
 from .models import Models
 
-RELATIVE_LABEL_FONTSIZE = -2
-NORMAL_NODE_COLOR = "darkgrey"
+LABEL_FONTSIZE = 16
+"""The font size of axis labels."""
+TICK_LABEL_FONTSIZE = LABEL_FONTSIZE - 4
+"""The font size of axis tick labels."""
+DEFAULT_NODE_COLOR = "darkgrey"
+"""The default color of nodes in graph plots."""
 
 
 __all__ = [
@@ -34,6 +38,9 @@ __all__ = [
     "scatter_criterion_vs_n_estimated",
     "upset",
     "PlotData",
+    "LABEL_FONTSIZE",
+    "TICK_LABEL_FONTSIZE",
+    "DEFAULT_NODE_COLOR",
 ]
 
 
@@ -188,6 +195,18 @@ class PlotData:
             )
 
 
+def _set_axis_fontsizes(ax: plt.Axes) -> None:
+    """Set the axes (tick) label fontsizes to the global variables.
+
+    Customize via :const:`petab_select.plot.LABEL_FONTSIZE` and
+    :const:`petab_select.plot.TICK_LABEL_FONTSIZE`.
+    """
+    ax.xaxis.label.set_size(LABEL_FONTSIZE)
+    ax.yaxis.label.set_size(LABEL_FONTSIZE)
+    ax.xaxis.set_tick_params(which="major", labelsize=TICK_LABEL_FONTSIZE)
+    ax.yaxis.set_tick_params(which="major", labelsize=TICK_LABEL_FONTSIZE)
+
+
 def upset(plot_data: PlotData) -> dict[str, matplotlib.axes.Axes | None]:
     """Plot an UpSet plot of estimated parameters and criterion.
 
@@ -226,12 +245,13 @@ def upset(plot_data: PlotData) -> dict[str, matplotlib.axes.Axes | None]:
             series, totals_plot_elements=0, with_lines=False, sort_by="input"
         )
     axes["intersections"].set_ylabel(r"$\Delta$" + plot_data.criterion)
+    _set_axis_fontsizes(ax=axes["intersections"])
+    _set_axis_fontsizes(ax=axes["matrix"])
     return axes
 
 
 def line_best_by_iteration(
     plot_data: PlotData,
-    fz: int = 14,
     ax: plt.Axes = None,
 ) -> plt.Axes:
     """Plot the improvement in criterion across iterations.
@@ -239,8 +259,6 @@ def line_best_by_iteration(
     Args:
         plot_data:
             The plot data.
-        fz:
-            fontsize
         ax:
             The axis to use for plotting.
 
@@ -275,7 +293,7 @@ def line_best_by_iteration(
         iteration_labels,
         criterion_values,
         linewidth=linewidth,
-        color=NORMAL_NODE_COLOR,
+        color=DEFAULT_NODE_COLOR,
         marker="x",
         markersize=10,
         markeredgewidth=2,
@@ -285,20 +303,13 @@ def line_best_by_iteration(
 
     ax.get_xticks()
     ax.set_xticks(list(range(len(criterion_values))))
-    ax.set_xlabel("Iteration and model", fontsize=fz)
+    ax.set_xlabel("Iteration and model")
     ax.set_ylabel(
         (r"$\Delta$" if plot_data.relative_criterion else "")
-        + plot_data.criterion,
-        fontsize=fz,
+        + plot_data.criterion
     )
     # could change to compared_model_ids, if all models are plotted
-    ax.set_xticklabels(
-        ax.get_xticklabels(),
-        fontsize=fz + RELATIVE_LABEL_FONTSIZE,
-    )
-    ax.yaxis.set_tick_params(
-        which="major", labelsize=fz + RELATIVE_LABEL_FONTSIZE
-    )
+    _set_axis_fontsizes(ax=ax)
     ytl = ax.get_yticks()
     ax.set_ylim([min(ytl), max(ytl)])
     # removing top and right borders
@@ -340,7 +351,7 @@ def graph_history(
     )
 
     default_draw_networkx_kwargs = {
-        "node_color": NORMAL_NODE_COLOR,
+        "node_color": DEFAULT_NODE_COLOR,
         "arrowstyle": "-|>",
         "node_shape": "s",
         "node_size": 2500,
@@ -410,7 +421,7 @@ def bar_criterion_vs_models(
         )
 
     bar_kwargs["color"] = [
-        plot_data.colors.get(model_label, NORMAL_NODE_COLOR)
+        plot_data.colors.get(model_label, DEFAULT_NODE_COLOR)
         for model_label in criterion_values
     ]
 
@@ -421,8 +432,9 @@ def bar_criterion_vs_models(
     ax.set_xlabel("Model")
     ax.set_ylabel(
         (r"$\Delta$" if plot_data.relative_criterion else "")
-        + plot_data.criterion,
+        + plot_data.criterion
     )
+    _set_axis_fontsizes(ax=ax)
 
     return ax
 
@@ -459,7 +471,7 @@ def scatter_criterion_vs_n_estimated(
             f"these are not in the graph: {hash_diff}"
         )
     scatter_kwargs["c"] = [
-        plot_data.colors.get(model_hash, NORMAL_NODE_COLOR)
+        plot_data.colors.get(model_hash, DEFAULT_NODE_COLOR)
         for model_hash in plot_data.models.hashes
     ]
 
@@ -494,6 +506,7 @@ def scatter_criterion_vs_n_estimated(
         (r"$\Delta$" if plot_data.relative_criterion else "")
         + plot_data.criterion,
     )
+    _set_axis_fontsizes(ax=ax)
 
     return ax
 
@@ -527,7 +540,6 @@ def graph_iteration_layers(
         _, ax = plt.subplots(figsize=(20, 10))
 
     default_draw_networkx_kwargs = {
-        #'node_color': NORMAL_NODE_COLOR,
         "arrowstyle": "-|>",
         "node_shape": "s",
         "node_size": 250,
@@ -591,7 +603,7 @@ def graph_iteration_layers(
         (
             colorbar_mappable.to_rgba(model_criterion_values[model_hash])
             if model_hash in model_criterion_values
-            else NORMAL_NODE_COLOR
+            else DEFAULT_NODE_COLOR
         )
         for model_hash in G.nodes
     ]
