@@ -4,12 +4,11 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14183390.svg)](https://doi.org/10.5281/zenodo.14183390)
 
 
-The repository for the development of the extension to PEtab for model
-selection, including the additional file formats and Python 3 package.
+The PEtab extension for model selection, including additional file formats and library.
 
 ## Install
 
-The Python 3 package provides both the Python 3 and command-line (CLI)
+The Python 3 library provides both the Python 3 and command-line (CLI)
 interfaces, and can be installed from PyPI, with `pip3 install petab-select`.
 
 ## Documentation
@@ -19,12 +18,8 @@ Further documentation is available at
 
 ## Examples
 
-There are example Jupyter notebooks for usage of PEtab Select with
-
-- the command-line interface, and
-- the Python 3 interface,
-
-in the `doc/examples` directory.
+There are example Jupyter notebooks covering the Python API, CLI, and visualization in the "doc/examples" directory.
+The notebooks can be viewed at [https://petab-select.readthedocs.io/en/stable/examples.html](https://petab-select.readthedocs.io/en/stable/examples.html).
 
 ## Supported features
 
