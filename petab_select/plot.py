@@ -68,7 +68,8 @@ class PlotData:
             provide ``petab_problem.parameter_df["parameterName"].to_dict()``.
         colors:
             Colors for each model. Keys are model hashes, values are
-            matplotlib color names.
+            matplotlib color specifiers (
+            https://matplotlib.org/stable/users/explain/colors/colors.html ).
     """
 
     def __init__(
