@@ -24,13 +24,12 @@ dependencies = [
     "click>=8.1.7",
     "dill>=0.3.9",
     "mkstd>=0.0.8",
+    "networkx>=3.2",
 ]
 [project.optional-dependencies]
 plot = [
     "matplotlib>=2.2.3",
     "upsetplot",
-    "toposort",
-    "networkx",
 ]
 test = [
     "pytest >= 5.4.3",

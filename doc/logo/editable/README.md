@@ -1,0 +1,1 @@
+The text in these copies is still text. In the copies in the parent directory, the text is converted to paths (e.g. `Path -> Object to Path` in Inkscape), for consistent rendering on systems that don't have the fonts installed.

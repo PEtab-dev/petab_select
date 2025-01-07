@@ -3,6 +3,7 @@
 import warnings
 from collections.abc import Callable
 
+import networkx as nx
 import numpy as np
 
 from .constants import Criterion
@@ -15,6 +16,8 @@ __all__ = [
     "group_by_iteration",
     "get_best_by_iteration",
     "compute_weights",
+    "get_graph",
+    "get_parameter_changes",
 ]
 
 
@@ -194,3 +197,79 @@ def compute_weights(
     if as_dict:
         weights = dict(zip(models.hashes, weights, strict=False))
     return weights
+
+
+def get_graph(
+    models: Models,
+    labels: dict[ModelHash, str] = None,
+) -> nx.DiGraph:
+    """Get a graph representation of the models in terms of their ancestry.
+
+    Edges connect models with their predecessor models.
+
+    Args:
+        models:
+            The models.
+        labels:
+            Alternative labels for the models. Keys are model hashes, values
+            are the labels.
+
+    Returns:
+        The graph.
+    """
+    if labels is None:
+        labels = {}
+
+    G = nx.DiGraph()
+    edges = []
+    for model in models:
+        tail = labels.get(
+            model.predecessor_model_hash, model.predecessor_model_hash
+        )
+        head = labels.get(model.hash, model.hash)
+        edges.append((tail, head))
+    G.add_edges_from(edges)
+    return G
+
+
+def get_parameter_changes(
+    models: Models,
+    as_dict: bool = False,
+) -> (
+    dict[ModelHash, list[tuple[set[str], set[str]]]]
+    | list[tuple[set[str], set[str]]]
+):
+    """Get the differences in parameters betweem models and their predecessors.
+
+    Args:
+        models:
+            The models.
+        as_dict:
+            Whether to return a dictionary, with model hashes for keys.
+
+    Returns:
+        The parameter changes. Each model has a 2-tuple of sets of parameters.
+        The first and second sets are the added and removed parameters,
+        respectively. If the predecessor model is undefined (e.g. the
+        ``VIRTUAL_INITIAL_MODEL``), then both sets will be empty.
+    """
+    estimated_parameters = {
+        model.hash: set(model.estimated_parameters) for model in models
+    }
+    parameter_changes = [
+        (set(), set())
+        if model.predecessor_model_hash not in estimated_parameters
+        else (
+            estimated_parameters[model.hash].difference(
+                estimated_parameters[model.predecessor_model_hash]
+            ),
+            estimated_parameters[model.predecessor_model_hash].difference(
+                estimated_parameters[model.hash]
+            ),
+        )
+        for model in models
+    ]
+
+    if as_dict:
+        return dict(zip(models.hashes, parameter_changes, strict=True))
+    return parameter_changes

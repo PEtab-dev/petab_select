@@ -303,6 +303,8 @@ class ModelBase(VirtualModelBase):
     """The iteration of model selection that calibrated this model."""
     model_id: str = Field(default=None)
     """The model ID."""
+    model_label: str | None = Field(default=None)
+    """The model label (e.g. for plotting)."""
     parameters: dict[str, float | int | Literal[ESTIMATE]]
     """PEtab problem parameters overrides for this model.
 
