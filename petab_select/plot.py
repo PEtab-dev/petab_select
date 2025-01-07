@@ -117,11 +117,11 @@ class PlotData:
 
         Args:
             criterion:
-                The criterion values.
+                Whether to include the criterion values.
             added_parameters:
-                The added parameters, compared to the predecessor model.
+                Whether to include the added parameters, compared to the predecessor model.
             removed_parameters:
-                The added parameters, compared to the predecessor model.
+                Whether to include the removed parameters, compared to the predecessor model.
         """
         if criterion:
             if not self.criterion:
