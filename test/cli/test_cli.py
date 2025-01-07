@@ -55,7 +55,6 @@ def test_model_to_petab(
         ],
     )
 
-    print(result.stdout)
     # The new PEtab problem YAML file is output to stdout correctly.
     assert (
         result.stdout == f'{base_dir / "output" / "model" / "problem.yaml"}\n'

@@ -1,91 +1,32 @@
-from pathlib import Path
+"""Helper methods for working with PEtab problems."""
 
+from typing import Literal
+
+import numpy as np
 import petab.v1 as petab
-from more_itertools import one
-from petab.v1.C import ESTIMATE, NOMINAL_VALUE
+from petab.v1.C import ESTIMATE
 
-from .constants import PETAB_ESTIMATE_FALSE, TYPE_PARAMETER_DICT, TYPE_PATH
+__all__ = ["get_petab_parameters"]
 
 
-class PetabMixin:
-    """Useful things for classes that contain a PEtab problem.
+def get_petab_parameters(
+    petab_problem: petab.Problem, as_lists: bool = False
+) -> dict[str, float | Literal[ESTIMATE] | list[float | Literal[ESTIMATE]]]:
+    """Convert PEtab problem parameters to the format in model space files.
 
-    All attributes/methods are prefixed with `petab_`.
-
-    Attributes:
-        petab_yaml:
-            The location of the PEtab problem YAML file.
+    Args:
         petab_problem:
             The PEtab problem.
-        petab_parameters:
-            The parameters from the PEtab parameters table, where keys are
-            parameter IDs, and values are either :obj:`ESTIMATE` if the
-            parameter is set to be estimated, else the nominal value.
+        as_lists:
+            Each value will be provided inside a list object, similar to the
+            format for multiple values for a parameter in a model subspace.
+
+    Returns:
+        Keys are parameter IDs, values are the nominal values for fixed
+        parameters, or :const:`ESTIMATE` for estimated parameters.
     """
-
-    def __init__(
-        self,
-        petab_yaml: TYPE_PATH | None = None,
-        petab_problem: petab.Problem | None = None,
-        parameters_as_lists: bool = False,
-    ):
-        if petab_yaml is None and petab_problem is None:
-            raise ValueError(
-                "Please supply at least one of either the location of the "
-                "PEtab problem YAML file, or an instance of the PEtab problem."
-            )
-        self.petab_yaml = petab_yaml
-        if self.petab_yaml is not None:
-            self.petab_yaml = Path(self.petab_yaml)
-
-        self.petab_problem = petab_problem
-        if self.petab_problem is None:
-            self.petab_problem = petab.Problem.from_yaml(str(petab_yaml))
-
-        self.petab_parameters = {
-            parameter_id: (
-                row[NOMINAL_VALUE]
-                if row[ESTIMATE] == PETAB_ESTIMATE_FALSE
-                else ESTIMATE
-            )
-            for parameter_id, row in self.petab_problem.parameter_df.iterrows()
-        }
-        if parameters_as_lists:
-            self.petab_parameters = {
-                k: [v] for k, v in self.petab_parameters.items()
-            }
-
-    @property
-    def petab_parameter_ids_estimated(self) -> list[str]:
-        """Get the IDs of all estimated parameters.
-
-        Returns:
-            The parameter IDs.
-        """
-        return [
-            parameter_id
-            for parameter_id, parameter_value in self.petab_parameters.items()
-            if parameter_value == ESTIMATE
-        ]
-
-    @property
-    def petab_parameter_ids_fixed(self) -> list[str]:
-        """Get the IDs of all fixed parameters.
-
-        Returns:
-            The parameter IDs.
-        """
-        estimated = self.petab_parameter_ids_estimated
-        return [
-            parameter_id
-            for parameter_id in self.petab_parameters
-            if parameter_id not in estimated
-        ]
-
-    @property
-    def petab_parameters_singular(self) -> TYPE_PARAMETER_DICT:
-        """TODO deprecate and remove?"""
-        return {
-            parameter_id: one(parameter_value)
-            for parameter_id, parameter_value in self.petab_parameters
-        }
+    values = np.array(petab_problem.x_nominal, dtype=object)
+    values[petab_problem.x_free_indices] = ESTIMATE
+    if as_lists:
+        values = [[v] for v in values]
+    return dict(zip(petab_problem.x_ids, values, strict=True))

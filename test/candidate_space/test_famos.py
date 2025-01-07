@@ -5,11 +5,10 @@ import pytest
 from more_itertools import one
 
 import petab_select
-from petab_select import Method
+from petab_select import Method, ModelHash
 from petab_select.constants import (
     CANDIDATE_SPACE,
     MODEL_HASH,
-    MODELS,
     TERMINATE,
     UNCALIBRATED_MODELS,
     Criterion,
@@ -35,7 +34,7 @@ def expected_criterion_values(input_path):
         sep="\t",
     ).set_index(MODEL_HASH)
     return {
-        petab_select.model.ModelHash.from_hash(k): v
+        ModelHash.model_validate(k): v
         for k, v in calibration_results[Criterion.AICC].items()
     }
 
@@ -93,7 +92,7 @@ def test_famos(
     ) -> None:
         model.set_criterion(
             criterion=petab_select_problem.criterion,
-            value=expected_criterion_values[model.get_hash()],
+            value=expected_criterion_values[model.hash],
         )
 
     def parse_summary_to_progress_list(summary_tsv: str) -> tuple[Method, set]:
@@ -126,10 +125,9 @@ def test_famos(
         return progress_list
 
     progress_list = []
-    all_calibrated_models = {}
-    calibrated_models = {}
 
     candidate_space = petab_select_problem.new_candidate_space()
+    expected_repeated_model_hash0 = candidate_space.predecessor_model.hash
     candidate_space.summary_tsv.unlink(missing_ok=True)
     candidate_space._setup_summary_tsv()
 
@@ -145,17 +143,15 @@ def test_famos(
             )
 
             # Calibrate candidate models
-            calibrated_models = {}
             for candidate_model in iteration[UNCALIBRATED_MODELS]:
                 calibrate(candidate_model)
-                calibrated_models[candidate_model.get_hash()] = candidate_model
 
             # Finalize iteration
             iteration_results = petab_select.ui.end_iteration(
+                problem=petab_select_problem,
                 candidate_space=iteration[CANDIDATE_SPACE],
-                calibrated_models=calibrated_models,
+                calibrated_models=iteration[UNCALIBRATED_MODELS],
             )
-            all_calibrated_models.update(iteration_results[MODELS])
             candidate_space = iteration_results[CANDIDATE_SPACE]
 
             # Stop iteration if there are no candidate models
@@ -163,14 +159,20 @@ def test_famos(
                 raise StopIteration("No valid models found.")
 
     # A model is encountered twice and therefore skipped.
-    expected_repeated_model_hash = petab_select_problem.get_model(
+    expected_repeated_model_hash1 = petab_select_problem.get_model(
         model_subspace_id=one(
             petab_select_problem.model_space.model_subspaces
         ),
         model_subspace_indices=[int(s) for s in "0001011010010010"],
-    ).get_hash()
-    assert len(warning_record) == 1
-    assert expected_repeated_model_hash in warning_record[0].message.args[0]
+    ).hash
+    # The predecessor model is also re-encountered.
+    assert len(warning_record) == 2
+    assert (
+        str(expected_repeated_model_hash0) in warning_record[0].message.args[0]
+    )
+    assert (
+        str(expected_repeated_model_hash1) in warning_record[1].message.args[0]
+    )
 
     progress_list = parse_summary_to_progress_list(candidate_space.summary_tsv)
 

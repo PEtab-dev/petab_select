@@ -20,13 +20,20 @@ from .constants import (
     PREDECESSOR_MODEL,
     PREVIOUS_METHODS,
     TYPE_PATH,
-    VIRTUAL_INITIAL_MODEL,
     VIRTUAL_INITIAL_MODEL_METHODS,
     Criterion,
     Method,
 )
 from .handlers import TYPE_LIMIT, LimitHandler
-from .model import Model, ModelHash, default_compare
+from .model import (
+    VIRTUAL_INITIAL_MODEL,
+    VIRTUAL_INITIAL_MODEL_HASH,
+    Model,
+    ModelHash,
+    default_compare,
+)
+from .models import Models
+from .petab import get_petab_parameters
 
 __all__ = [
     "BackwardCandidateSpace",
@@ -62,6 +69,8 @@ class CandidateSpace(abc.ABC):
             An example of a difference is in the bidirectional method, where ``governing_method``
             stores the bidirectional method, whereas `method` may also store the forward or
             backward methods.
+        iteration:
+            The iteration of model selection.
         limit:
             A handler to limit the number of accepted models.
         models:
@@ -102,7 +111,8 @@ class CandidateSpace(abc.ABC):
         limit: TYPE_LIMIT = np.inf,
         summary_tsv: TYPE_PATH = None,
         previous_predecessor_model: Model | None = None,
-        calibrated_models: dict[ModelHash, Model] = None,
+        calibrated_models: Models | None = None,
+        iteration: int = 0,
     ):
         """See class attributes for arguments."""
         self.method = method
@@ -125,15 +135,14 @@ class CandidateSpace(abc.ABC):
         if self.previous_predecessor_model is None:
             self.previous_predecessor_model = self.predecessor_model
 
-        self.set_iteration_user_calibrated_models({})
+        self.set_iteration_user_calibrated_models(Models())
         self.criterion = criterion
-        self.calibrated_models = calibrated_models
-        if self.calibrated_models is None:
-            self.calibrated_models = {}
-        self.latest_iteration_calibrated_models = {}
+        self.calibrated_models = calibrated_models or Models()
+        self.latest_iteration_calibrated_models = Models()
+        self.iteration = iteration
 
     def set_iteration_user_calibrated_models(
-        self, user_calibrated_models: dict[str, Model] | None
+        self, user_calibrated_models: Models | None
     ) -> None:
         """Hide previously-calibrated models from the calibration tool.
 
@@ -146,18 +155,17 @@ class CandidateSpace(abc.ABC):
 
         Args:
             user_calibrated_models:
-                The previously-calibrated models. Keys are model hashes, values
-                are models.
+                The previously-calibrated models.
         """
         if not user_calibrated_models:
-            self.iteration_user_calibrated_models = {}
+            self.iteration_user_calibrated_models = Models()
             return
 
-        iteration_uncalibrated_models = []
-        iteration_user_calibrated_models = {}
+        iteration_uncalibrated_models = Models()
+        iteration_user_calibrated_models = Models()
         for model in self.models:
             if (
-                (user_model := user_calibrated_models.get(model.get_hash()))
+                (user_model := user_calibrated_models.get(model.hash, None))
                 is not None
             ) and (
                 user_model.get_criterion(
@@ -165,18 +173,14 @@ class CandidateSpace(abc.ABC):
                 )
                 is not None
             ):
-                logging.info(
-                    f"Using user-supplied result for: {model.get_hash()}"
-                )
+                logging.info(f"Using user-supplied result for: {model.hash}")
                 user_model_copy = copy.deepcopy(user_model)
                 user_model_copy.predecessor_model_hash = (
-                    self.predecessor_model.get_hash()
-                    if isinstance(self.predecessor_model, Model)
-                    else self.predecessor_model
+                    self.predecessor_model.hash
                 )
-                iteration_user_calibrated_models[
-                    user_model_copy.get_hash()
-                ] = user_model_copy
+                iteration_user_calibrated_models[user_model_copy.hash] = (
+                    user_model_copy
+                )
             else:
                 iteration_uncalibrated_models.append(model)
         self.iteration_user_calibrated_models = (
@@ -185,9 +189,11 @@ class CandidateSpace(abc.ABC):
         self.models = iteration_uncalibrated_models
 
     def get_iteration_calibrated_models(
-        self, calibrated_models: dict[str, Model], reset: bool = False
-    ) -> dict[str, Model]:
-        """Get the full list of calibrated models for the current iteration.
+        self,
+        calibrated_models: Models,
+        reset: bool = False,
+    ) -> Models:
+        """Get all calibrated models for the current iteration.
 
         The full list of models identified for calibration in an iteration of
         model selection may include models for which calibration results are
@@ -204,17 +210,23 @@ class CandidateSpace(abc.ABC):
                 Whether to remove the previously calibrated models from the
                 candidate space, after they are used to produce the full list
                 of calibrated models.
+            iteration:
+                If provided, the iteration attribute of each model will be set
+                to this.
 
         Returns:
-            The full list of calibrated models.
+            All calibrated models for the current iteration.
         """
         combined_calibrated_models = (
-            self.iteration_user_calibrated_models | calibrated_models
+            self.iteration_user_calibrated_models + calibrated_models
         )
         if reset:
             self.set_iteration_user_calibrated_models(
-                user_calibrated_models={}
+                user_calibrated_models=Models()
             )
+        for model in combined_calibrated_models:
+            model.iteration = self.iteration
+
         return combined_calibrated_models
 
     def write_summary_tsv(self, row: list[Any]):
@@ -331,11 +343,7 @@ class CandidateSpace(abc.ABC):
             distance:
                 The distance of the model from the predecessor model.
         """
-        model.predecessor_model_hash = (
-            self.predecessor_model.get_hash()
-            if isinstance(self.predecessor_model, Model)
-            else self.predecessor_model
-        )
+        model.predecessor_model_hash = self.predecessor_model.hash
         self.models.append(model)
         self.distances.append(distance)
         self.set_excluded_hashes(model, extend=True)
@@ -362,7 +370,7 @@ class CandidateSpace(abc.ABC):
             ``True`` if the ``model`` is excluded, otherwise ``False``.
         """
         if isinstance(model_hash, Model):
-            model_hash = model_hash.get_hash()
+            model_hash = model_hash.hash
         return model_hash in self.get_excluded_hashes()
 
     @abc.abstractmethod
@@ -403,7 +411,7 @@ class CandidateSpace(abc.ABC):
             return False
         if self.excluded(model):
             warnings.warn(
-                f"Model `{model.get_hash()}` has been previously excluded "
+                f"Model `{model.hash}` has been previously excluded "
                 "from the candidate space so is skipped here.",
                 RuntimeWarning,
                 stacklevel=2,
@@ -418,22 +426,17 @@ class CandidateSpace(abc.ABC):
 
     def reset_accepted(self) -> None:
         """Reset the accepted models."""
-        self.models = []
+        self.models = Models()
         self.distances = []
 
-    def set_predecessor_model(self, predecessor_model: Model | str | None):
+    def set_predecessor_model(self, predecessor_model: Model | None):
         """Set the predecessor model.
 
         See class attributes for arguments.
         """
+        if predecessor_model is None:
+            predecessor_model = VIRTUAL_INITIAL_MODEL
         self.predecessor_model = predecessor_model
-        if (
-            self.predecessor_model == VIRTUAL_INITIAL_MODEL
-            and self.method not in VIRTUAL_INITIAL_MODEL_METHODS
-        ):
-            raise ValueError(
-                f"A virtual initial model was requested for a method ({self.method}) that does not support them."
-            )
 
     def get_predecessor_model(self) -> str | Model:
         """Get the predecessor model."""
@@ -452,12 +455,13 @@ class CandidateSpace(abc.ABC):
             extend:
                 Whether to replace or extend the current excluded hashes.
         """
+        # FIXME refactor to use `Models` and rename `set_excluded_models`?
         if isinstance(hashes, Model | ModelHash):
             hashes = [hashes]
         excluded_hashes = set()
         for potential_hash in hashes:
             if isinstance(potential_hash, Model):
-                potential_hash = potential_hash.get_hash()
+                potential_hash = potential_hash.hash
             excluded_hashes.add(potential_hash)
 
         if extend:
@@ -516,7 +520,7 @@ class CandidateSpace(abc.ABC):
 
     def reset(
         self,
-        predecessor_model: Model | str | None | None = None,
+        predecessor_model: Model | None = None,
         # FIXME change `Any` to some `TYPE_MODEL_HASH` (e.g. union of str/int/float)
         excluded_hashes: list[ModelHash] | None = None,
         limit: TYPE_LIMIT = None,
@@ -577,18 +581,24 @@ class CandidateSpace(abc.ABC):
             model0 = self.predecessor_model
         model1 = model
 
-        if model0 != VIRTUAL_INITIAL_MODEL and not model1.petab_yaml.samefile(
-            model0.petab_yaml
+        if (
+            model0.hash != VIRTUAL_INITIAL_MODEL_HASH
+            and not model1.model_subspace_petab_yaml.samefile(
+                model0.model_subspace_petab_yaml
+            )
         ):
+            # FIXME
             raise NotImplementedError(
-                "Computation of distances between different PEtab problems is "
-                "currently not supported. This error is also raised if the same "
-                "PEtab problem is read from YAML files in different locations."
+                "Computing distances between models that have different "
+                "model subspace PEtab problems is currently not supported. "
+                "This check is based on the PEtab YAML file location."
             )
 
         # All parameters from the PEtab problem are used in the computation.
-        if model0 == VIRTUAL_INITIAL_MODEL:
-            parameter_ids = list(model1.petab_parameters)
+        if model0.hash == VIRTUAL_INITIAL_MODEL_HASH:
+            parameter_ids = list(
+                get_petab_parameters(model1._model_subspace_petab_problem)
+            )
             if self.method == Method.FORWARD:
                 parameters0 = np.array([0 for _ in parameter_ids])
             elif self.method == Method.BACKWARD:
@@ -600,21 +610,12 @@ class CandidateSpace(abc.ABC):
                     "developers."
                 )
         else:
-            parameter_ids = list(model0.petab_parameters)
+            parameter_ids = list(
+                get_petab_parameters(model0._model_subspace_petab_problem)
+            )
             parameters0 = np.array(
                 model0.get_parameter_values(parameter_ids=parameter_ids)
             )
-            # FIXME need to take superset of all parameters amongst all PEtab problems
-            # in all model subspaces to get an accurate comparable distance. Currently
-            # only reasonable when working with a single PEtab problem for all models
-            # in all subspaces.
-            if model0.petab_yaml.resolve() != model1.petab_yaml.resolve():
-                raise ValueError(
-                    "Computing the distance between different models that "
-                    'have different "base" PEtab problems is not yet '
-                    f"supported. First base PEtab problem: {model0.petab_yaml}."
-                    f" Second base PEtab problem: {model1.petab_yaml}."
-                )
         parameters1 = np.array(
             model1.get_parameter_values(parameter_ids=parameter_ids)
         )
@@ -642,7 +643,7 @@ class CandidateSpace(abc.ABC):
     def update_after_calibration(
         self,
         *args,
-        iteration_calibrated_models: dict[ModelHash, Model],
+        iteration_calibrated_models: Models,
         **kwargs,
     ):
         """Do work in the candidate space after calibration.
@@ -654,7 +655,7 @@ class CandidateSpace(abc.ABC):
         are here, to ensure candidate spaces can be switched easily and still
         receive sufficient arguments.
         """
-        self.calibrated_models |= iteration_calibrated_models
+        self.calibrated_models += iteration_calibrated_models
         self.latest_iteration_calibrated_models = iteration_calibrated_models
         self.set_excluded_hashes(
             self.latest_iteration_calibrated_models,
@@ -707,7 +708,7 @@ class ForwardCandidateSpace(CandidateSpace):
         # A model is plausible if the number of estimated parameters strictly
         # increases (or decreases, if `self.direction == -1`), and no
         # previously estimated parameters become fixed.
-        if self.predecessor_model == VIRTUAL_INITIAL_MODEL or (
+        if self.predecessor_model.hash == VIRTUAL_INITIAL_MODEL.hash or (
             n_steps > 0 and distances["l1"] == n_steps
         ):
             return True
@@ -867,7 +868,7 @@ class FamosCandidateSpace(CandidateSpace):
     def __init__(
         self,
         *args,
-        predecessor_model: Model | str | None | None = None,
+        predecessor_model: Model | None = None,
         critical_parameter_sets: list = [],
         swap_parameter_sets: list = [],
         method_scheme: dict[tuple, str] = None,
@@ -899,10 +900,10 @@ class FamosCandidateSpace(CandidateSpace):
             predecessor_model = VIRTUAL_INITIAL_MODEL
 
         if (
-            predecessor_model == VIRTUAL_INITIAL_MODEL
+            predecessor_model.hash == VIRTUAL_INITIAL_MODEL.hash
             and critical_parameter_sets
         ) or (
-            predecessor_model != VIRTUAL_INITIAL_MODEL
+            predecessor_model.hash != VIRTUAL_INITIAL_MODEL.hash
             and not self.check_critical(predecessor_model)
         ):
             raise ValueError(
@@ -910,7 +911,7 @@ class FamosCandidateSpace(CandidateSpace):
             )
 
         if (
-            predecessor_model == VIRTUAL_INITIAL_MODEL
+            predecessor_model.hash == VIRTUAL_INITIAL_MODEL.hash
             and self.initial_method not in VIRTUAL_INITIAL_MODEL_METHODS
         ):
             raise ValueError(
@@ -961,11 +962,7 @@ class FamosCandidateSpace(CandidateSpace):
             ),
             Method.LATERAL: LateralCandidateSpace(
                 *args,
-                predecessor_model=(
-                    predecessor_model
-                    if predecessor_model != VIRTUAL_INITIAL_MODEL
-                    else None
-                ),
+                predecessor_model=predecessor_model,
                 max_steps=1,
                 **kwargs,
             ),
@@ -999,6 +996,12 @@ class FamosCandidateSpace(CandidateSpace):
         else:
             self.most_distant_max_number = 1
 
+        # TODO update to new `Models` type. Currently problematic because the
+        # order of `best_models` matters. This would be fine for `Models` to
+        # handle, except that `Models._update` will use a pre-existing index
+        # if there is a model with the same hash. FIXME regenerate the expected
+        # FAMoS models when `best_models` never contains duplicate models...
+        # Also add a `sort` method to `Models` to sort by criterion.
         self.best_models = []
         self.best_model_of_current_run = predecessor_model
 
@@ -1030,7 +1033,7 @@ class FamosCandidateSpace(CandidateSpace):
     def update_after_calibration(
         self,
         *args,
-        iteration_calibrated_models: dict[str, Model],
+        iteration_calibrated_models: Models,
         **kwargs,
     ) -> None:
         """See `CandidateSpace.update_after_calibration`."""
@@ -1045,7 +1048,7 @@ class FamosCandidateSpace(CandidateSpace):
         # to False and continue to candidate generation
         if self.jumped_to_most_distant:
             self.jumped_to_most_distant = False
-            jumped_to_model = one(iteration_calibrated_models.values())
+            jumped_to_model = one(iteration_calibrated_models)
             self.set_predecessor_model(jumped_to_model)
             self.previous_predecessor_model = jumped_to_model
             self.best_model_of_current_run = jumped_to_model
@@ -1057,7 +1060,7 @@ class FamosCandidateSpace(CandidateSpace):
             logging.info("Switching method")
             self.switch_method()
             self.switch_inner_candidate_space(
-                excluded_hashes=list(self.calibrated_models),
+                excluded_hashes=self.calibrated_models,
             )
             logging.info(
                 "Method switched to ", self.inner_candidate_space.method
@@ -1067,16 +1070,17 @@ class FamosCandidateSpace(CandidateSpace):
 
     def update_from_iteration_calibrated_models(
         self,
-        iteration_calibrated_models: dict[str, Model],
+        iteration_calibrated_models: Models,
     ) -> bool:
         """Update ``self.best_models`` with the latest ``iteration_calibrated_models``
         and determine if there was a new best model. If so, return
         ``False``. ``True`` otherwise.
         """
         go_into_switch_method = True
-        for model in iteration_calibrated_models.values():
+        for model in iteration_calibrated_models:
             if (
-                self.best_model_of_current_run == VIRTUAL_INITIAL_MODEL
+                self.best_model_of_current_run.hash
+                == VIRTUAL_INITIAL_MODEL_HASH
                 or default_compare(
                     model0=self.best_model_of_current_run,
                     model1=model,
@@ -1162,9 +1166,9 @@ class FamosCandidateSpace(CandidateSpace):
             return True
 
         predecessor_estimated_parameters_ids = set(
-            self.predecessor_model.get_estimated_parameter_ids_all()
+            self.predecessor_model.get_estimated_parameter_ids()
         )
-        estimated_parameters_ids = set(model.get_estimated_parameter_ids_all())
+        estimated_parameters_ids = set(model.get_estimated_parameter_ids())
 
         swapped_parameters_ids = estimated_parameters_ids.symmetric_difference(
             predecessor_estimated_parameters_ids
@@ -1177,7 +1181,7 @@ class FamosCandidateSpace(CandidateSpace):
 
     def check_critical(self, model: Model) -> bool:
         """Check if the model contains all necessary critical parameters"""
-        estimated_parameters_ids = set(model.get_estimated_parameter_ids_all())
+        estimated_parameters_ids = set(model.get_estimated_parameter_ids())
         for critical_set in self.critical_parameter_sets:
             if not estimated_parameters_ids.intersection(set(critical_set)):
                 return False
@@ -1282,6 +1286,9 @@ class FamosCandidateSpace(CandidateSpace):
         # critical parameter from each critical parameter set
         if not self.check_critical(predecessor_model):
             for critical_set in self.critical_parameter_sets:
+                # FIXME is this a good idea? probably better to request
+                #       the model from the model subspace, rather than editing
+                #       the parameters...
                 predecessor_model.parameters[critical_set[0]] = ESTIMATE
 
         # self.update_method(self.initial_method)
@@ -1294,7 +1301,7 @@ class FamosCandidateSpace(CandidateSpace):
         # self.predecessor_model = None
         self.set_predecessor_model(None)
         self.best_model_of_current_run = None
-        self.models = [predecessor_model]
+        self.models = Models([predecessor_model])
 
         self.write_summary_tsv("Jumped to the most distant model.")
         self.update_method(self.method_scheme[(Method.MOST_DISTANT,)])
@@ -1319,7 +1326,12 @@ class FamosCandidateSpace(CandidateSpace):
         most_distance = 0
         most_distant_indices = []
 
-        parameter_ids = self.best_models[0].petab_parameters
+        # FIXME for multiple PEtab problems?
+        parameter_ids = list(
+            get_petab_parameters(
+                self.best_models[0]._model_subspace_petab_problem
+            )
+        )
 
         for model in self.best_models:
             model_estimated_parameters = np.array(
@@ -1334,7 +1346,7 @@ class FamosCandidateSpace(CandidateSpace):
             # initialize the least distance to the maximal possible value of it
             complement_least_distance = len(complement_parameters)
             # get the complement least distance
-            for calibrated_model in self.calibrated_models.values():
+            for calibrated_model in self.calibrated_models:
                 calibrated_model_estimated_parameters = np.array(
                     [
                         p == ESTIMATE
@@ -1370,7 +1382,7 @@ class FamosCandidateSpace(CandidateSpace):
         )
 
         most_distant_model = Model(
-            petab_yaml=model.petab_yaml,
+            model_subspace_petab_yaml=model.model_subspace_petab_yaml,
             model_subspace_id=model.model_subspace_id,
             model_subspace_indices=most_distant_indices,
             parameters=most_distant_parameters,
@@ -1391,7 +1403,6 @@ class LateralCandidateSpace(CandidateSpace):
     def __init__(
         self,
         *args,
-        predecessor_model: Model | None,
         max_steps: int = None,
         **kwargs,
     ):
@@ -1403,7 +1414,6 @@ class LateralCandidateSpace(CandidateSpace):
         super().__init__(
             *args,
             method=Method.LATERAL,
-            predecessor_model=predecessor_model,
             **kwargs,
         )
         self.max_steps = max_steps

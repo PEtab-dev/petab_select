@@ -12,8 +12,16 @@ from more_itertools import one
 
 from . import ui
 from .candidate_space import CandidateSpace
-from .constants import CANDIDATE_SPACE, MODELS, PETAB_YAML, TERMINATE
-from .model import ModelHash, models_from_yaml_list, models_to_yaml_list
+from .constants import (
+    CANDIDATE_SPACE,
+    MODELS,
+    PETAB_YAML,
+    PROBLEM,
+    TERMINATE,
+    UNCALIBRATED_MODELS,
+)
+from .model import ModelHash
+from .models import Models, models_to_yaml_list
 from .problem import Problem
 
 
@@ -21,8 +29,8 @@ def read_state(filename: str) -> dict[str, Any]:
     with open(filename, "rb") as f:
         state = dill.load(f)
 
-    state["problem"] = dill.loads(state["problem"])
-    state["candidate_space"] = dill.loads(state["candidate_space"])
+    state[PROBLEM] = dill.loads(state[PROBLEM])
+    state[CANDIDATE_SPACE] = dill.loads(state[CANDIDATE_SPACE])
 
     return state
 
@@ -40,8 +48,8 @@ def get_state(
     candidate_space: CandidateSpace,
 ) -> dict[str, Any]:
     state = {
-        "problem": dill.dumps(problem),
-        "candidate_space": dill.dumps(candidate_space),
+        PROBLEM: dill.dumps(problem),
+        CANDIDATE_SPACE: dill.dumps(candidate_space),
     }
     return state
 
@@ -80,34 +88,6 @@ def cli():
     default=None,
     help="The method used to identify the candidate models. Defaults to the method in the problem YAML.",
 )
-# @click.option(
-#    '--previous-predecessor-model',
-#    '-P',
-#    'previous_predecessor_model_yaml',
-#    type=str,
-#    default=None,
-#    help='(Optional) The predecessor model used in the previous iteration of model selection.',
-# )
-# @click.option(
-#    '--calibrated-models',
-#    '-C',
-#    'calibrated_models_yamls',
-#    type=str,
-#    multiple=True,
-#    default=None,
-#    help='(Optional) Models that have been calibrated.',
-# )
-# @click.option(
-#    '--newly-calibrated-models',
-#    '-N',
-#    'newly_calibrated_models_yamls',
-#    type=str,
-#    multiple=True,
-#    default=None,
-#    help=(
-#        '(Optional) Models that were calibrated in the most recent iteration.'
-#    ),
-# )
 @click.option(
     "--limit",
     "-l",
@@ -157,10 +137,6 @@ def start_iteration(
     state_dill: str,
     uncalibrated_models_yaml: str,
     method: str = None,
-    # previous_predecessor_model_yaml: str = None,
-    # best: str = None,
-    # calibrated_models_yamls: List[str] = None,
-    # newly_calibrated_models_yamls: List[str] = None,
     limit: float = np.inf,
     limit_sent: float = np.inf,
     relative_paths: bool = False,
@@ -194,11 +170,11 @@ def start_iteration(
         problem = state["problem"]
         candidate_space = state["candidate_space"]
 
-    excluded_models = []
+    excluded_models = Models()
     # TODO seems like default is `()`, not `None`...
     if excluded_model_files is not None:
-        for model_yaml_list in excluded_model_files:
-            excluded_models.extend(models_from_yaml_list(model_yaml_list))
+        for models_yaml in excluded_model_files:
+            excluded_models.extend(Models.from_yaml(models_yaml))
 
     # TODO test
     excluded_model_hashes = []
@@ -208,55 +184,18 @@ def start_iteration(
                 excluded_model_hashes += f.read().split("\n")
 
     excluded_hashes = [
-        excluded_model.get_hash() for excluded_model in excluded_models
+        excluded_model.hash for excluded_model in excluded_models
     ]
     excluded_hashes += [
         ModelHash.from_hash(hash_str) for hash_str in excluded_model_hashes
     ]
 
-    # previous_predecessor_model = candidate_space.predecessor_model
-    # if previous_predecessor_model_yaml is not None:
-    #    previous_predecessor_model = Model.from_yaml(
-    #        previous_predecessor_model_yaml
-    #    )
-
-    # # FIXME write single methods to take all models from lists of lists of
-    # #       models recursively
-    # calibrated_models = None
-    # if calibrated_models_yamls:
-    #     calibrated_models = {}
-    #     for calibrated_models_yaml in calibrated_models_yamls:
-    #         calibrated_models.update(
-    #             {
-    #                 model.get_hash(): model
-    #                 for model in models_from_yaml_list(calibrated_models_yaml)
-    #             }
-    #         )
-
-    # newly_calibrated_models = None
-    # if newly_calibrated_models_yamls:
-    #     newly_calibrated_models = {}
-    #     for newly_calibrated_models_yaml in newly_calibrated_models_yamls:
-    #         newly_calibrated_models.update(
-    #             {
-    #                 model.get_hash(): model
-    #                 for model in models_from_yaml_list(
-    #                     newly_calibrated_models_yaml
-    #                 )
-    #             }
-    #         )
-
-    ui.start_iteration(
+    result = ui.start_iteration(
         problem=problem,
         candidate_space=candidate_space,
-        # previous_predecessor_model=previous_predecessor_model,
-        # calibrated_models=calibrated_models,
-        # newly_calibrated_models=newly_calibrated_models,
         limit=limit,
         limit_sent=limit_sent,
         excluded_hashes=excluded_hashes,
-        # excluded_models=excluded_models,
-        # excluded_model_hashes=excluded_model_hashes,
     )
 
     # Save state
@@ -269,9 +208,8 @@ def start_iteration(
     )
 
     # Save candidate models
-    models_to_yaml_list(
-        models=candidate_space.models,
-        output_yaml=uncalibrated_models_yaml,
+    result[UNCALIBRATED_MODELS].to_yaml(
+        filename=uncalibrated_models_yaml,
         relative_paths=relative_paths,
     )
 
@@ -332,18 +270,14 @@ def end_iteration(
     problem = state["problem"]
     candidate_space = state["candidate_space"]
 
-    calibrated_models = {}
+    calibrated_models = Models()
     if calibrated_models_yamls:
         for calibrated_models_yaml in calibrated_models_yamls:
-            calibrated_models.update(
-                {
-                    model.get_hash(): model
-                    for model in models_from_yaml_list(calibrated_models_yaml)
-                }
-            )
+            calibrated_models.extend(Models.from_yaml(calibrated_models_yaml))
 
     # Finalize iteration results
     iteration_results = ui.end_iteration(
+        problem=problem,
         candidate_space=candidate_space,
         calibrated_models=calibrated_models,
     )
@@ -409,9 +343,9 @@ def model_to_petab(
     Documentation for arguments can be viewed with
     `petab_select model_to_petab --help`.
     """
-    models = []
+    models = Models()
     for models_yaml in models_yamls:
-        models.extend(models_from_yaml_list(models_yaml))
+        models.extend(Models.from_yaml(models_yaml))
 
     model0 = None
     try:
@@ -468,9 +402,9 @@ def models_to_petab(
     Documentation for arguments can be viewed with
     `petab_select models_to_petab --help`.
     """
-    models = []
+    models = Models()
     for models_yaml in models_yamls:
-        models.extend(models_from_yaml_list(models_yaml))
+        models.extend(Models.from_yaml(models_yaml))
 
     model_ids = pd.Series([model.model_id for model in models])
     duplicates = "\n".join(set(model_ids[model_ids.duplicated()]))
@@ -559,16 +493,16 @@ def get_best(
 
     problem = Problem.from_yaml(problem_yaml)
 
-    models = []
+    models = Models()
     for models_yaml in models_yamls:
-        models.extend(models_from_yaml_list(models_yaml))
+        models.extend(Models.from_yaml(models_yaml))
 
     best_model = ui.get_best(
         problem=problem,
         models=models,
         criterion=criterion,
     )
-    best_model.to_yaml(output, paths_relative_to=paths_relative_to)
+    best_model.to_yaml(output)
 
 
 cli.add_command(start_iteration)

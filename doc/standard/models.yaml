@@ -1,0 +1,76 @@
+$defs:
+  Model:
+    description: A model.
+    properties:
+      model_subspace_id:
+        title: Model Subspace Id
+        type: string
+      model_subspace_indices:
+        items:
+          type: integer
+        title: Model Subspace Indices
+        type: array
+      criteria:
+        additionalProperties:
+          type: number
+        title: Criteria
+        type: object
+      model_hash:
+        $ref: '#/$defs/ModelHash'
+        default: null
+      model_subspace_petab_yaml:
+        anyOf:
+        - format: path
+          type: string
+        - type: 'null'
+        title: Model Subspace Petab Yaml
+      estimated_parameters:
+        anyOf:
+        - additionalProperties:
+            type: number
+          type: object
+        - type: 'null'
+        default: null
+        title: Estimated Parameters
+      iteration:
+        anyOf:
+        - type: integer
+        - type: 'null'
+        default: null
+        title: Iteration
+      model_id:
+        default: null
+        title: Model Id
+        type: string
+      model_label:
+        anyOf:
+        - type: string
+        - type: 'null'
+        default: null
+        title: Model Label
+      parameters:
+        additionalProperties:
+          anyOf:
+          - type: number
+          - type: integer
+          - const: estimate
+            type: string
+        title: Parameters
+        type: object
+      predecessor_model_hash:
+        $ref: '#/$defs/ModelHash'
+        default: null
+    required:
+    - model_subspace_id
+    - model_subspace_indices
+    - model_subspace_petab_yaml
+    - parameters
+    title: Model
+    type: object
+  ModelHash:
+    type: string
+description: A collection of models.
+items:
+  $ref: '#/$defs/Model'
+title: Models
+type: array

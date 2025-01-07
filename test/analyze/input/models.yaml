@@ -1,0 +1,66 @@
+- criteria:
+    AIC: 5
+  model_id: model_1
+  model_subspace_id: M
+  model_subspace_indices:
+  - 0
+  - 1
+  - 1
+  iteration: 1
+  parameters:
+    k1: 0.2
+    k2: estimate
+    k3: estimate
+  estimated_parameters:
+    k2: 0.15
+    k3: 0.0
+  model_subspace_petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml
+  predecessor_model_hash: dummy_p0-0
+- criteria:
+    AIC: 4
+  model_id: model_2
+  model_subspace_id: M
+  model_subspace_indices:
+  - 1
+  - 1
+  - 0
+  iteration: 5
+  parameters:
+    k1: estimate
+    k2: estimate
+    k3: 0
+  model_subspace_petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml
+  predecessor_model_hash: virtual_initial_model-
+- criteria:
+    AIC: 3
+  model_id: model_3
+  model_subspace_id: M2
+  model_subspace_indices:
+  - 0
+  - 1
+  - 1
+  iteration: 1
+  parameters:
+    k1: 0.2
+    k2: estimate
+    k3: estimate
+  estimated_parameters:
+    k2: 0.15
+    k3: 0.0
+  model_subspace_petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml
+  predecessor_model_hash: virtual_initial_model-
+- criteria:
+    AIC: 2
+  model_id: model_4
+  model_subspace_id: M2
+  model_subspace_indices:
+  - 1
+  - 1
+  - 0
+  iteration: 2
+  parameters:
+    k1: estimate
+    k2: estimate
+    k3: 0
+  model_subspace_petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml
+  predecessor_model_hash: virtual_initial_model-

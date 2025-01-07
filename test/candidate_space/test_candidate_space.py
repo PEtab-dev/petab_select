@@ -12,7 +12,7 @@ import pytest
 from petab_select.constants import (
     ESTIMATE,
 )
-from petab_select.model_space import ModelSpace, get_model_space_df
+from petab_select.model_space import ModelSpace
 
 
 @pytest.fixture
@@ -98,6 +98,5 @@ def model_space(calibrated_model_space) -> pd.DataFrame:
         data["k4"].append(k4)
         data["k5"].append(k5)
     df = pd.DataFrame(data=data)
-    df = get_model_space_df(df)
-    model_space = ModelSpace.from_df(df)
+    model_space = ModelSpace.load(df)
     return model_space

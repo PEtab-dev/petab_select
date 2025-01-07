@@ -1,0 +1,25 @@
+description: The model selection problem.
+properties:
+  format_version:
+    default: 1.0.0
+    title: Format Version
+    type: string
+  criterion:
+    type: string
+  method:
+    type: string
+  model_space_files:
+    items:
+      format: path
+      type: string
+    title: Model Space Files
+    type: array
+  candidate_space_arguments:
+    title: Candidate Space Arguments
+    type: object
+required:
+- criterion
+- method
+- model_space_files
+title: Problem
+type: object

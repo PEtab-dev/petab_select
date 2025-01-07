@@ -1,128 +1,218 @@
 """The model selection problem class."""
 
+from __future__ import annotations
+
+import copy
+import warnings
 from collections.abc import Callable, Iterable
 from functools import partial
+from os.path import relpath
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
-import yaml
+import mkstd
+from pydantic import (
+    BaseModel,
+    Field,
+    PlainSerializer,
+    PrivateAttr,
+    ValidationInfo,
+    ValidatorFunctionWrapHandler,
+    model_validator,
+)
 
+from .analyze import get_best
 from .candidate_space import CandidateSpace, method_to_candidate_space_class
 from .constants import (
-    CANDIDATE_SPACE_ARGUMENTS,
     CRITERION,
-    METHOD,
-    MODEL_SPACE_FILES,
     PREDECESSOR_MODEL,
-    PROBLEM_ID,
-    VERSION,
+    ROOT_PATH,
+    TYPE_PATH,
     Criterion,
     Method,
 )
 from .model import Model, ModelHash, default_compare
 from .model_space import ModelSpace
+from .models import Models
 
 __all__ = [
     "Problem",
+    "ProblemStandard",
 ]
 
 
-class Problem:
-    """Handle everything related to the model selection problem.
+class State(BaseModel):
+    """Carry the state of applying model selection methods to the problem."""
 
-    Attributes:
-        model_space:
-            The model space.
-        calibrated_models:
-            Calibrated models. Will be used to augment the model selection problem (e.g.
-            by excluding them from the model space).
-        candidate_space_arguments:
-            Arguments are forwarded to the candidate space constructor.
-        compare:
-            A method that compares models by selection criterion. See
-            :func:`petab_select.model.default_compare` for an example.
-        criterion:
-            The criterion used to compare models.
-        method:
-            The method used to search the model space.
-        version:
-            The version of the PEtab Select format.
-        yaml_path:
-            The location of the selection problem YAML file. Used for relative
-            paths that exist in e.g. the model space files.
+    models: Models = Field(default_factory=Models)
+    """All calibrated models."""
+    iteration: int = Field(default=0)
+    """The latest iteration of model selection."""
+
+    def increment_iteration(self) -> None:
+        """Start the next iteration."""
+        self.iteration += 1
+
+    def reset(self) -> None:
+        """Reset the state.
+
+        N.B.: does not reset all state information, which currently also exists
+        in other classes. Open a GitHub issue if you see unusual behavior. A
+        quick fix is to simply recreate the PEtab Select problem, and any other
+        objects that you use, e.g. the candidate space, whenever you need a
+        full reset.
+        https://github.com/PEtab-dev/petab_select/issues
+        """
+        # FIXME state information is currently distributed across multiple
+        # classes, e.g. exclusions in model subspaces and candidate spaces.
+        # move all state information here.
+        self.models = Models()
+        self.iteration = 0
+
+
+class Problem(BaseModel):
+    """The model selection problem."""
+
+    format_version: str = Field(default="1.0.0")
+    """The file format version."""
+    criterion: Annotated[
+        Criterion, PlainSerializer(lambda x: x.value, return_type=str)
+    ]
+    """The criterion used to compare models."""
+    method: Annotated[
+        Method, PlainSerializer(lambda x: x.value, return_type=str)
+    ]
+    """The method used to search the model space."""
+    model_space_files: list[Path]
+    """The files that define the model space."""
+    candidate_space_arguments: dict[str, Any] = Field(default_factory=dict)
+    """Method-specific arguments.
+
+    These are forwarded to the candidate space constructor.
     """
 
-    """
-    FIXME(dilpath)
-    Unsaved attributes:
-        candidate_space:
-            The candidate space that will be used.
-            Reason for not saving:
-                Essentially reproducible from :attr:`Problem.method` and
-                :attr:`Problem.calibrated_models`.
-    FIXME(dilpath) refactor calibrated_models out, move to e.g. candidate
-                   space args
-            TODO should the relative paths be relative to the YAML or the file that contains them?
-                 problem relative to file that contains them
+    _compare: Callable[[Model, Model], bool] = PrivateAttr(default=None)
+    """The method by which models are compared."""
+    _state: State = PrivateAttr(default_factory=State)
 
-    """
+    @model_validator(mode="wrap")
+    def _check_input(
+        data: dict[str, Any] | Problem,
+        handler: ValidatorFunctionWrapHandler,
+        info: ValidationInfo,
+    ) -> Problem:
+        if isinstance(data, Problem):
+            return data
 
-    def __init__(
+        compare = data.pop("compare", None) or data.pop("_compare", None)
+        if "state" in data:
+            data["_state"] = data["state"]
+        root_path = Path(data.pop(ROOT_PATH, ""))
+
+        problem = handler(data)
+
+        if compare is None:
+            compare = partial(default_compare, criterion=problem.criterion)
+        problem._compare = compare
+
+        problem._model_space = ModelSpace.load(
+            [
+                root_path / model_space_file
+                for model_space_file in problem.model_space_files
+            ]
+        )
+
+        if PREDECESSOR_MODEL in problem.candidate_space_arguments:
+            problem.candidate_space_arguments[PREDECESSOR_MODEL] = (
+                root_path
+                / problem.candidate_space_arguments[PREDECESSOR_MODEL]
+            )
+
+        return problem
+
+    @property
+    def state(self) -> State:
+        return self._state
+
+    @staticmethod
+    def from_yaml(filename: TYPE_PATH) -> Problem:
+        """Load a problem from a YAML file."""
+        problem = ProblemStandard.load_data(
+            filename=filename,
+            root_path=Path(filename).parent,
+        )
+        return problem
+
+    def to_yaml(
         self,
-        model_space: ModelSpace,
-        candidate_space_arguments: dict[str, Any] = None,
-        compare: Callable[[Model, Model], bool] = None,
-        criterion: Criterion = None,
-        problem_id: str = None,
-        method: str = None,
-        version: str = None,
-        yaml_path: Path | str = None,
-    ):
-        self.model_space = model_space
-        self.criterion = criterion
-        self.problem_id = problem_id
-        self.method = method
-        self.version = version
-        self.yaml_path = Path(yaml_path)
+        filename: str | Path,
+    ) -> None:
+        """Save a problem to a YAML file.
 
-        self.candidate_space_arguments = candidate_space_arguments
-        if self.candidate_space_arguments is None:
-            self.candidate_space_arguments = {}
+        All paths will be made relative to the ``filename`` directory.
 
-        self.compare = compare
-        if self.compare is None:
-            self.compare = partial(default_compare, criterion=self.criterion)
+        Args:
+            filename:
+                Location of the YAML file.
+        """
+        root_path = Path(filename).parent
+
+        problem = copy.deepcopy(self)
+        problem.model_space_files = [
+            relpath(
+                model_space_file.resolve(),
+                start=root_path,
+            )
+            for model_space_file in problem.model_space_files
+        ]
+        ProblemStandard.save_data(data=problem, filename=filename)
+
+    def save(
+        self,
+        directory: str | Path,
+    ) -> None:
+        """Save all data (problem and model space) to a ``directory``.
+
+        Inside the directory, two files will be created:
+        (1) ``petab_select_problem.yaml``, and
+        (2) ``model_space.tsv``.
+
+        All paths will be made relative to the ``directory``.
+        """
+        directory = Path(directory)
+        directory.mkdir(exist_ok=True, parents=True)
+
+        problem = copy.deepcopy(self)
+        problem.model_space_files = ["model_space.tsv"]
+        if PREDECESSOR_MODEL in problem.candidate_space_arguments:
+            problem.candidate_space_arguments[PREDECESSOR_MODEL] = relpath(
+                problem.candidate_space_arguments[PREDECESSOR_MODEL],
+                start=directory,
+            )
+        ProblemStandard.save_data(
+            data=problem, filename=directory / "petab_select_problem.yaml"
+        )
+
+        problem.model_space.save(filename=directory / "model_space.tsv")
+
+    @property
+    def compare(self):
+        return self._compare
+
+    @property
+    def model_space(self):
+        return self._model_space
 
     def __str__(self):
         return (
-            f"YAML: {self.yaml_path}\n"
             f"Method: {self.method}\n"
             f"Criterion: {self.criterion}\n"
-            f"Version: {self.version}\n"
+            f"Format version: {self.format_version}\n"
         )
-
-    def get_path(self, relative_path: str | Path) -> Path:
-        """Get the path to a resource, from a relative path.
-
-        Args:
-            relative_path:
-                The path to the resource, that is relative to the PEtab Select
-                problem YAML file location.
-
-        Returns:
-            The path to the resource.
-        """
-        """
-        TODO:
-            Unused?
-        """
-        if self.yaml_path is None:
-            return Path(relative_path)
-        return self.yaml_path.parent / relative_path
 
     def exclude_models(
         self,
-        models: Iterable[Model],
+        models: Models,
     ) -> None:
         """Exclude models from the model space.
 
@@ -142,77 +232,18 @@ class Problem:
             model_hashes:
                 The model hashes.
         """
-        self.model_space.exclude_model_hashes(model_hashes)
-
-    @staticmethod
-    def from_yaml(
-        yaml_path: str | Path,
-    ) -> "Problem":
-        """Generate a problem from a PEtab Select problem YAML file.
-
-        Args:
-            yaml_path:
-                The location of the PEtab Select problem YAML file.
-
-        Returns:
-            A `Problem` instance.
-        """
-        yaml_path = Path(yaml_path)
-        with open(yaml_path) as f:
-            problem_specification = yaml.safe_load(f)
-
-        if not problem_specification.get(MODEL_SPACE_FILES, []):
-            raise KeyError(
-                "The model selection problem specification file is missing "
-                "model space files."
-            )
-
-        model_space = ModelSpace.from_files(
-            # problem_specification[MODEL_SPACE_FILES],
-            [
-                # `pathlib.Path` appears to handle absolute `model_space_file` paths
-                # correctly, even if used as a relative path.
-                # TODO test
-                # This is similar to the `Problem.get_path` method.
-                yaml_path.parent / model_space_file
-                for model_space_file in problem_specification[
-                    MODEL_SPACE_FILES
-                ]
-            ],
-            # source_path=yaml_path.parent,
+        # FIXME think about design here -- should we have exclude_models here?
+        warnings.warn(
+            "Use `exclude_models` instead. It also accepts hashes.",
+            DeprecationWarning,
+            stacklevel=2,
         )
-
-        criterion = problem_specification.get(CRITERION, None)
-        if criterion is not None:
-            criterion = Criterion(criterion)
-
-        problem_id = problem_specification.get(PROBLEM_ID, None)
-
-        candidate_space_arguments = problem_specification.get(
-            CANDIDATE_SPACE_ARGUMENTS,
-            None,
-        )
-        if candidate_space_arguments is not None:
-            if PREDECESSOR_MODEL in candidate_space_arguments:
-                candidate_space_arguments[PREDECESSOR_MODEL] = (
-                    yaml_path.parent
-                    / candidate_space_arguments[PREDECESSOR_MODEL]
-                )
-
-        return Problem(
-            model_space=model_space,
-            candidate_space_arguments=candidate_space_arguments,
-            criterion=criterion,
-            # TODO refactor method to use enum
-            method=problem_specification.get(METHOD, None),
-            problem_id=problem_id,
-            version=problem_specification.get(VERSION, None),
-            yaml_path=yaml_path,
-        )
+        self.exclude_models(models=Models(models=model_hashes, problem=self))
 
     def get_best(
         self,
-        models: list[Model] | dict[ModelHash, Model] | None,
+        models: Models,
+        # models: list[Model] | dict[ModelHash, Model] | None,
         criterion: str | None | None = None,
         compute_criterion: bool = False,
     ) -> Model:
@@ -222,11 +253,9 @@ class Problem:
 
         Args:
             models:
-                The best model will be taken from these models.
+                The models.
             criterion:
-                The criterion by which models will be compared. Defaults to
-                ``self.criterion`` (e.g. as defined in the PEtab Select problem YAML
-                file).
+                The criterion. Defaults to the problem criterion.
             compute_criterion:
                 Whether to try computing criterion values, if sufficient
                 information is available (e.g., likelihood and number of
@@ -235,27 +264,20 @@ class Problem:
         Returns:
             The best model.
         """
-        if isinstance(models, dict):
-            models = list(models.values())
+        warnings.warn(
+            "Use ``petab_select.ui.get_best`` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if criterion is None:
             criterion = self.criterion
 
-        best_model = None
-        for model in models:
-            if compute_criterion and not model.has_criterion(criterion):
-                model.get_criterion(criterion)
-            if best_model is None:
-                if model.has_criterion(criterion):
-                    best_model = model
-                # TODO warn if criterion is not available?
-                continue
-            if self.compare(best_model, model, criterion=criterion):
-                best_model = model
-        if best_model is None:
-            raise KeyError(
-                f"None of the supplied models have a value set for the criterion {criterion}."
-            )
-        return best_model
+        return get_best(
+            models=models,
+            criterion=criterion,
+            compare=self.compare,
+            compute_criterion=compute_criterion,
+        )
 
     def model_hash_to_model(self, model_hash: str | ModelHash) -> Model:
         """Get the model that matches a model hash.
@@ -310,3 +332,6 @@ class Problem:
             **candidate_space_kwargs,
         )
         return candidate_space
+
+
+ProblemStandard = mkstd.YamlStandard(model=Problem)

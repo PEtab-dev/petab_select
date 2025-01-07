@@ -16,28 +16,28 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "BSD-3-Clause"}
 dependencies = [
-    # TODO minimum versions
-    "more-itertools",
-    "numpy",
-    "pandas",
-    "petab",
-    "pyyaml",
-    "click",
-    "dill",
+    "more-itertools>=10.5.0",
+    "numpy>=1.15.1",
+    "pandas>=1.2.0",
+    "petab>=0.5.0",
+    "pyyaml>=6.0.2",
+    "click>=8.1.7",
+    "dill>=0.3.9",
+    "mkstd>=0.0.8",
+    "networkx>=3.2",
 ]
 [project.optional-dependencies]
 plot = [
     "matplotlib>=2.2.3",
     "upsetplot",
-    "toposort",
-    "networkx",
 ]
 test = [
     "pytest >= 5.4.3",
     "pytest-cov >= 2.10.0",
     "amici >= 0.11.25",
     "fides >= 0.7.5",
-    "pypesto > 0.2.13",
+    # "pypesto > 0.2.13",
+    "pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@select_mkstd#egg=pypesto",
     "tox >= 3.12.4",
 ]
 doc = [
@@ -52,9 +52,11 @@ doc = [
     "nbsphinx>=0.9.5",
     "pandoc>=2.4",
     "nbconvert>=7.16.4",
+    "ipykernel>= 6.23.1",
     "ipython>=7.21.0",
     "readthedocs-sphinx-ext>=2.2.5",
     "sphinx-autodoc-typehints",
+    "petab_select[plot]",
 ]
 
 [project.scripts]

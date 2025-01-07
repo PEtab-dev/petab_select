@@ -1,10 +1,12 @@
 import copy
+import warnings
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import petab.v1 as petab
 
+from . import analyze
 from .candidate_space import CandidateSpace, FamosCandidateSpace
 from .constants import (
     CANDIDATE_SPACE,
@@ -13,11 +15,11 @@ from .constants import (
     TERMINATE,
     TYPE_PATH,
     UNCALIBRATED_MODELS,
-    VIRTUAL_INITIAL_MODEL,
     Criterion,
     Method,
 )
-from .model import Model, ModelHash, default_compare
+from .model import VIRTUAL_INITIAL_MODEL, Model, ModelHash, default_compare
+from .models import Models
 from .problem import Problem
 
 __all__ = [
@@ -30,7 +32,24 @@ __all__ = [
 ]
 
 
-def get_iteration(candidate_space: CandidateSpace) -> dict[str, Any]:
+def start_iteration_result(candidate_space: CandidateSpace) -> dict[str, Any]:
+    """Get the state after starting the iteration.
+
+    Args:
+        candidate_space:
+            The candidate space.
+
+    Returns:
+        The candidate space, the uncalibrated models, and the predecessor
+        model.
+    """
+    # Set model iteration for the models that the calibration tool
+    # will see. All models (user-supplied and newly-calibrated) will
+    # have their iteration set (again) in `end_iteration`, via
+    # `CandidateSpace.get_iteration_calibrated_models`
+    # TODO use problem.state.iteration instead
+    for model in candidate_space.models:
+        model.iteration = candidate_space.iteration
     return {
         CANDIDATE_SPACE: candidate_space,
         UNCALIBRATED_MODELS: candidate_space.models,
@@ -45,7 +64,7 @@ def start_iteration(
     limit_sent: float | int = np.inf,
     excluded_hashes: list[ModelHash] | None = None,
     criterion: Criterion | None = None,
-    user_calibrated_models: list[Model] | dict[ModelHash, Model] | None = None,
+    user_calibrated_models: Models | None = None,
 ) -> CandidateSpace:
     """Search the model space for candidate models.
 
@@ -71,8 +90,7 @@ def start_iteration(
             The criterion by which models will be compared. Defaults to the criterion
             defined in the PEtab Select problem.
         user_calibrated_models:
-            Models that were already calibrated by the user. When supplied as a
-            `dict`, the keys are model hashes. If a model in the
+            Models that were already calibrated by the user. If a model in the
             candidates has the same hash as a model in
             `user_calibrated_models`, then the candidate will be replaced with
             the calibrated version. Calibration tools will only receive uncalibrated
@@ -93,6 +111,17 @@ def start_iteration(
     - add `Iteration` class to manage an iteration, append to
       `CandidateSpace.iterations`?
     """
+    if isinstance(user_calibrated_models, dict):
+        warnings.warn(
+            (
+                "`calibrated_models` should be a `petab_select.Models` object. "
+                "e.g. `calibrated_models = "
+                "petab_select.Models(old_calibrated_models.values())`."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        user_calibrated_models = Models(user_calibrated_models.values())
     do_search = True
     # FIXME might be difficult for a CLI tool to specify a specific predecessor
     #       model if their candidate space has models. Need a way to empty
@@ -109,14 +138,15 @@ def start_iteration(
         raise ValueError("Please provide a criterion.")
     candidate_space.criterion = criterion
 
+    # Start a new iteration
+    problem.state.increment_iteration()
+    candidate_space.iteration = problem.state.iteration
+
     # Set the predecessor model to the previous predecessor model.
     predecessor_model = candidate_space.previous_predecessor_model
 
     # If the predecessor model has not yet been calibrated, then calibrate it.
-    if (
-        predecessor_model is not None
-        and predecessor_model != VIRTUAL_INITIAL_MODEL
-    ):
+    if predecessor_model.hash != VIRTUAL_INITIAL_MODEL.hash:
         if (
             predecessor_model.get_criterion(
                 criterion,
@@ -124,14 +154,14 @@ def start_iteration(
             )
             is None
         ):
-            candidate_space.models = [copy.deepcopy(predecessor_model)]
+            candidate_space.models = Models([copy.deepcopy(predecessor_model)])
             # Dummy zero likelihood, which the predecessor model will
             # improve on after it's actually calibrated.
             predecessor_model.set_criterion(Criterion.LH, 0.0)
             candidate_space.set_iteration_user_calibrated_models(
                 user_calibrated_models=user_calibrated_models
             )
-            return get_iteration(candidate_space=candidate_space)
+            return start_iteration_result(candidate_space=candidate_space)
 
         # Exclude the calibrated predecessor model.
         if not candidate_space.excluded(predecessor_model):
@@ -144,9 +174,10 @@ def start_iteration(
     # by calling ui.best to find the best model to jump to if
     # this is not the first step of the search.
     if candidate_space.latest_iteration_calibrated_models:
-        predecessor_model = problem.get_best(
-            candidate_space.latest_iteration_calibrated_models.values(),
+        predecessor_model = analyze.get_best(
+            models=candidate_space.latest_iteration_calibrated_models,
             criterion=criterion,
+            compare=problem.compare,
         )
         # If the new predecessor model isn't better than the previous one,
         # keep the previous one.
@@ -167,10 +198,9 @@ def start_iteration(
             isinstance(candidate_space, FamosCandidateSpace)
             and candidate_space.jumped_to_most_distant
         ):
-            return get_iteration(candidate_space=candidate_space)
+            return start_iteration_result(candidate_space=candidate_space)
 
-    if predecessor_model is not None:
-        candidate_space.reset(predecessor_model)
+    candidate_space.reset(predecessor_model)
 
     # FIXME store exclusions in candidate space only
     problem.model_space.exclude_model_hashes(model_hashes=excluded_hashes)
@@ -194,7 +224,7 @@ def start_iteration(
         if isinstance(candidate_space, FamosCandidateSpace):
             try:
                 candidate_space.update_after_calibration(
-                    iteration_calibrated_models={},
+                    iteration_calibrated_models=Models(),
                 )
                 continue
             except StopIteration:
@@ -209,13 +239,14 @@ def start_iteration(
     candidate_space.set_iteration_user_calibrated_models(
         user_calibrated_models=user_calibrated_models
     )
-    return get_iteration(candidate_space=candidate_space)
+    return start_iteration_result(candidate_space=candidate_space)
 
 
 def end_iteration(
+    problem: Problem,
     candidate_space: CandidateSpace,
-    calibrated_models: list[Model] | dict[str, Model],
-) -> dict[str, dict[ModelHash, Model] | bool | CandidateSpace]:
+    calibrated_models: Models,
+) -> dict[str, Models | bool | CandidateSpace]:
     """Finalize model selection iteration.
 
     All models from the current iteration are provided to the calibration tool.
@@ -225,6 +256,8 @@ def end_iteration(
     ends.
 
     Args:
+        problem:
+            The PEtab Select problem.
         candidate_space:
             The candidate space.
         calibrated_models:
@@ -234,17 +267,22 @@ def end_iteration(
     Returns:
         A dictionary, with the following items:
             :const:`petab_select.constants.MODELS`:
-                All calibrated models for the current iteration as a
-                dictionary, where keys are model hashes, and values are models.
+                All calibrated models for the current iteration.
             :const:`petab_select.constants.TERMINATE`:
                 Whether PEtab Select has decided to end the model selection,
                 as a boolean.
     """
-    if isinstance(calibrated_models, list):
-        calibrated_models = {
-            model.get_hash(): model for model in calibrated_models
-        }
-
+    if isinstance(calibrated_models, dict):
+        warnings.warn(
+            (
+                "`calibrated_models` should be a `petab_select.Models` object. "
+                "e.g. `calibrated_models = "
+                "petab_select.Models(old_calibrated_models.values())`."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        calibrated_models = Models(calibrated_models.values())
     iteration_results = {
         MODELS: candidate_space.get_iteration_calibrated_models(
             calibrated_models=calibrated_models,
@@ -264,6 +302,8 @@ def end_iteration(
     iteration_results[TERMINATE] = terminate
 
     iteration_results[CANDIDATE_SPACE] = candidate_space
+
+    problem.state.models.extend(iteration_results[MODELS])
 
     return iteration_results
 
@@ -288,7 +328,7 @@ def model_to_petab(
 
 
 def models_to_petab(
-    models: list[Model],
+    models: Models,
     output_path_prefix: list[TYPE_PATH] | None = None,
 ) -> list[dict[str, petab.Problem | TYPE_PATH]]:
     """Generate the PEtab problems for a list of models.
@@ -315,7 +355,7 @@ def models_to_petab(
 def get_best(
     problem: Problem,
     models: list[Model],
-    criterion: str | None | None = None,
+    criterion: str | Criterion | None = None,
 ) -> Model:
     """Get the best model from a list of models.
 
@@ -332,7 +372,10 @@ def get_best(
         The best model.
     """
     # TODO return list, when multiple models are equally "best"
-    return problem.get_best(models=models, criterion=criterion)
+    criterion = criterion or problem.criterion
+    return analyze.get_best(
+        models=models, criterion=criterion, compare=problem.compare
+    )
 
 
 def write_summary_tsv(
@@ -347,7 +390,7 @@ def write_summary_tsv(
     previous_predecessor_parameter_ids = set()
     if isinstance(previous_predecessor_model, Model):
         previous_predecessor_parameter_ids = set(
-            previous_predecessor_model.get_estimated_parameter_ids_all()
+            previous_predecessor_model.get_estimated_parameter_ids()
         )
 
     if predecessor_model is None:
@@ -356,7 +399,7 @@ def write_summary_tsv(
     predecessor_criterion = None
     if isinstance(predecessor_model, Model):
         predecessor_parameter_ids = set(
-            predecessor_model.get_estimated_parameter_ids_all()
+            predecessor_model.get_estimated_parameter_ids()
         )
         predecessor_criterion = predecessor_model.get_criterion(
             problem.criterion
@@ -371,7 +414,7 @@ def write_summary_tsv(
     diff_candidates_parameter_ids = []
     for candidate_model in candidate_space.models:
         candidate_parameter_ids = set(
-            candidate_model.get_estimated_parameter_ids_all()
+            candidate_model.get_estimated_parameter_ids()
         )
         diff_candidates_parameter_ids.append(
             list(
@@ -382,14 +425,13 @@ def write_summary_tsv(
         )
 
     # FIXME remove once MostDistantCandidateSpace exists...
+    #       which might be difficult to implement because the most
+    #       distant is a hypothetical model, which is then used to find a
+    #       real model in its neighborhood of the model space
     method = candidate_space.method
-    if (
-        isinstance(candidate_space, FamosCandidateSpace)
-        and isinstance(candidate_space.predecessor_model, Model)
-        and candidate_space.predecessor_model.predecessor_model_hash is None
-    ):
+    if isinstance(candidate_space, FamosCandidateSpace):
         with open(candidate_space.summary_tsv) as f:
-            if sum(1 for _ in f) > 1:
+            if f.readlines()[-1].startswith("Jumped"):
                 method = Method.MOST_DISTANT
 
     candidate_space.write_summary_tsv(

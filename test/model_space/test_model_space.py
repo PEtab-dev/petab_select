@@ -26,7 +26,7 @@ def model_space_files() -> list[Path]:
 
 @pytest.fixture
 def model_space(model_space_files) -> ModelSpace:
-    return ModelSpace.from_files(model_space_files)
+    return ModelSpace.load(model_space_files)
 
 
 def test_model_space_forward_virtual(model_space):
