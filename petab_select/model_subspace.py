@@ -734,6 +734,14 @@ class ModelSubspace:
         """
         model_subspace_id = definition.pop(MODEL_SUBSPACE_ID)
         petab_yaml = definition.pop(MODEL_SUBSPACE_PETAB_YAML)
+        if "petab_yaml" in definition:
+            petab_yaml = definition.pop("petab_yaml")
+            warnings.warn(
+                "Change the `petab_yaml` column to "
+                "`model_subspace_petab_yaml`, in the model space TSV.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         parameters = {
             column_id: decompress_parameter_values(value)
             for column_id, value in definition.items()
