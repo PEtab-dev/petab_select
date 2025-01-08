@@ -34,10 +34,6 @@ plot = [
 test = [
     "pytest >= 5.4.3",
     "pytest-cov >= 2.10.0",
-    "amici >= 0.11.25",
-    "fides >= 0.7.5",
-    "pypesto >= 0.5.4",
-    #"pypesto @ git+https://github.com/ICB-DCM/pyPESTO.git@select_mkstd#egg=pypesto",
     "tox >= 3.12.4",
 ]
 doc = [
