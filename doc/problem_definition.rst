@@ -109,7 +109,7 @@ can be specified like
    :header-rows: 1
 
    * - model_subspace_id
-     - petab_yaml
+     - model_subspace_petab_yaml
      - p1
      - p2
    * - subspace1
