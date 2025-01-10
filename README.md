@@ -4,11 +4,11 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14183390.svg)](https://doi.org/10.5281/zenodo.14183390)
 
 
-The PEtab extension for model selection, including additional file formats and library.
+The PEtab extension for model selection, including additional file formats and a package.
 
 ## Install
 
-The Python 3 library provides both the Python 3 and command-line (CLI)
+The Python 3 package provides both the Python 3 and command-line (CLI)
 interfaces, and can be installed from PyPI, with `pip3 install petab-select`.
 
 ## Documentation
