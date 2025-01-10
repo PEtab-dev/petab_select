@@ -410,6 +410,19 @@ class Model(ModelBase):
     :attr:`model_subspace_petab_yaml`.
     """
 
+    @model_validator(mode="before")
+    @classmethod
+    def _deprecated_petab_yaml(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "petab_yaml" in data:
+            data[MODEL_SUBSPACE_PETAB_YAML] = data.pop("petab_yaml")
+            warnings.warn(
+                "Change the `petab_yaml` field of your model data "
+                "to `model_subspace_petab_yaml.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return data
+
     @model_validator(mode="after")
     def _fix_petab_problem(self: Model) -> Model:
         """Fix a missing PEtab problem by loading it from disk."""
