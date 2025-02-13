@@ -100,17 +100,16 @@ class PlotData:
 
     def get_default_labels(self) -> dict[ModelHash, str]:
         """Get default model labels."""
-        return (
-            {
-                model.hash: model.model_label or model.model_id or model.hash
-                for model in self.models
-            }
-            | {
-                model.predecessor_model_hash: model.predecessor_model_hash
-                for model in self.models
-            }
-            | {VIRTUAL_INITIAL_MODEL.hash: "Virtual\nInitial\nModel"}
-        )
+        labels = {}
+        for model in self.models:
+            labels[model.hash] = (
+                model.model_label or model.model_id or model.hash
+            )
+            labels[model.predecessor_model_hash] = labels.get(
+                model.predecessor_model_hash, model.predecessor_model_hash
+            )
+        labels[VIRTUAL_INITIAL_MODEL.hash] = "Virtual\nInitial\nModel"
+        return labels
 
     def augment_labels(
         self,
@@ -608,8 +607,8 @@ def graph_iteration_layers(
         for model_hash in G.nodes
     ]
 
-    # Apply custom labels
-    nx.relabel_nodes(G, mapping=plot_data.labels, copy=False)
+    # Apply custom labels. Need `copy=True` to preserve node ordering.
+    G = nx.relabel_nodes(G, mapping=plot_data.labels, copy=True)
 
     nx.draw_networkx(
         G, pos, ax=ax, node_color=node_colors, **draw_networkx_kwargs
