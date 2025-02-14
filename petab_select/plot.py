@@ -28,6 +28,10 @@ TICK_LABEL_FONTSIZE = LABEL_FONTSIZE - 4
 """The font size of axis tick labels."""
 DEFAULT_NODE_COLOR = "darkgrey"
 """The default color of nodes in graph plots."""
+FONT_HEIGHT_WIDTH_RATIO = 2
+"""The ratio of the font height to font width. Used for graph node sizes."""
+NODE_SIZE_LABEL_SIZE_RATIO = 500
+"""The ratio of node size to label size. Used for graph node sizes."""
 
 
 __all__ = [
@@ -510,6 +514,22 @@ def scatter_criterion_vs_n_estimated(
     return ax
 
 
+def labels_to_node_sizes(G: nx.Graph) -> list[float]:
+    """Compute reasonable node sizes to scale with node label sizes."""
+    node_sizes = []
+    for label in G.nodes:
+        height = 1
+        width = len(label)
+        if "\n" in label:
+            height = len(label.split("\n"))
+            width = len(sorted(label.split("\n"), key=lambda x: len(x))[-1])
+        label_size = (
+            width if width * FONT_HEIGHT_WIDTH_RATIO > height else height
+        )
+        node_sizes.append(label_size * NODE_SIZE_LABEL_SIZE_RATIO)
+    return node_sizes
+
+
 def graph_iteration_layers(
     plot_data: PlotData,
     ax: plt.Axes = None,
@@ -541,7 +561,6 @@ def graph_iteration_layers(
     default_draw_networkx_kwargs = {
         "arrowstyle": "-|>",
         "node_shape": "s",
-        "node_size": 250,
         "edgecolors": "k",
     }
     if draw_networkx_kwargs is None:
@@ -609,6 +628,11 @@ def graph_iteration_layers(
 
     # Apply custom labels. Need `copy=True` to preserve node ordering.
     G = nx.relabel_nodes(G, mapping=plot_data.labels, copy=True)
+
+    draw_networkx_kwargs["node_size"] = draw_networkx_kwargs.get(
+        "node_size",
+        labels_to_node_sizes(G=G),
+    )
 
     nx.draw_networkx(
         G, pos, ax=ax, node_color=node_colors, **draw_networkx_kwargs
