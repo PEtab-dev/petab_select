@@ -7,7 +7,7 @@ Users that are working with PEtab problems should consult the model selection do
 
 Users who wish to apply model selection methods using a calibration tool that doesn't support PEtab can refer to the "Model selection with non-SBML models" notebook for a demonstration using statsmodels.
 
-Developers wishing to implement model selection in their tool via PEtab Select can consult the workflow notes ("Example usage with the CLI" and "Example usage with Python 3") or "FAMoS in PEtab Select" notebooks.
+Developers wishing to implement model selection in their tool via PEtab Select can consult the notebooks on workflows ("Example usage with the CLI" and "Example usage with Python 3") or "FAMoS in PEtab Select".
 
 .. toctree::
    :maxdepth: 1
