@@ -4,7 +4,8 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14183390.svg)](https://doi.org/10.5281/zenodo.14183390)
 
 
-The PEtab extension for model selection, including additional file formats and library.
+The [PEtab](https://petab.readthedocs.io/) extension for model selection,
+including additional file formats and library.
 
 ## Install
 
@@ -18,24 +19,32 @@ Further documentation is available at
 
 ## Examples
 
-There are example Jupyter notebooks covering the Python API, CLI, and visualization in the "doc/examples" directory.
+There are example Jupyter notebooks covering the Python API, CLI,
+and visualization in the `doc/examples` directory.
 The notebooks can be viewed at [https://petab-select.readthedocs.io/en/stable/examples.html](https://petab-select.readthedocs.io/en/stable/examples.html).
 
 ## Supported features
 
-### Criterion
+PEtab Select offers various methods and criteria for model selection, as well
+as a variety of visualization options.
 
-- `AIC`: https://en.wikipedia.org/wiki/Akaike_information_criterion#Definition
-- `AICc`: https://en.wikipedia.org/wiki/Akaike_information_criterion#Modification_for_small_sample_size
-- `BIC`: https://en.wikipedia.org/wiki/Bayesian_information_criterion#Definition
+### Criteria
+
+- `AIC`: [Akaike information criterion](https://en.wikipedia.org/wiki/Akaike_information_criterion#Definition)
+- `AICc`: [Corrected Akaike information criterion](https://en.wikipedia.org/wiki/Akaike_information_criterion#Modification_for_small_sample_size)
+- `BIC`: [Bayesian information criterion](https://en.wikipedia.org/wiki/Bayesian_information_criterion#Definition)
 
 ### Methods
 
-- `forward`: https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches
-- `backward`: https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches
+- `forward`:
+  [Forward selection](https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches).
+  Iteratively increase model complexity.
+- `backward`: [Backward selection](https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches).
+  Iteratively decrease model complexity.
 - `brute_force`: Optimize all possible model candidates, then return the model
   with the best criterion value.
-- `famos`: https://doi.org/10.1371/journal.pcbi.1007230
+- `famos`:
+  [Flexible and dynamic Algorithm for Model Selection (FAMoS)](https://doi.org/10.1371/journal.pcbi.1007230)
 
 Note that the directional methods (forward, backward) find models with the
 smallest step size (in terms of number of estimated parameters). For example,
