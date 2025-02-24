@@ -5,7 +5,7 @@
 
 
 The [PEtab](https://petab.readthedocs.io/) extension for model selection,
-including additional file formats and library.
+including the additional file formats and package.
 
 ## Install
 
@@ -19,8 +19,8 @@ Further documentation is available at
 
 ## Examples
 
-There are example Jupyter notebooks covering the Python API, CLI,
-and visualization in the `doc/examples` directory.
+There are example Jupyter notebooks covering visualization, custom non-SBML
+models, and the CLI and Python API, in the `doc/examples` directory.
 The notebooks can be viewed at [https://petab-select.readthedocs.io/en/stable/examples.html](https://petab-select.readthedocs.io/en/stable/examples.html).
 
 ## Supported features
@@ -41,8 +41,7 @@ as a variety of visualization options.
   Iteratively increase model complexity.
 - `backward`: [Backward selection](https://en.wikipedia.org/wiki/Stepwise_regression#Main_approaches).
   Iteratively decrease model complexity.
-- `brute_force`: Optimize all possible model candidates, then return the model
-  with the best criterion value.
+- `brute_force`. Calibrate all models.
 - `famos`:
   [Flexible and dynamic Algorithm for Model Selection (FAMoS)](https://doi.org/10.1371/journal.pcbi.1007230)
 
