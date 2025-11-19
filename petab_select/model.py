@@ -570,9 +570,9 @@ class Model(ModelBase):
                 elif parameter_id in petab_problem.x_free_ids:
                     required_estimates.add(parameter_id)
 
-            missing_estimates = sorted(required_estimates.difference(
-                self.estimated_parameters
-            ))
+            missing_estimates = sorted(
+                required_estimates.difference(self.estimated_parameters)
+            )
             if missing_estimates:
                 raise ValueError(
                     "Try again with `set_estimated_parameters=False`, because "
@@ -592,9 +592,11 @@ class Model(ModelBase):
                 )
 
         if set_estimated_parameters:
-            petab_problem.parameter_df.update({
-                NOMINAL_VALUE: self.estimated_parameters,
-            })
+            petab_problem.parameter_df.update(
+                {
+                    NOMINAL_VALUE: self.estimated_parameters,
+                }
+            )
 
         petab_yaml = None
         if output_path is not None:
