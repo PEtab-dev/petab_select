@@ -73,7 +73,7 @@ class State(BaseModel):
 class Problem(BaseModel):
     """The model selection problem."""
 
-    format_version: str = Field(default="1.0.0")
+    format_version: str = Field(default="1.0.0", coerce_numbers_to_str=True)
     """The file format version."""
     criterion: Annotated[
         Criterion, PlainSerializer(lambda x: x.value, return_type=str)
