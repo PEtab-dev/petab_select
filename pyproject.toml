@@ -29,7 +29,8 @@ dependencies = [
 [project.optional-dependencies]
 plot = [
     "matplotlib>=2.2.3",
-    "upsetplot",
+    # disabled with a manual install message until https://github.com/jnothman/UpSetPlot/issues/303
+    # "upsetplot",
 ]
 test = [
     "pytest >= 5.4.3",

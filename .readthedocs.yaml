@@ -17,6 +17,7 @@ python:
       path: .
       extra_requirements:
         - doc
+      requirements: requirements_upsetplot.txt
 
 build:
   os: "ubuntu-22.04"
