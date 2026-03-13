@@ -55,4 +55,4 @@ jobs:
     - name: Coverage
       uses: codecov/codecov-action@v5
       with:
-        file: ./coverage.xml
+        files: ./coverage.xml
