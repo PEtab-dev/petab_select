@@ -17,12 +17,12 @@ Model hashes are special objects in the library, that are generated from model-s
 
 This means you can reconstruct the model given some model hash. For example, with this model hash `M1-000`, you can reconstruct the :class:`petab_select.ModelHash` from a string, then reconstruct the :class:`petab_select.Model`.
 
-.. code-block:: language
+.. code-block:: python
 
    ModelHash.from_hash("M1-000").get_model(petab_select_problem)
 
 You can use this to get the uncalibrated version of a calibrated model.
 
-.. code-block:: language
+.. code-block:: python
 
    model.hash.get_model(petab_select_problem)
