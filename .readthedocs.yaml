@@ -17,6 +17,8 @@ python:
       path: .
       extra_requirements:
         - doc
+    # keep until upsetplot can be installed from pypi
+    - requirements: requirements_upsetplot.txt
 
 build:
   os: "ubuntu-22.04"
