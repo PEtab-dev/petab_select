@@ -9,7 +9,7 @@ Welcome to PEtab Select's documentation!
 PEtab Select brings
 `model selection <https://en.wikipedia.org/wiki/Model_selection>`_ to
 `PEtab <https://petab.readthedocs.io/>`_. PEtab Select comprises file
-formats, a Python library and a command line interface.
+formats, a Python package and a command line interface.
 
 Model selection is the process of choosing the best model from a set of
 candidate models. PEtab Select provides a standardized and compact way to
@@ -40,7 +40,7 @@ PEtab Select is well-integrated with:
   (`example <https://pypesto.readthedocs.io/en/latest/example/model_selection.html>`__)
 
 Other model calibration tools can easily be integrated using the provided
-Python library or command line interface.
+Python package or command line interface.
 
 Installation
 ------------

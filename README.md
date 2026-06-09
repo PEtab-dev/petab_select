@@ -9,7 +9,7 @@ including the additional file formats and package.
 
 ## Install
 
-The Python 3 library provides both the Python 3 and command-line (CLI)
+The Python 3 package provides both the Python 3 and command-line (CLI)
 interfaces, and can be installed from PyPI, with `pip3 install petab-select`.
 
 ## Documentation
