@@ -9,6 +9,7 @@
   estimated_parameters:
     k2: 0.15
     k3: 0.0
+    sigma_x2: 0.01
   model_id: model_1
   parameters:
     k1: 0.2

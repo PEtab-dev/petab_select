@@ -142,14 +142,14 @@ def get_best_by_iteration(
     *args,
     **kwargs,
 ) -> dict[int, Models]:
-    """Get the best model of each iteration.
+    r"""Get the best model of each iteration.
 
     See :func:``get_best`` for additional required arguments.
 
     Args:
         models:
             The models.
-        *args, **kwargs:
+        *args, \**kwargs:
             Forwarded to :func:``get_best``.
 
     Returns:
