@@ -1,0 +1,2 @@
+observableId	observableFormula	noiseFormula
+y	k0*time^0 + k1*time^1 + k2*time^2 + k3*time^3 + k4*time^4 + k5*time^5	1

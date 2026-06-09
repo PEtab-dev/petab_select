@@ -53,6 +53,7 @@ doc = [
     "ipython>=7.21.0",
     "sphinx-autodoc-typehints",
     "petab_select[plot]",
+    "statsmodels>=0.14.4",
 ]
 
 [project.scripts]
