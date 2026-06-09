@@ -15,7 +15,11 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker
 import networkx as nx
 import numpy as np
-import upsetplot
+
+try:
+    import upsetplot
+except ImportError:
+    upsetplot = None
 
 from . import analyze
 from .constants import Criterion
@@ -218,6 +222,11 @@ def upset(plot_data: PlotData) -> dict[str, matplotlib.axes.Axes | None]:
         The plot axes (see documentation from the
         `upsetplot <https://upsetplot.readthedocs.io/>`__ package).
     """
+    if upsetplot is None:
+        raise ImportError(
+            "Please install upsetplot, e.g. with the following command: "
+            "pip install git+https://github.com/jnothman/UpSetPlot.git@08f0648368122303075cbb2835ae7fea0f7f07df"
+        )
     # Get delta criterion values
     values = np.array(
         plot_data.models.get_criterion(

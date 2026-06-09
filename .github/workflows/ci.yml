@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - name: Check out repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Prepare python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -30,7 +30,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~ /.cache
         key: ci-${{ runner.os }}-${{ matrix.python-version }}-base
@@ -44,7 +44,7 @@ jobs:
           libhdf5-serial-dev
 
     - name: Install Python dependencies
-      run: pip install -r requirements_dev.txt
+      run: pip install -r requirements_dev.txt -r requirements_upsetplot.txt
 
     - name: Run tox
       run: python -m tox
@@ -53,6 +53,6 @@ jobs:
       run: pre-commit run --all-files
 
     - name: Coverage
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v7
       with:
         file: ./coverage.xml

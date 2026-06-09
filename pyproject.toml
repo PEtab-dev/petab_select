@@ -29,7 +29,8 @@ dependencies = [
 [project.optional-dependencies]
 plot = [
     "matplotlib>=2.2.3",
-    "upsetplot",
+    # disabled with a manual install message until https://github.com/jnothman/UpSetPlot/issues/303
+    # "upsetplot",
 ]
 test = [
     "pytest >= 5.4.3",
@@ -50,7 +51,6 @@ doc = [
     "nbconvert>=7.16.4",
     "ipykernel>= 6.23.1",
     "ipython>=7.21.0",
-    "readthedocs-sphinx-ext>=2.2.5",
     "sphinx-autodoc-typehints",
     "petab_select[plot]",
 ]

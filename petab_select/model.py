@@ -561,13 +561,17 @@ class Model(ModelBase):
             set_estimated_parameters = True
 
         if set_estimated_parameters:
-            required_estimates = {
-                parameter_id
-                for parameter_id, value in self.parameters.items()
-                if value == ESTIMATE
-            }
-            missing_estimates = required_estimates.difference(
-                self.estimated_parameters
+            # Check that estimates are provided for all estimated parameters
+            required_estimates = set()
+            for parameter_id in petab_problem.x_ids:
+                if parameter_id in self.parameters:
+                    if self.parameters[parameter_id] == ESTIMATE:
+                        required_estimates.add(parameter_id)
+                elif parameter_id in petab_problem.x_free_ids:
+                    required_estimates.add(parameter_id)
+
+            missing_estimates = sorted(
+                required_estimates.difference(self.estimated_parameters)
             )
             if missing_estimates:
                 raise ValueError(
@@ -580,16 +584,19 @@ class Model(ModelBase):
             # If the parameter is to be estimated.
             if parameter_value == ESTIMATE:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 1
-                if set_estimated_parameters:
-                    petab_problem.parameter_df.loc[
-                        parameter_id, NOMINAL_VALUE
-                    ] = self.estimated_parameters[parameter_id]
             # Else the parameter is to be fixed.
             else:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 0
                 petab_problem.parameter_df.loc[parameter_id, NOMINAL_VALUE] = (
                     parameter_string_to_value(parameter_value)
                 )
+
+        if set_estimated_parameters:
+            petab_problem.parameter_df.update(
+                {
+                    NOMINAL_VALUE: self.estimated_parameters,
+                }
+            )
 
         petab_yaml = None
         if output_path is not None:
