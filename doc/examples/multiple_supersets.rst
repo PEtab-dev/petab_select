@@ -8,7 +8,7 @@ The PEtab Select model space table is designed to express large model spaces bas
 We illustrate this with two of the other examples in this documentation, specifically:
 
 - :ref:`ode_timeseries_example`: an ODE model with parameters ``k1`` through ``k3``, and
-- :doc:`examples/other_model_types`: a polynomial model with parameters ``k1`` through ``k5``.
+- :doc:`other_model_types`: a polynomial model with parameters ``k1`` through ``k5``.
 
 Example file layout
 -------------------

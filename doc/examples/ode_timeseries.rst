@@ -86,7 +86,7 @@ The model selection problem
 
 The PEtab parameter table (``parameters.tsv``) contains the rate constants
 :math:`k_1, k_2, k_3` (and the noise parameter :math:`\sigma_{x2}`, which is
-always estimated). 
+always estimated).
 
 The model selection problem is to determine which of the parameters :math:`k_1`, :math:`k_2`, and :math:`k_3` should be estimated in order to explain the data well.
 
@@ -103,7 +103,7 @@ For example, ``M1_0`` fixes all three rate constants to 0 (in this model, this m
 ``M1_7`` estimates all three, and the middle rows encode models that estimate different subsets. When a parameter is not estimated, it is fixed
 to a value (e.g. ``k1 = 0.2``, ``k2 = 0.1``, ``k3 = 0``).
 
-In this example, we implement a single model per model subspace. A more concise definition of the model space is presented in :doc:`examples/other_model_types`.
+In this example, we implement a single model per model subspace. A more concise definition of the model space is presented in :doc:`other_model_types`.
 
 The PEtab Select problem YAML combines all files and remaining information required to define the model selection problem.
 

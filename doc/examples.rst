@@ -16,6 +16,7 @@ After model selection, results can be analyzed with PEtab Select. See the API do
    An ordinary differential equation model with time-series data. <examples/ode_timeseries.rst>
    A polynomial (non-SBML) model with an unsupported calibration tool. <examples/other_model_types.ipynb>
    A model space with multiple structurally different models. <examples/multiple_supersets.rst>
+   A large-scale, real-world problem with steady-state data. <examples/test_case_0009.rst>
    A demonstration of all visualizations of model selection results. <examples/visualization.ipynb>
 
 For developers
@@ -29,3 +30,5 @@ Developers that want to implement model selection in their tool via PEtab Select
    Example for the Python interface <examples/workflow_python.ipynb>
    Example for the CLI <examples/workflow_cli.ipynb>
    Example with the FAMoS method <examples/example_cli_famos.ipynb>
+
+Developers may also benefit from viewing the notebook that demonstrates an `alternative calibration tool <examples/other_model_types.ipynb>`_.
