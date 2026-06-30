@@ -40,7 +40,6 @@ def test_model_to_petab(model, output_path, expected_output_path) -> None:
     # The PEtab problem files are as expected.
     assert not comparison.diff_files
     assert sorted(comparison.same_files) == [
-        "conditions.tsv",
         "measurements.tsv",
         "model.xml",
         "observables.tsv",

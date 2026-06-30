@@ -1,0 +1,9 @@
+format_version: 1
+parameter_file: parameters.tsv
+problems:
+- measurement_files:
+  - measurements.tsv
+  observable_files:
+  - observables.tsv
+  sbml_files:
+  - model.xml

@@ -1,8 +1,3 @@
-.. petab-select documentation master file, created by
-   sphinx-quickstart on Mon Oct 23 09:01:31 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to PEtab Select's documentation!
 ========================================
 
@@ -42,16 +37,15 @@ PEtab Select is well-integrated with:
   (`example <https://pypesto.readthedocs.io/en/latest/example/model_selection.html>`__)
 
 Other model calibration tools can easily be integrated using the provided
-Python package or command line interface.
+Python package or command line interface. An example of this is provided for the Python package statsmodels at :doc:`examples/other_model_types`.
 
-This documentation provides examples aimed at both users and developers.
-However, if you are a user with PEtab problem(s) and simply want to perform
-model selection, then check the file formats documented here, and the model
-selection documentation of one of the calibration tools listed above. In most
+For users, in most
 cases, model selection is performed entirely via one of the calibration tools,
 rather than the PEtab Select package directly. After model selection, the
 analysis and visualization methods in the PEtab Select package can be used
 directly with the results from your calibration tool.
+
+For developers, we provide some examples of how integrate model selection with PEtab Select into unsupported calibration tools via the CLI and Python interfaces of the PEtab Select package.
 
 Installation
 ------------
@@ -68,8 +62,10 @@ interfaces, and can be installed from PyPI, with:
    :maxdepth: 2
    :caption: Contents:
 
+   Getting started <getting_started>
    problem_definition
    examples
+   Calibration tools <calibration_tools>
    analysis
    Test Suite <test_suite>
    api

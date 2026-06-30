@@ -26,10 +26,9 @@ from petab_select.model_subspace import ModelSubspace
 def model_subspace_definition() -> pd.Series:
     data = {
         MODEL_SUBSPACE_ID: "model_subspace_1",
-        MODEL_SUBSPACE_PETAB_YAML: Path(__file__).parent.parent.parent
-        / "doc"
-        / "examples"
-        / "model_selection"
+        MODEL_SUBSPACE_PETAB_YAML: Path(__file__).parent.parent
+        / "test_data"
+        / "ode_timeseries"
         / "petab_problem.yaml",
         "k1": 0.2,
         "k2": PARAMETER_VALUE_DELIMITER.join(["0.1", ESTIMATE]),
@@ -68,10 +67,9 @@ def test_from_definition(model_subspace):
     assert model_subspace.model_subspace_id == "model_subspace_1"
     # PEtab YAML is parsed
     assert model_subspace.petab_yaml.samefile(
-        Path(__file__).parent.parent.parent
-        / "doc"
-        / "examples"
-        / "model_selection"
+        Path(__file__).parent.parent
+        / "test_data"
+        / "ode_timeseries"
         / "petab_problem.yaml",
     )
     # Fixed parameters are parsed
