@@ -15,10 +15,9 @@ from petab_select.constants import (
 @pytest.fixture
 def petab_select_problem():
     return petab_select.Problem.from_yaml(
-        Path(__file__).parents[2]
-        / "doc"
-        / "examples"
-        / "model_selection"
+        Path(__file__).parents[1]
+        / "test_data"
+        / "ode_timeseries"
         / "petab_select_problem.yaml"
     )
 

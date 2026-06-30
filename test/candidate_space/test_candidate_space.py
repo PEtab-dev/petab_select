@@ -83,10 +83,9 @@ def model_space(calibrated_model_space) -> pd.DataFrame:
     for model in calibrated_model_space:
         data["model_subspace_id"].append(f"model_subspace_{model}")
         data["petab_yaml"].append(
-            Path(__file__).parent.parent.parent
-            / "doc"
-            / "examples"
-            / "model_selection"
+            Path(__file__).parent.parent
+            / "test_data"
+            / "ode_timeseries"
             / "petab_problem.yaml"
         )
         k1, k2, k3, k4, k5 = (

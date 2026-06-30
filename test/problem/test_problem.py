@@ -5,10 +5,9 @@ import petab_select
 test_path = Path(__file__).parent
 
 problem_yaml = (
-    test_path.parent.parent
-    / "doc"
-    / "examples"
-    / "model_selection"
+    test_path.parent
+    / "test_data"
+    / "ode_timeseries"
     / "petab_select_problem.yaml"
 )
 

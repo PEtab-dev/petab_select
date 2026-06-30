@@ -75,4 +75,4 @@ the model format.
 
 .. [#f2] Noise parameter is removed, noise is fixed to ``1``.
 
-.. [#f3] This is a computationally expensive problem to solve. Developers can try a model selection initialized with the provided predecessor model, which is a model start that reproducibly finds the expected model. To solve the problem reproducibly *ab initio*, on the order of 100 random model starts are required. This test case reproduces the model selection problem presented in https://doi.org/10.1016/j.cels.2016.01.002.
+.. [#f3] This is a computationally expensive problem to solve. Developers can try a model selection initialized with the provided predecessor model, which is a model start that reproducibly finds the expected model. To solve the problem reproducibly *ab initio*, on the order of 100 random model starts are required. This test case reproduces the model selection problem presented in https://doi.org/10.1016/j.cels.2016.01.002. A description of this model selection problem is also provided at :ref:`test_case_0009`.

@@ -67,7 +67,6 @@ def test_model_to_petab(
     # The PEtab problem files are as expected.
     assert not comparison.diff_files
     assert sorted(comparison.same_files) == [
-        "conditions.tsv",
         "measurements.tsv",
         "model.xml",
         "observables.tsv",
@@ -110,7 +109,6 @@ def test_models_to_petab(
     # The first set of PEtab problem files are as expected.
     assert not comparison.diff_files
     assert sorted(comparison.same_files) == [
-        "conditions.tsv",
         "measurements.tsv",
         "model.xml",
         "observables.tsv",
@@ -125,7 +123,6 @@ def test_models_to_petab(
     # The second set of PEtab problem files are as expected.
     assert not comparison.diff_files
     assert sorted(comparison.same_files) == [
-        "conditions.tsv",
         "measurements.tsv",
         "model.xml",
         "observables.tsv",
@@ -141,7 +138,6 @@ def test_models_to_petab(
     # parameters table and nowhere else.
     assert comparison.diff_files == ["parameters.tsv"]
     assert sorted(comparison.same_files) == [
-        "conditions.tsv",
         "measurements.tsv",
         "model.xml",
         "observables.tsv",

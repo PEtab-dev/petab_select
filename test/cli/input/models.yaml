@@ -5,7 +5,7 @@
   - 1
   criteria: {}
   model_hash: M-011
-  model_subspace_petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml
+  model_subspace_petab_yaml: ../../test_data/ode_timeseries/petab_problem.yaml
   estimated_parameters:
     k2: 0.15
     k3: 0.0
@@ -22,7 +22,7 @@
   - 0
   criteria: {}
   model_hash: M-110
-  model_subspace_petab_yaml: ../../../doc/examples/model_selection/petab_problem.yaml
+  model_subspace_petab_yaml: ../../test_data/ode_timeseries/petab_problem.yaml
   model_id: model_2
   parameters:
     k1: estimate

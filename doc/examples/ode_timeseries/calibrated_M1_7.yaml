@@ -6,7 +6,7 @@ model_subspace_indices:
 criteria:
   AIC: 20
 model_hash: M1_7-000
-model_subspace_petab_yaml: ../model_selection/petab_problem.yaml
+model_subspace_petab_yaml: petab_problem.yaml
 estimated_parameters:
   k1: 0.25
   k2: 0.1

@@ -1,19 +1,34 @@
 Examples
 ========
 
-There are currently notebooks aimed at users and developers.
+For users
+---------
 
-Users that are working with PEtab problems should consult the model selection documentation of the calibration tool they wish to use. In this case, there is no need to use the PEtab Select package directly to perform model selection. After model selection, results can be analyzed with PEtab Select. See the API documentation for :mod:`petab_select.analyze`, or the "Visualization gallery" notebook.
+The examples for users cover setting up the PEtab Select files for different model classes, and visualization of model selection results.
 
-Users who wish to apply model selection methods using a calibration tool that doesn't support PEtab can refer to the "Model selection with non-SBML models" notebook for a demonstration using statsmodels.
+If you use one of the supported calibration tools, then we recommend using PEtab Select via the interface provided by the :ref:`calibration_tools`. Otherwise, see the example with an unsupported calibration tool.
 
-Developers wishing to implement model selection in their tool via PEtab Select can consult the notebooks on workflows ("Example usage with the CLI" and "Example usage with Python 3") or "FAMoS in PEtab Select".
+After model selection, results can be analyzed with PEtab Select. See the API documentation for :mod:`petab_select.analyze`, or the "Visualization gallery" notebook.
 
 .. toctree::
    :maxdepth: 1
 
-   examples/visualization.ipynb
-   examples/other_model_types.ipynb
-   examples/example_cli_famos.ipynb
-   examples/workflow_cli.ipynb
-   examples/workflow_python.ipynb
+   An ordinary differential equation model with time-series data. <examples/ode_timeseries.rst>
+   A polynomial (non-SBML) model with an unsupported calibration tool. <examples/other_model_types.ipynb>
+   A model space with multiple structurally different models. <examples/multiple_supersets.rst>
+   A large-scale, real-world problem with steady-state data. <examples/test_case_0009.rst>
+   A demonstration of all visualizations of model selection results. <examples/visualization.ipynb>
+
+For developers
+--------------
+
+Developers that want to implement model selection in their tool via PEtab Select can consult the notebooks for the CLI or Python interface. The FAMoS notebook is a complicated example that ensures your tool communicates with PEtab Select correctly over multiple iterations of model selection.
+
+.. toctree::
+   :maxdepth: 1
+
+   Example for the Python interface <examples/workflow_python.ipynb>
+   Example for the CLI <examples/workflow_cli.ipynb>
+   Example with the FAMoS method <examples/example_cli_famos.ipynb>
+
+Developers may also benefit from viewing the notebook that demonstrates an `alternative calibration tool <examples/other_model_types.ipynb>`_.
