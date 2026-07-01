@@ -43,9 +43,7 @@ def write_problem(directory: Path, model_space_row: str) -> Problem:
 
 @pytest.fixture
 def problem(tmp_path) -> Problem:
-    return write_problem(
-        tmp_path, f"M\t{PETAB_YAML}\t0;estimate\t0;estimate"
-    )
+    return write_problem(tmp_path, f"M\t{PETAB_YAML}\t0;estimate\t0;estimate")
 
 
 def test_problem_metaparameters(problem):
