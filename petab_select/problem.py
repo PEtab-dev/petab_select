@@ -90,6 +90,12 @@ class Problem(BaseModel):
 
     These are forwarded to the candidate space constructor.
     """
+    metaparameters: dict[str, list[str]] = Field(default_factory=dict)
+    """Metaparameters.
+
+    Keys are metaparameter IDs, and values are the groups of parameter IDs that
+    the metaparameters represent.
+    """
 
     _compare: Callable[[Model, Model], bool] = PrivateAttr(default=None)
     """The method by which models are compared."""
@@ -119,7 +125,8 @@ class Problem(BaseModel):
             [
                 root_path / model_space_file
                 for model_space_file in problem.model_space_files
-            ]
+            ],
+            metaparameters=problem.metaparameters,
         )
 
         if PREDECESSOR_MODEL in problem.candidate_space_arguments:

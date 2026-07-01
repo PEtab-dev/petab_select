@@ -41,7 +41,7 @@ Python package or command line interface. An example of this is provided for the
 
 For users, in most
 cases, model selection is performed entirely via one of the calibration tools,
-rather than the PEtab Select package directly. Hence, we recommend reading the `documentation from your calibration tool on model selection <calibration_tools>`_.
+rather than the PEtab Select package directly. Hence, we recommend reading the :doc:`documentation from your calibration tool on model selection <calibration_tools>`.
 After model selection, the
 analysis and visualization methods in the PEtab Select package can be used
 directly with the results from your calibration tool.

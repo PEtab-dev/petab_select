@@ -311,6 +311,8 @@ class ModelBase(VirtualModelBase):
     For example, fixes parameters to certain values, or sets them to be
     estimated.
     """
+    metaparameters: dict[str, list[str]] | None = Field(default=None)
+    """Metaparameter definitions used by this model."""
     predecessor_model_hash: ModelHash = Field(default=None)
     """The predecessor model hash."""
 
@@ -557,15 +559,26 @@ class Model(ModelBase):
         """
         petab_problem = petab.Problem.from_yaml(self.model_subspace_petab_yaml)
 
+        # Get all parameter values that should be implemented in the PEtab parameter
+        # table.
+        metaparameters = self.metaparameters or {}
+        parameters = {
+            petab_parameter_id: parameter_value
+            for parameter_id, parameter_value in self.parameters.items()
+            for petab_parameter_id in metaparameters.get(
+                parameter_id, [parameter_id]
+            )
+        }
+
         if set_estimated_parameters is None and self.estimated_parameters:
             set_estimated_parameters = True
 
         if set_estimated_parameters:
-            # Check that estimates are provided for all estimated parameters
+            # Check that estimates are provided for all estimated parameters.
             required_estimates = set()
             for parameter_id in petab_problem.x_ids:
-                if parameter_id in self.parameters:
-                    if self.parameters[parameter_id] == ESTIMATE:
+                if parameter_id in parameters:
+                    if parameters[parameter_id] == ESTIMATE:
                         required_estimates.add(parameter_id)
                 elif parameter_id in petab_problem.x_free_ids:
                     required_estimates.add(parameter_id)
@@ -580,7 +593,7 @@ class Model(ModelBase):
                     f"`{missing_estimates}`."
                 )
 
-        for parameter_id, parameter_value in self.parameters.items():
+        for parameter_id, parameter_value in parameters.items():
             # If the parameter is to be estimated.
             if parameter_value == ESTIMATE:
                 petab_problem.parameter_df.loc[parameter_id, ESTIMATE] = 1
@@ -642,12 +655,25 @@ class Model(ModelBase):
             full:
                 Whether to provide all IDs, including additional parameters
                 that are not part of the model selection problem but estimated.
+
+        Returns:
+            The estimated parameter IDs. Note that metaparameters are returned,
+            not the parameters in their group.
         """
         estimated_parameter_ids = []
         if full:
-            estimated_parameter_ids = (
-                self._model_subspace_petab_problem.x_free_ids
-            )
+            # Exclude PEtab parameters that are represented by a metaparameter;
+            # they are reported via their metaparameter ID below instead.
+            metaparameter_members = {
+                member
+                for members in (self.metaparameters or {}).values()
+                for member in members
+            }
+            estimated_parameter_ids = [
+                parameter_id
+                for parameter_id in self._model_subspace_petab_problem.x_free_ids
+                if parameter_id not in metaparameter_members
+            ]
 
         # Add additional estimated parameters, and collect fixed parameters,
         # in this model's parameterization.
