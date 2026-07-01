@@ -47,6 +47,8 @@ class ModelSubspace:
         exclusions:
             Hashes of models that have been previously submitted to a candidate space
             for consideration (:meth:`CandidateSpace.consider`).
+        metaparameters:
+            The metaparameter mappings that exist in the subspace.
     """
 
     def __init__(
@@ -55,10 +57,17 @@ class ModelSubspace:
         petab_yaml: str | Path,
         parameters: TYPE_PARAMETER_OPTIONS_DICT,
         exclusions: list[Any] | None | None = None,
+        metaparameters: dict[str, list[str]] | None = None,
     ):
         self.model_subspace_id = model_subspace_id
         self.petab_yaml = Path(petab_yaml)
         self.parameters = parameters
+        # Store metaparameters that exist in this subspace
+        self.metaparameters = {
+            metaparameter_id: member_ids
+            for metaparameter_id, member_ids in (metaparameters or {}).items()
+            if metaparameter_id in self.parameters
+        }
 
         self.exclusions = set()
         if exclusions is not None:
@@ -73,6 +82,37 @@ class ModelSubspace:
                     "of this model subspace. However, its value is empty. "
                     f"Please specify either its fixed value or `'{ESTIMATE}'` "
                     "(e.g. in the model space table)."
+                )
+
+        # Validate metaparameters.
+        for metaparameter_id, member_ids in self.metaparameters.items():
+            if not member_ids:
+                raise ValueError(
+                    f"The metaparameter does not represent any parameters: `{metaparameter_id}`"
+                )
+            missing_ids = [
+                member_id
+                for member_id in member_ids
+                if member_id not in self.petab_problem.x_ids
+            ]
+            if missing_ids:
+                raise ValueError(
+                    f"The metaparameter `{metaparameter_id}` represents the "
+                    f"following parameters that are not in the PEtab problem "
+                    f"`{self.petab_yaml}`: `{missing_ids}`."
+                )
+            member_ids_as_columns = [
+                member_id
+                for member_id in member_ids
+                if member_id in self.parameters
+            ]
+            if member_ids_as_columns:
+                raise ValueError(
+                    f"The metaparameter `{metaparameter_id}` represents "
+                    "parameters that also appear as their own columns in the "
+                    f"model space: {member_ids_as_columns}. A parameter that "
+                    "belongs to a metaparameter must only be controlled via "
+                    "the metaparameter column."
                 )
 
     def check_compatibility_stepwise_method(
@@ -718,6 +758,7 @@ class ModelSubspace:
     def from_definition(
         definition: dict[str, str] | pd.Series,
         root_path: TYPE_PATH = None,
+        metaparameters: dict[str, list[str]] | None = None,
     ) -> "ModelSubspace":
         """Create a :class:`ModelSubspace` from a definition.
 
@@ -728,6 +769,8 @@ class ModelSubspace:
                 values.
             root_path:
                 Any paths will be resolved relative to this path.
+            metaparameters:
+                Metaparameter definitions.
 
         Returns:
             The model subspace.
@@ -753,6 +796,7 @@ class ModelSubspace:
             model_subspace_id=model_subspace_id,
             petab_yaml=petab_yaml,
             parameters=parameters,
+            metaparameters=metaparameters,
         )
 
     def to_definition(self, root_path: TYPE_PATH | None = None) -> pd.Series:
@@ -802,6 +846,7 @@ class ModelSubspace:
             model_subspace_indices=indices,
             model_subspace_petab_yaml=self.petab_yaml,
             parameters=self.indices_to_parameters(indices),
+            metaparameters=(self.metaparameters or None),
             _model_subspace_petab_problem=self.petab_problem,
         )
         if self.excluded(model):
@@ -879,11 +924,25 @@ class ModelSubspace:
     def parameters_all(self) -> TYPE_PARAMETER_DICT:
         """Get all parameters, including those only in the PEtab problem.
 
+        If there are metaparameters, they are returned directly, not their represented parameters.
+
         Parameter values in the PEtab problem are overwritten by the
         model subspace values.
         """
+        metaparameter_members = {
+            member_id
+            for member_ids in self.metaparameters.values()
+            for member_id in member_ids
+        }
+        petab_parameters = {
+            parameter_id: parameter_value
+            for parameter_id, parameter_value in get_petab_parameters(
+                self.petab_problem, as_lists=True
+            ).items()
+            if parameter_id not in metaparameter_members
+        }
         return {
-            **get_petab_parameters(self.petab_problem, as_lists=True),
+            **petab_parameters,
             **self.parameters,
         }
 
@@ -968,11 +1027,20 @@ class ModelSubspace:
 
     @property
     def must_estimate_all(self) -> list[str]:
-        """All parameters that must be estimated in this subspace."""
+        """All parameters that must be estimated in this subspace.
+
+        If there are metaparameters, they are returned directly, not their represented parameters.
+        """
+        metaparameter_members = {
+            member_id
+            for member_ids in self.metaparameters.values()
+            for member_id in member_ids
+        }
         must_estimate_petab = [
             parameter_id
             for parameter_id in self.petab_problem.x_free_ids
             if parameter_id not in self.parameters
+            and parameter_id not in metaparameter_members
         ]
         return [*must_estimate_petab, *self.must_estimate]
 

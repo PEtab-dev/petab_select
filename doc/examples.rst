@@ -17,6 +17,7 @@ After model selection, results can be analyzed with PEtab Select. See the API do
    A polynomial (non-SBML) model with an unsupported calibration tool. <examples/other_model_types.ipynb>
    A model space with multiple structurally different models. <examples/multiple_supersets.rst>
    A large-scale, real-world problem with steady-state data. <examples/test_case_0009.rst>
+   Model selection with multi-parameter hypotheses (metaparameters). <examples/metaparameters.rst>
    A demonstration of all visualizations of model selection results. <examples/visualization.ipynb>
 
 For developers
