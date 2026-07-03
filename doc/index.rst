@@ -32,7 +32,7 @@ PEtab Select is well-integrated with:
 * `Data2Dynamics <https://github.com/Data2Dynamics/d2d>`_
   (`example <https://github.com/Data2Dynamics/d2d/wiki/Model-selection-with-PEtab-Select>`__)
 * `PEtab.jl <https://sebapersson.github.io/PEtab.jl>`_
-  (`example <https://sebapersson.github.io/PEtab.jl/stable/pest_select/>`__)
+  (`example <https://sebapersson.github.io/PEtab.jl/stable/tutorials/parameter_estimation/model_selection>`__)
 * `pyPESTO <https://pypesto.readthedocs.io/>`_
   (`example <https://pypesto.readthedocs.io/en/latest/example/model_selection.html>`__)
 

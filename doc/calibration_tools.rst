@@ -44,7 +44,7 @@ PEtab.jl
 `PEtab.jl <https://sebapersson.github.io/PEtab.jl>`__ is a Julia-based tool.
 
 - `Documentation <https://sebapersson.github.io/PEtab.jl>`__
-- `Model selection guide <https://sebapersson.github.io/PEtab.jl/stable/pest_select/>`__
+- `Model selection guide <https://sebapersson.github.io/PEtab.jl/stable/tutorials/parameter_estimation/model_selection>`__
 - `SBML support <https://sebapersson.github.io/SBMLImporter.jl/stable/support>`__
 
 pyPESTO
