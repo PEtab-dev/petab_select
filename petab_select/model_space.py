@@ -47,6 +47,7 @@ class ModelSpace:
     def load(
         data: TYPE_PATH | pd.DataFrame | list[TYPE_PATH | pd.DataFrame],
         root_path: TYPE_PATH = None,
+        metaparameters: dict[str, list[str]] | None = None,
     ) -> ModelSpace:
         """Load a model space from dataframe(s) or file(s).
 
@@ -57,6 +58,9 @@ class ModelSpace:
                 Any paths in dataframe will be resolved relative to this path.
                 Paths in TSV files will be resolved relative to the directory
                 of the TSV file.
+            metaparameters:
+                Keys are metaparameter IDs, values are groups of parameter IDs
+                that the metaparameter represents.
 
         Returns:
             The model space.
@@ -80,6 +84,7 @@ class ModelSpace:
                     ModelSubspace.from_definition(
                         definition=definition,
                         root_path=root_path,
+                        metaparameters=metaparameters,
                     )
                 )
         model_space = ModelSpace(model_subspaces=model_subspaces)

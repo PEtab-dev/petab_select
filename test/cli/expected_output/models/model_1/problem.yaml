@@ -1,8 +1,7 @@
 parameter_file: parameters.tsv
 format_version: 1
 problems:
-- condition_files:
-  - conditions.tsv
+- condition_files: null
   measurement_files:
   - measurements.tsv
   sbml_files:

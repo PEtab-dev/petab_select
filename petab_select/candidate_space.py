@@ -594,15 +594,35 @@ class CandidateSpace(abc.ABC):
                 "This check is based on the PEtab YAML file location."
             )
 
-        # All parameters from the PEtab problem are used in the computation.
+        # Distances are computed in terms of estimated parameters. Each
+        # metaparameter is treated as a single parameter here, even though it
+        # involves multiple parameters. This is because the distance is on the
+        # level of model hypotheses, rather than parameters directly.
+        estimated1 = set(model1.get_estimated_parameter_ids())
+
         if model0.hash == VIRTUAL_INITIAL_MODEL_HASH:
-            parameter_ids = list(
-                get_petab_parameters(model1._model_subspace_petab_problem)
-            )
             if self.method == Method.FORWARD:
-                parameters0 = np.array([0 for _ in parameter_ids])
+                # The virtual initial model estimates no parameters.
+                estimated0 = set()
             elif self.method == Method.BACKWARD:
-                parameters0 = np.array([ESTIMATE for _ in parameter_ids])
+                # The virtual initial model estimates all parameters.
+                metaparameter_members = {
+                    member
+                    for members in (model1.metaparameters or {}).values()
+                    for member in members
+                }
+                # Includes metaparameters
+                estimated0 = set(model1.parameters)
+                # Hence, we exclude parameters here that are already included
+                # via a metaparameter
+                for parameter_id in get_petab_parameters(
+                    model1._model_subspace_petab_problem
+                ):
+                    if (
+                        parameter_id not in model1.parameters
+                        and parameter_id not in metaparameter_members
+                    ):
+                        estimated0.add(parameter_id)
             else:
                 raise NotImplementedError(
                     "Distances for the virtual initial model have not yet been "
@@ -610,27 +630,13 @@ class CandidateSpace(abc.ABC):
                     "developers."
                 )
         else:
-            parameter_ids = list(
-                get_petab_parameters(model0._model_subspace_petab_problem)
-            )
-            parameters0 = np.array(
-                model0.get_parameter_values(parameter_ids=parameter_ids)
-            )
-        parameters1 = np.array(
-            model1.get_parameter_values(parameter_ids=parameter_ids)
-        )
+            estimated0 = set(model0.get_estimated_parameter_ids())
 
-        # TODO change to some numpy elementwise operation
-        estimated0 = np.array([p == ESTIMATE for p in parameters0]).astype(int)
-        estimated1 = np.array([p == ESTIMATE for p in parameters1]).astype(int)
-
-        difference = estimated1 - estimated0
-
-        # Changes to(/from) estimated from(/to) not estimated
-        l1 = np.abs(difference).sum()
+        # Parameters whose estimated status differs between the two models.
+        l1 = len(estimated1.symmetric_difference(estimated0))
 
         # Change in the number of estimated parameters.
-        size = np.sum(difference)
+        size = len(estimated1) - len(estimated0)
 
         # TODO constants? e.g. Distance.L1 and Distance.Size
         distances = {
@@ -1322,6 +1328,8 @@ class FamosCandidateSpace(CandidateSpace):
         Next we check if this model is contained in any subspace. If so we choose it.
         If not we choose the model in a subspace that has least distance to this
         complement model.
+
+        Also metaparameters not yet supported here.
         """
         most_distance = 0
         most_distant_indices = []

@@ -6,7 +6,7 @@
   criteria:
     AIC: 180
   model_hash: M1_0-000
-  model_subspace_petab_yaml: ../model_selection/petab_problem.yaml
+  model_subspace_petab_yaml: petab_problem.yaml
   estimated_parameters: {}
   iteration: 1
   model_id: M1_0-000
@@ -23,7 +23,7 @@
   criteria:
     AIC: 100
   model_hash: M1_1-000
-  model_subspace_petab_yaml: ../model_selection/petab_problem.yaml
+  model_subspace_petab_yaml: petab_problem.yaml
   estimated_parameters: {}
   iteration: 1
   model_id: M1_1-000
@@ -41,7 +41,7 @@
   criteria:
     AIC: 50
   model_hash: M1_2-000
-  model_subspace_petab_yaml: ../model_selection/petab_problem.yaml
+  model_subspace_petab_yaml: petab_problem.yaml
   estimated_parameters: {}
   iteration: 1
   model_id: M1_2-000

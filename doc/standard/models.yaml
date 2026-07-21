@@ -57,6 +57,16 @@ $defs:
             type: string
         title: Parameters
         type: object
+      metaparameters:
+        anyOf:
+        - additionalProperties:
+            items:
+              type: string
+            type: array
+          type: object
+        - type: 'null'
+        default: null
+        title: Metaparameters
       predecessor_model_hash:
         $ref: '#/$defs/ModelHash'
         default: null

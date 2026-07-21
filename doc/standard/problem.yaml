@@ -17,6 +17,13 @@ properties:
   candidate_space_arguments:
     title: Candidate Space Arguments
     type: object
+  metaparameters:
+    additionalProperties:
+      items:
+        type: string
+      type: array
+    title: Metaparameters
+    type: object
 required:
 - criterion
 - method

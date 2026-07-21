@@ -72,6 +72,7 @@ PETAB_ESTIMATE_TRUE = 1
 
 # Problem
 MODEL_SPACE_FILES = "model_space_files"
+METAPARAMETERS = "metaparameters"
 PROBLEM = "problem"
 VERSION = "version"
 
