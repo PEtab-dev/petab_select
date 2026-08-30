@@ -5,7 +5,7 @@ Getting started
 
 Designing the PEtab and PEtab Select problem files
 --------------------------------------------------
-Please see to the PEtab documentation for a `guide on how to create PEtab files to describe the parameter estimation problem for a single model <https://petab.readthedocs.io/en/latest/v1/tutorial/tutorial.html>`__.
+Please see the PEtab documentation for a `guide on how to create PEtab files to describe the parameter estimation problem for a single model <https://petab.readthedocs.io/en/latest/v1/tutorial/tutorial.html>`__.
 
 Then see one of the examples for users in our documentation, for creating the PEtab Select files.
 
